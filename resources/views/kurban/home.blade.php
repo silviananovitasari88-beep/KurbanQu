@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Aulia Kost</title>
+    <title>KurbanQu</title>
     <link rel="stylesheet" href="{{ asset('css/kosan.css') }}">
 </head>
 <body>
     <header class="header">
         <div class="container">
             <div class="logo">
-                <h1>Aulia Kost</h1>
+                <h1>KurbanQu</h1>
             </div>
             <nav class="nav">
                 <a href="#home">Beranda</a>

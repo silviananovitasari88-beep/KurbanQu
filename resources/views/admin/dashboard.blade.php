@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Admin Dashboard - Kosan Aulia</title>
+    <title>Admin Dashboard - KurbanQu</title>
     <link rel="stylesheet" href="{{ asset('css/kosan.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
     <style>
@@ -17,7 +17,7 @@
     <header class="header">
         <div class="container">
             <div class="logo">
-                <h1>Kosan Aulia - Admin Panel</h1>
+                <h1>KurbanQu - Admin Panel</h1>
             </div>
             <nav class="nav">
                 <a href="{{ route('home') }}">Kembali ke Website</a>
@@ -56,7 +56,7 @@
                 {{-- DASHBOARD SECTION --}}
                 <section id="dashboard" class="admin-card {{ $section == 'dashboard' ? 'section-active' : 'hidden' }}">
                     <h1>Selamat Datang di Dashboard Admin</h1>
-                    <p>Ringkasan data kosan.</p>
+                    <p>Ringkasan data kurban.</p>
                     <div class="stat-cards">
                         <div class="stat-card">
                             <div class="stat-icon">🏠</div>
@@ -76,12 +76,12 @@
                     </div>
                     <section id="about" class="about-section">
             <div class="container">
-                <h2 class="section-title">Tentang Aulia Kost</h2>
+                <h2 class="section-title">Tentang KurbanQu</h2>
                 <div class="about-content">
-                    <p>Kosan Aulia menyediakan kost dan kamar dengan kualitas yang sama, dilengkapi dengan fasilitas lengkap untuk kenyamanan penghuni. Setiap kamar memiliki standar kualitas tinggi dengan harga terjangkau.</p>
+                    <p>KurbanQu menyediakan platform digital untuk mengelola hewan kurban dengan mudah dan aman. Setiap hewan kurban memiliki standar kualitas tinggi dengan harga terjangkau.</p>
                     <div class="location-info">
                         <h3>Lokasi Strategis</h3>
-                        <p style="margin-bottom: 1.5rem; color: var(--text-light);">Kosan Aulia berada di lokasi yang strategis dan mudah dijangkau dari berbagai kampus terkemuka di Bandung:</p>
+                        <p style="margin-bottom: 1.5rem; color: var(--text-light);">KurbanQu berada di lokasi yang strategis dan mudah dijangkau dari berbagai kampus terkemuka di Bandung:</p>
                         <div class="distance-list">
                             <div class="distance-item">
                                 <div class="distance-icon">🎓</div>
@@ -105,7 +105,7 @@
                 {{-- MANAGE ROOMS SECTION --}}
                 <section id="manage-rooms" class="admin-card {{ $section == 'manage-rooms' ? 'section-active' : 'hidden' }}">
                     <h1>Kelola Kamar</h1>
-                    <p>Kelola data kamar, status, dan harga kamar kosan.</p>
+                    <p>Kelola data kamar, status, dan harga kamar kurban.</p>
                     <div class="rooms-toolbar">
                         <button type="button" class="btn btn-primary" onclick="document.getElementById('roomModal').classList.remove('hidden')">+ Tambah Kamar Baru</button>
                     </div>

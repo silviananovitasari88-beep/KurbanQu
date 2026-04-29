@@ -1,0 +1,9 @@
+Testing... silakan akses: http://localhost/aulia_kost/
+
+1. Buka halaman web
+2. Klik "Lihat Detail" pada kamar
+3. Klik "Pesan Sekarang"
+4. Isi form booking
+5. Klik "Kirim ke WhatsApp"
+
+Jika masih error, buka Developer Console (F12) dan lihat network tab untuk detail error.

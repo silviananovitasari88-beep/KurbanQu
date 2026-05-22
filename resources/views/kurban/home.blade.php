@@ -8,8 +8,7 @@
 </head>
 <body>
 <div class="app">
-
-  <!-- ════════════════════════════════════
+   
        HALAMAN DASHBOARD (PANITIA)
   ════════════════════════════════════ -->
   <div id="pg-dashboard" class="page active" style="background:#f5f0e8;">
@@ -20,10 +19,11 @@
       <div style="position:absolute;width:90px;height:90px;background:#7a5230;border-radius:50%;bottom:-30px;right:60px;opacity:0.18;"></div>
 
       <div class="dash-hdr-logo">
-        <div style="width:36px;height:36px;border-radius:10px;background:#7a5230;display:flex;align-items:center;justify-content:center;font-size:18px;">🐐</div>
+        <img src="{{ asset('assets/img/logo.jpeg') }}" width="55">
+
         <span>KurbanQu</span>
       </div>
-      <div class="dash-hdr-title">Informasi Mudhohi dan hewan qurbnan</div>
+      <div class="dash-hdr-title">Informasi Mudhohi dan hewan qurban</div>
 
       <div class="animal-count-row">
         <!-- Chip kosong / placeholder -->
@@ -112,7 +112,7 @@
       <button class="btn-back" onclick="goto('pg-dashboard')">← Kembali</button>
       <div style="display:flex;align-items:center;gap:13px;position:relative;z-index:1;margin-bottom:18px;">
         <div style="width:46px;height:46px;border-radius:14px;background:#7a5230;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:24px;">🐐</span>
+          <img src="{{ asset('assets/img/logo.jpeg') }}" width="55">
         </div>
         <div style="font-size:21px;font-weight:800;color:#fff;">KurbanQu</div>
       </div>
@@ -132,7 +132,7 @@
           <div style="font-size:13px;color:#9a8060;text-align:center;margin-bottom:22px;line-height:1.5;">Pastikan data sesuai KK yang terdaftar</div>
           <div class="field">
             <label>Nomor Kartu Keluarga <span style="color:#d94f4f;">*</span></label>
-            <input ="text" id="inp-nkk" placeholder="Masukkan nomor KK" inputmode="numeric"  />
+            <input type="text" id="inp-nkk" placeholder="Masukkan nomor KK" />
             <div class="err-msg" id="err-nkk">Nomor KK wajib diisi</div>
           </div>
           <div class="field" style="margin-bottom:24px;">

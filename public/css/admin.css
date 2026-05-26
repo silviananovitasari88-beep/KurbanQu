@@ -603,3 +603,112 @@
     .stat-num  { font-size: 20px; }
     .logo-text { font-size: 14px; }
   }
+
+  /* Tombol FK hewan di tabel mudhohi */
+  .btn-hewan-fk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(200, 146, 42, 0.12);
+    border: 1px solid rgba(200, 146, 42, 0.35);
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold2);
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .btn-hewan-fk:hover {
+    background: rgba(200, 146, 42, 0.22);
+    border-color: var(--gold);
+    transform: translateY(-1px);
+  }
+  .btn-hewan-fk:active { transform: scale(0.98); }
+  .btn-hewan-fk-ico { font-size: 14px; line-height: 1; }
+  .btn-hewan-fk-text { color: var(--text); }
+  .btn-hewan-fk-id {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--blue);
+    background: rgba(91, 156, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .btn-hewan-fk-inline {
+    padding: 4px 10px;
+    font-size: 11px;
+    vertical-align: middle;
+  }
+
+  /* Alur penerima kurban */
+  .flow-steps {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+    min-width: 140px;
+    font-size: 12px;
+  }
+  .flow-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    border: 1px solid rgba(200, 146, 42, 0.4);
+    color: var(--gold2);
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .flow-step-desc {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .flow-step-arrow {
+    color: var(--text3);
+    font-size: 18px;
+    align-self: center;
+    opacity: 0.5;
+  }
+  .drop-zone-penerima {
+    border: 2px dashed var(--border2);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone-penerima.drag,
+  .drop-zone-penerima:hover {
+    border-color: var(--gold);
+    background: var(--gold-dim);
+  }
+  .csv-paste-penerima {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: monospace;
+    outline: none;
+    resize: vertical;
+    line-height: 1.6;
+  }

@@ -45,16 +45,13 @@
       <span class="nav-ico">🎫</span> Distribusi QR
       <span class="nav-badge" id="badge-distribusi">0</span>
     </div>
-    <div class="nav-section-label" style="margin-top:8px;">Data</div>
+    <div class="nav-section-label" style="margin-top:8px;">Penerima &amp; QR</div>
     <div class="nav-item" onclick="navTo('upload',this)">
-      <span class="nav-ico">📤</span> Upload Excel
-      <span class="nav-badge" id="badge-upload" style="display:none;background:var(--green);">✓</span>
+      <span class="nav-ico">🎫</span> Penerima Kurban
+      <span class="nav-badge" id="badge-penerima">0</span>
     </div>
     <div class="nav-item" onclick="navTo('tabel',this)">
       <span class="nav-ico">📋</span> Tabel Distribusi
-    </div>
-    <div class="nav-item" onclick="navTo('warga',this)">
-      <span class="nav-ico">🏘️</span> Data Warga
     </div>
     <div class="nav-item" onclick="navTo('rekap',this)">
       <span class="nav-ico">📈</span> Rekap & Statistik
@@ -94,14 +91,14 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">Total Hewan</div>
-          <div class="stat-num" id="s-hewan">21</div>
+          <div class="stat-num" id="s-hewan">0</div>
           <div class="stat-sub">Sapi, Kambing, Domba</div>
           <div class="stat-icon">🐾</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Total Mudhohi</div>
-          <div class="stat-num" id="s-mudhohi">35</div>
-          <div class="stat-sub">Penerima daging kurban</div>
+          <div class="stat-num" id="s-mudhohi">0</div>
+          <div class="stat-sub">Pemilik / patungan hewan</div>
           <div class="stat-icon">👥</div>
         </div>
         <div class="stat-card">
@@ -112,7 +109,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">QR Aktif</div>
-          <div class="stat-num" id="s-qr">35</div>
+          <div class="stat-num" id="s-qr">0</div>
           <div class="stat-sub">Siap discan panitia</div>
           <div class="stat-icon">🎫</div>
         </div>
@@ -205,7 +202,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>id_hewan</th>
               <th>Hewan</th>
               <th>Jenis</th>
               <th>Umur / Berat</th>
@@ -224,7 +221,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Data Mudhohi</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Daftar lengkap penerima kurban</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Pemilik hewan &amp; bagian kurban (bukan daftar login warga)</div>
         </div>
         <button class="btn btn-gold" onclick="openModalMudhohi()">+ Tambah Mudhohi</button>
       </div>
@@ -240,10 +237,12 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th>QR / ID</th>
               <th>Nama / No KK</th>
-              <th>Tipe</th>
+              <th>Alamat</th>
+              <th>No. Telp</th>
               <th>Hewan</th>
-              <th>Bagian</th>
+              <th>Bagian / Req</th>
               <th>Status</th>
               <th>Aksi</th>
             </tr>
@@ -284,7 +283,7 @@
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Distribusi QR</div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px;">Scan & verifikasi penerima daging kurban</div>
         </div>
-        <div style="font-size:13px;color:var(--text3);">Terverifikasi: <strong id="dist-count" style="color:var(--green);">0</strong> / <span id="dist-total">35</span></div>
+        <div style="font-size:13px;color:var(--text3);">Terverifikasi: <strong id="dist-count" style="color:var(--green);">0</strong> / <span id="dist-total">0</span></div>
       </div>
 
       <div class="dash-grid">
@@ -412,156 +411,132 @@
       </div>
     </div><!-- /tabel -->
 
-    <!-- ══════════════════════ UPLOAD EXCEL PAGE ══ -->
+    <!-- ══════════════════════ PENERIMA KURBAN (upload excel → login & QR) ══ -->
     <div class="page" id="pg-upload">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📤 Upload Data Excel</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Import daftar warga penerima kurban + pembeda Mudhohi / Penerima</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">🎫 Penerima Kurban</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;max-width:520px;line-height:1.6;">
+            Unggah daftar penerima daging kurban. Mereka login di aplikasi warga dengan <strong>No KK</strong> + <strong>Nama Kepala Keluarga</strong>, lalu mendapat kode QR.
+          </div>
+        </div>
+        <button class="btn btn-gold" onclick="openModalPenerima()">+ Tambah Manual</button>
+      </div>
+
+      <!-- Alur -->
+      <div class="flow-steps" style="margin-bottom:20px;">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div><strong>Admin upload Excel/CSV</strong><div class="flow-step-desc">No KK + Nama Kepala Keluarga</div></div>
+        </div>
+        <div class="flow-step-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div><strong>Konfirmasi daftar</strong><div class="flow-step-desc">Sistem buat kode QR unik</div></div>
+        </div>
+        <div class="flow-step-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div><strong>Warga login</strong><div class="flow-step-desc">Halaman depan → tampil QR</div></div>
         </div>
       </div>
 
-      <!-- Format panduan -->
-      <div class="card" style="margin-bottom:18px;border-color:rgba(200,146,42,0.2);background:linear-gradient(135deg,#1e1810,#181410);">
-        <div class="card-header"><div class="card-title">📋 Format Kolom Excel yang Diperlukan</div></div>
-        <div class="card-body">
-          <div style="overflow-x:auto;">
-            <table class="data-table" style="min-width:700px;">
-              <thead>
-                <tr>
-                  <th>No KK <span style="color:var(--red);">*</span></th>
-                  <th>Nama KK <span style="color:var(--red);">*</span></th>
-                  <th>Tipe <span style="color:var(--red);">*</span></th>
-                  <th>Hewan</th>
-                  <th>Bagian</th>
-                  <th>Alamat</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code style="font-size:11px;color:var(--blue);">3273011234567890</code></td>
-                  <td>Ahmad Hidayat</td>
-                  <td><span style="background:rgba(200,146,42,0.15);color:var(--gold2);border:1px solid rgba(200,146,42,0.3);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">mudhohi</span></td>
-                  <td>Sapi Putih No.01</td>
-                  <td>1/7 Sapi</td>
-                  <td>Kp. Cikaret RT 02</td>
-                </tr>
-                <tr>
-                  <td><code style="font-size:11px;color:var(--blue);">3273012345678901</code></td>
-                  <td>Siti Rahmawati</td>
-                  <td><span style="background:rgba(78,203,113,0.12);color:var(--green);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">penerima</span></td>
-                  <td>Sapi Putih No.01</td>
-                  <td>2/7 Sapi</td>
-                  <td>RT 01/02</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.8;">
-            <strong style="color:var(--gold2);">Kolom Tipe:</strong> isi dengan <code style="background:var(--bg4);padding:1px 6px;border-radius:4px;color:var(--gold2);">mudhohi</code> untuk pemilik hewan kurban,
-            atau <code style="background:var(--bg4);padding:1px 6px;border-radius:4px;color:var(--green);">penerima</code> untuk penerima daging biasa.
-            Jika kolom tipe dikosongkan, sistem akan otomatis menganggap sebagai <strong style="color:var(--green);">penerima</strong>.
-          </div>
-        </div>
-      </div>
+      <div id="penerima-stat-chips" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;"></div>
 
-      <!-- Upload area -->
       <div class="dash-grid">
         <div>
           <div class="card" style="margin-bottom:18px;">
-            <div class="card-header"><div class="card-title">📂 Import File Excel / CSV</div></div>
+            <div class="card-header"><div class="card-title">📂 Upload Excel / CSV</div></div>
             <div class="card-body">
-              <div id="drop-zone" style="border:2px dashed var(--border2);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;"
-                onclick="document.getElementById('excel-input').click()"
-                ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gold-dim)'"
-                ondragleave="this.style.borderColor='var(--border2)';this.style.background=''"
-                ondrop="handleFileDrop(event)">
-                <div style="font-size:36px;margin-bottom:10px;">📊</div>
-                <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;">Klik atau drag & drop file di sini</div>
-                <div style="font-size:12px;color:var(--text3);">Format: .xlsx, .xls, .csv — Maks. 10MB</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7;">
+                Simpan file Excel sebagai <strong>CSV UTF-8</strong>. Hanya 2 kolom wajib; kolom alamat &amp; telepon opsional.
               </div>
-              <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFileSelect(this)"/>
+              <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:14px;font-family:monospace;font-size:11px;color:var(--text2);line-height:1.8;">
+                No KK,Nama Kepala Keluarga,Alamat,No Telp<br>
+                3273011234567890,Ahmad Hidayat,Kp. Cikaret,0812xxxx<br>
+                3273012345678901,Siti Rahmawati,RT 01/02,0857xxxx
+              </div>
+              <div id="drop-zone" class="drop-zone-penerima"
+                onclick="document.getElementById('excel-input').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')"
+                ondrop="handleFileDrop(event)">
+                <div style="font-size:32px;margin-bottom:8px;">📊</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau seret file CSV ke sini</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:6px;">.csv disarankan · .xlsx simpan dulu sebagai CSV</div>
+              </div>
+              <input type="file" id="excel-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleFileSelect(this)"/>
 
-              <!-- Manual input alternatif -->
-              <div style="text-align:center;color:var(--text3);font-size:12px;margin-bottom:16px;">— atau input manual paste CSV —</div>
-              <textarea id="csv-paste" rows="6" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;font-size:11px;color:var(--text2);font-family:monospace;outline:none;resize:vertical;line-height:1.6;" placeholder="Paste data CSV di sini:
-No KK,Nama KK,Tipe,Hewan,Bagian,Alamat
-3273011234567890,Ahmad Hidayat,mudhohi,Sapi Putih No.01,1/7,Kp. Cikaret
-3273012345678901,Siti Rahmawati,penerima,Sapi Putih No.01,2/7,RT 01/02"></textarea>
+              <div style="text-align:center;color:var(--text3);font-size:11px;margin:16px 0;">atau paste CSV</div>
+              <textarea id="csv-paste" rows="5" class="csv-paste-penerima" placeholder="No KK,Nama Kepala Keluarga,Alamat,No Telp&#10;3273011234567890,Ahmad Hidayat,,&#10;3273012345678901,Siti Rahmawati,,"></textarea>
+
+              <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="radio" name="import-mode" value="append" checked/> Tambah ke daftar
+                </label>
+                <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="radio" name="import-mode" value="replace"/> Ganti seluruh daftar
+                </label>
+              </div>
               <div style="display:flex;gap:10px;margin-top:12px;">
-                <button class="btn btn-gold" style="flex:1;" onclick="parseCSVPaste()">🔍 Proses & Preview</button>
-                <button class="btn btn-ghost" onclick="clearImport()">✕ Bersihkan</button>
+                <button class="btn btn-gold" style="flex:1;" onclick="parseCSVPaste()">🔍 Proses &amp; Preview</button>
+                <button class="btn btn-ghost" onclick="clearImport()">Bersihkan</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Preview panel -->
         <div>
           <div class="card">
             <div class="card-header">
-              <div class="card-title">👁 Preview Data</div>
+              <div class="card-title">👁 Preview sebelum simpan</div>
               <div id="preview-stats" style="font-size:12px;color:var(--text3);"></div>
             </div>
-            <div id="preview-content" style="max-height:420px;overflow-y:auto;">
-              <div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>
+            <div id="preview-content" style="max-height:380px;overflow-y:auto;">
+              <div class="empty-state"><div class="empty-ico">📋</div>Preview muncul setelah file diproses</div>
             </div>
             <div id="preview-actions" style="padding:16px;border-top:1px solid var(--border);display:none;">
-              <button class="btn btn-gold btn-lg" style="width:100%;" onclick="importConfirm()">✓ Konfirmasi Import ke Sistem</button>
-              <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;">Data yang diimport akan menggantikan/menambah daftar warga yang ada</div>
+              <button class="btn btn-gold btn-lg" style="width:100%;" onclick="importConfirm()">✓ Aktifkan sebagai Penerima (boleh login)</button>
+              <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;">Setelah ini, warga bisa login dengan No KK &amp; nama yang sama</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Daftar warga terimpor -->
-      <div class="card" style="margin-top:18px;" id="imported-list-card" style="display:none;">
+      <div class="card" style="margin-top:18px;" id="imported-list-card">
         <div class="card-header">
-          <div class="card-title">✅ Daftar Warga Terimpor</div>
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div class="card-title">✅ Daftar Penerima Terdaftar</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <span id="imported-count" style="font-size:12px;color:var(--text3);"></span>
             <button class="btn btn-outline btn-sm" onclick="exportImportedCSV()">⬇ Export CSV</button>
           </div>
         </div>
+        <div class="search-box" style="margin:0 16px 12px;max-width:320px;">
+          <span style="color:var(--text3);">🔍</span>
+          <input type="text" id="penerima-search" placeholder="Cari No KK atau nama..." oninput="renderPenerimaTable()"/>
+        </div>
         <div style="overflow-x:auto;">
-          <table class="data-table" style="min-width:700px;">
+          <table class="data-table" style="min-width:640px;">
             <thead>
               <tr>
                 <th>#</th>
                 <th>No KK</th>
-                <th>Nama KK</th>
-                <th>Tipe</th>
-                <th>Hewan</th>
-                <th>Bagian</th>
+                <th>Nama Kepala Keluarga</th>
+                <th>Kode QR</th>
                 <th>Alamat</th>
+                <th>No. Telp</th>
+                <th>Status</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="imported-table-body"></tbody>
           </table>
         </div>
+        <div id="penerima-empty" class="empty-state" style="display:none;padding:24px;">
+          <div class="empty-ico">🎫</div>Belum ada penerima. Upload Excel atau tambah manual.
+        </div>
       </div>
     </div><!-- /upload -->
-
-    <!-- ══════════════════════ WARGA PAGE ══ -->
-    <div class="page" id="pg-warga">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Data Warga</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Informasi lengkap per warga / penerima</div>
-        </div>
-        <button class="btn btn-gold" onclick="openModalMudhohi()">+ Tambah Warga</button>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <div class="search-box" style="flex:1;max-width:300px;">
-          <span style="color:var(--text3);">🔍</span>
-          <input type="text" id="warga-search" placeholder="Cari nama / alamat..." oninput="renderWargaList()"/>
-        </div>
-      </div>
-
-      <div class="dash-grid" id="warga-grid"></div>
-    </div><!-- /warga -->
 
     <!-- ══════════════════════ REKAP PAGE ══ -->
     <div class="page" id="pg-rekap">
@@ -574,6 +549,41 @@ No KK,Nama KK,Tipe,Hewan,Bagian,Alamat
 
   </div><!-- /content -->
 </main>
+
+<!-- ─── MODAL: TAMBAH PENERIMA KURBAN ───────────── -->
+<div class="modal-overlay" id="modal-penerima">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎫 Tambah Penerima Kurban</div>
+      <button class="modal-close" onclick="closeModal('modal-penerima')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 16px;line-height:1.6;">Data ini dipakai warga saat login di halaman depan untuk mendapatkan QR.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>No. KK <span style="color:var(--red);">*</span></label>
+        <input type="text" id="p-nkk" placeholder="16 digit nomor KK"/>
+      </div>
+      <div class="form-group">
+        <label>Nama Kepala Keluarga <span style="color:var(--red);">*</span></label>
+        <input type="text" id="p-nama" placeholder="Sesuai KK"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Alamat <span style="font-size:10px;color:var(--text3);">(opsional)</span></label>
+        <input type="text" id="p-alamat" placeholder="RT/RW, desa"/>
+      </div>
+      <div class="form-group">
+        <label>No. Telepon <span style="font-size:10px;color:var(--text3);">(opsional)</span></label>
+        <input type="text" id="p-telp" placeholder="08xxxxxxxxxx"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-penerima')">Batal</button>
+      <button class="btn btn-gold btn-lg" onclick="submitPenerimaManual()">Simpan Penerima</button>
+    </div>
+  </div>
+</div>
 
 <!-- ─── MODAL: TAMBAH HEWAN ─────────────────────── -->
 <div class="modal-overlay" id="modal-hewan">
@@ -607,18 +617,33 @@ No KK,Nama KK,Tipe,Hewan,Bagian,Alamat
         <input type="text" id="h-berat" placeholder="Contoh: ±35 kg"/>
       </div>
     </div>
-    <div class="form-group">
-      <label>Alamat / Kandang</label>
-      <input type="text" id="h-alamat" placeholder="Alamat kandang atau pemilik"/>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Sehat? *</label>
+        <select id="h-sehat">
+          <option value="Ya">Ya — Sehat</option>
+          <option value="Tidak">Tidak — Tidak Sehat</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cacat? *</label>
+        <select id="h-cacat">
+          <option value="Tidak">Tidak ada cacat</option>
+          <option value="Ada">Ada cacat</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>No. Telp Pemilik</label>
-        <input type="text" id="h-telp" placeholder="08xx-xxxx-xxxx"/>
+        <label>Sesuai Syariat? *</label>
+        <select id="h-syariat">
+          <option value="Sah">Sah — Sesuai syariat</option>
+          <option value="Tidak Sah">Tidak Sah</option>
+        </select>
       </div>
       <div class="form-group">
-        <label>Kondisi / Catatan</label>
-        <input type="text" id="h-catatan" placeholder="Sehat, ada cacat, dll"/>
+        <label>Keterangan Cacat</label>
+        <input type="text" id="h-cacat-ket" placeholder="Isi jika ada cacat (mata, kaki, dll)"/>
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
@@ -641,30 +666,52 @@ No KK,Nama KK,Tipe,Hewan,Bagian,Alamat
         <input type="text" id="m-nama" placeholder="Nama lengkap mudhohi"/>
       </div>
       <div class="form-group">
-        <label>No. KK</label>
-        <input type="text" id="m-nkk" placeholder="16 digit nomor KK"/>
+        <label>Nama Ayah</label>
+        <input type="text" id="m-ayah" placeholder="Nama ayah / bin"/>
       </div>
     </div>
     <div class="form-row">
+      <div class="form-group">
+        <label>No. KK</label>
+        <input type="text" id="m-nkk" placeholder="16 digit nomor KK"/>
+      </div>
       <div class="form-group">
         <label>No. Telepon</label>
         <input type="text" id="m-telp" placeholder="08xx-xxxx-xxxx"/>
       </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
-        <label>Hewan Kurban *</label>
-        <select id="m-hewan"></select>
+        <label>Jenis Hewan (enum) *</label>
+        <select id="m-jenis" onchange="filterMudhohiHewanSelect()">
+          <option value="">Pilih jenis</option>
+          <option value="sapi">🐄 Sapi</option>
+          <option value="kambing">🐐 Kambing</option>
+          <option value="domba">🐑 Domba</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Hewan FK (id_hewan) *</label>
+        <select id="m-hewan" disabled>
+          <option value="">— Pilih jenis hewan terlebih dahulu —</option>
+        </select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label>Req Bagian</label>
+        <input type="text" id="m-req" placeholder="Contoh: 1/7 sapi, dada, paha"/>
+      </div>
+      <div class="form-group">
         <label>Bagian</label>
         <input type="text" id="m-bagian" placeholder="Contoh: 1/7 atau kurban penuh"/>
       </div>
-      <div class="form-group">
-        <label>Alamat</label>
-        <input type="text" id="m-alamat" placeholder="RT/RW, Desa"/>
-      </div>
     </div>
+    <div class="form-group">
+      <label>Alamat</label>
+      <input type="text" id="m-alamat" placeholder="RT/RW, Desa"/>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin:-4px 0 12px;">QR code otomatis dibuat dari <strong style="color:var(--gold2);">id_mudhohi</strong> setelah disimpan.</p>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
       <button class="btn btn-outline" onclick="closeModal('modal-mudhohi')">Batal</button>
       <button class="btn btn-gold btn-lg" onclick="submitMudhohi()">Simpan Mudhohi</button>
@@ -683,6 +730,7 @@ No KK,Nama KK,Tipe,Hewan,Bagian,Alamat
   </div>
 </div>
 
+<script src="{{ asset('js/warga-login.js') }}"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
 </body>
 </html>

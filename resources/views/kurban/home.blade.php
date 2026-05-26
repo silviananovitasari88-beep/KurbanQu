@@ -129,7 +129,7 @@
       <div style="padding:22px 20px 36px;">
         <div class="card">
           <div style="font-size:17px;font-weight:800;color:#3d2510;text-align:center;margin-bottom:4px;">Verifikasi data diri</div>
-          <div style="font-size:13px;color:#9a8060;text-align:center;margin-bottom:22px;line-height:1.5;">Pastikan data sesuai KK yang terdaftar</div>
+          <div style="font-size:13px;color:#9a8060;text-align:center;margin-bottom:22px;line-height:1.5;">Masukkan <strong>No KK</strong> dan <strong>Nama Kepala Keluarga</strong> sesuai data yang didaftarkan panitia kurban</div>
           <div class="field">
             <label>Nomor Kartu Keluarga <span style="color:#d94f4f;">*</span></label>
             <input type="text" id="inp-nkk" placeholder="Masukkan nomor KK" />
@@ -198,8 +198,9 @@
           </div>
         </div>
 
-        <div id="qr-nama" style="font-size:18px;font-weight:800;color:#3d2510;">Silviana Novita Sari</div>
-        <div id="qr-nkk"  style="font-size:13px;color:#9a8060;margin-top:4px;font-weight:500;">3273010101234567</div>
+        <div id="qr-kode" style="font-family:monospace;font-size:15px;font-weight:800;color:#c8922a;letter-spacing:2px;margin-bottom:10px;">P00001</div>
+        <div id="qr-nama" style="font-size:18px;font-weight:800;color:#3d2510;">—</div>
+        <div id="qr-nkk"  style="font-size:13px;color:#9a8060;margin-top:4px;font-weight:500;">—</div>
 
         <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;background:#fff8e8;border:1.5px solid #f5d080;border-radius:20px;font-size:12px;color:#854f0b;font-weight:600;">
           <span style="font-size:15px;">🕐</span> Menunggu pengambilan
@@ -354,6 +355,7 @@
 
 </div>
 
+<script src="{{ asset('js/warga-login.js') }}"></script>
 <script src="{{ asset('js/kurban.js') }}"></script>
 </body>
 </html>

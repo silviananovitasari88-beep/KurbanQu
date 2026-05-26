@@ -11,9 +11,19 @@ class Hewan extends Model
     protected $table = 'hewan';
     protected $primaryKey = 'id_hewan';
 
+    /** @var list<string> enum jenis hewan */
+    public const JENIS = ['sapi', 'kambing', 'domba'];
+
     protected $fillable = [
-        'jenis', 'sehat', 'cacat', 'umur', 
-        'st_syariat', 'admin_id_admin', 'tracking_id_tracking'
+        'jenis', 'label', 'sehat', 'cacat', 'cacat_ket', 'umur',
+        'st_syariat', 'berat',
+        'admin_id_admin', 'tracking_id_tracking',
+    ];
+
+    protected $casts = [
+        'sehat' => 'string',
+        'cacat' => 'string',
+        'st_syariat' => 'string',
     ];
 
     public function admin(): BelongsTo {

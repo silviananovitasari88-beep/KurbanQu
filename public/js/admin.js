@@ -9,33 +9,165 @@ const TIMELINE = [
     { label:'Siap Diambil',  desc:'Distribusi QR akan dimulai setelah proses penimbangan selesai.', status:'pending', time:'~10:30 WIB', icon:'✅' },
   ];
   
-  const ANIMALS = {
-    sapi: [
-      { id:'S01', emoji:'🐄', label:'Sapi Putih No.01', jenis:'Sapi', umur:'3 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±230 kg', alamat:'Kp. Cikaret RT 02/03', notelp:'0812-xxxx-1234', reqBagian:'7 bagian',
-        mudhohi:[{i:'AH',nama:'Ahmad Hidayat',bagian:'1/7',warna:'brown',tipe:'mudhohi',nkk:'3273011234567890'},{i:'SR',nama:'Siti Rahmawati',bagian:'2/7',warna:'green',tipe:'penerima',nkk:'3273012345678901'},{i:'BU',nama:'Budi Utomo',bagian:'3/7',warna:'amber',tipe:'penerima',nkk:'3273013456789012'},{i:'RN',nama:'Rina Nuraini',bagian:'4/7',warna:'purple',tipe:'penerima',nkk:'3273014567890123'},{i:'MS',nama:'Maman Suparman',bagian:'5/7',warna:'brown',tipe:'penerima',nkk:'3273015500000001'},{i:'DF',nama:'Dewi Fitriani',bagian:'6/7',warna:'green',tipe:'penerima',nkk:'3273015500000002'},{i:'YP',nama:'Yusuf Pratama',bagian:'7/7',warna:'amber',tipe:'penerima',nkk:'3273015500000003'}]},
-      { id:'S02', emoji:'🐄', label:'Sapi Hitam No.02', jenis:'Sapi', umur:'4 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±250 kg', alamat:'Jl. Mawar No.7 RT 01/04', notelp:'0821-xxxx-5678', reqBagian:'7 bagian',
-        mudhohi:[{i:'HM',nama:'Hendra Maulana',bagian:'1/7',warna:'amber',tipe:'mudhohi',nkk:'3273016789012345'},{i:'NR',nama:'Nurul Rizki',bagian:'2/7',warna:'purple',tipe:'penerima',nkk:'3273017890123456'},{i:'AS',nama:'Agus Santoso',bagian:'3/7',warna:'brown',tipe:'penerima',nkk:'3273018001000001'},{i:'LW',nama:'Lilis Wulandari',bagian:'4/7',warna:'green',tipe:'penerima',nkk:'3273018001000002'},{i:'FZ',nama:'Fajar Zulkifli',bagian:'5/7',warna:'amber',tipe:'penerima',nkk:'3273018001000003'},{i:'TH',nama:'Tini Hartati',bagian:'6/7',warna:'brown',tipe:'penerima',nkk:'3273018001000004'},{i:'RP',nama:'Rizal Permana',bagian:'7/7',warna:'purple',tipe:'penerima',nkk:'3273018001000005'}]},
-    ],
-    kambing: [
-      { id:'K01', emoji:'🐐', label:'Kambing No.01', jenis:'Kambing Jawa', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±32 kg', alamat:'Kp. Babakan RT 03/05', notelp:'0838-xxxx-0011', reqBagian:'1 bagian', mudhohi:[{i:'DN',nama:'Drs. Haji Nurdian',warna:'amber',tipe:'mudhohi',nkk:'3273015678901234'}]},
-      { id:'K02', emoji:'🐐', label:'Kambing No.02', jenis:'Kambing PE',   umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±35 kg', alamat:'Jl. Kenanga No.3', notelp:'0857-xxxx-2233', reqBagian:'1 bagian', mudhohi:[{i:'FH',nama:'Fitri Handayani',warna:'brown',tipe:'penerima',nkk:'3273018901234567'}]},
-      { id:'K03', emoji:'🐐', label:'Kambing No.03', jenis:'Kambing Boer',  umur:'3 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±40 kg', alamat:'Perum Griya Asri Blok B2', notelp:'0812-xxxx-4455', reqBagian:'1 bagian', mudhohi:[{i:'ZA',nama:'Zainal Abidin',warna:'green',tipe:'mudhohi',nkk:'3273019012345678'}]},
-      { id:'K04', emoji:'🐐', label:'Kambing No.04', jenis:'Kambing Jawa',  umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±30 kg', alamat:'RT 04 RW 02', notelp:'0877-xxxx-6677', reqBagian:'1 bagian', mudhohi:[{i:'ML',nama:'Mulyadi',warna:'purple',tipe:'mudhohi',nkk:'3273019200000001'}]},
-      { id:'K05', emoji:'🐐', label:'Kambing No.05', jenis:'Kambing Kacang',umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Mata kiri', berat:'±28 kg', alamat:'Kp. Sindangjaya', notelp:'0821-xxxx-8899', reqBagian:'1 bagian', mudhohi:[{i:'IS',nama:'Ibu Sumiati',warna:'brown',tipe:'mudhohi',nkk:'3273019200000002'}]},
-      { id:'K06', emoji:'🐐', label:'Kambing No.06', jenis:'Kambing PE',    umur:'3 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±38 kg', alamat:'Jl. Merdeka Blok C', notelp:'0856-xxxx-0012', reqBagian:'1 bagian', mudhohi:[{i:'RJ',nama:'Rudi Juanda',warna:'green',tipe:'mudhohi',nkk:'3273019200000003'}]},
-      { id:'K07', emoji:'🐐', label:'Kambing No.07', jenis:'Kambing Boer',  umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±36 kg', alamat:'RT 01/07 Desa Sukamaju', notelp:'0899-xxxx-3344', reqBagian:'1 bagian', mudhohi:[{i:'SA',nama:'Samsul Arifin',warna:'amber',tipe:'mudhohi',nkk:'3273019200000004'}]},
-    ],
-    domba: [
-      { id:'D01', emoji:'🐑', label:'Domba No.01', jenis:'Domba Garut', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±28 kg', alamat:'Kp. Cikaret Hilir', notelp:'0813-xxxx-5566', reqBagian:'1 bagian', mudhohi:[{i:'MP',nama:'Muhamad Prayogo',warna:'purple',tipe:'mudhohi',nkk:'3273010011223344'}]},
-      { id:'D02', emoji:'🐑', label:'Domba No.02', jenis:'Domba Garut', umur:'3 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±30 kg', alamat:'Jl. Anggrek No.5', notelp:'0812-xxxx-7788', reqBagian:'1 bagian', mudhohi:[{i:'IK',nama:'Ibu Komariah',warna:'brown',tipe:'penerima',nkk:'3273011122334455'}]},
-      { id:'D03', emoji:'🐑', label:'Domba No.03', jenis:'Domba Lokal', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±26 kg', alamat:'RT 06/02 Blok Timur', notelp:'0878-xxxx-9900', reqBagian:'1 bagian', mudhohi:[{i:'AB',nama:'Agus Budiman',warna:'green',tipe:'penerima',nkk:'3273020000000001'}]},
-      { id:'D04', emoji:'🐑', label:'Domba No.04', jenis:'Domba Garut', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±29 kg', alamat:'Perum Bukit Indah No.12', notelp:'0838-xxxx-1122', reqBagian:'1 bagian', mudhohi:[{i:'YL',nama:'Yuli Lestari',warna:'amber',tipe:'penerima',nkk:'3273012233445566'}]},
-      { id:'D05', emoji:'🐑', label:'Domba No.05', jenis:'Domba Lokal', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±25 kg', alamat:'Gang Masjid No.3', notelp:'0857-xxxx-3344', reqBagian:'1 bagian', mudhohi:[{i:'DK',nama:'Dadang Kurnia',warna:'purple',tipe:'penerima',nkk:'3273020000000002'}]},
-      { id:'D06', emoji:'🐑', label:'Domba No.06', jenis:'Domba Garut', umur:'3 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±32 kg', alamat:'Kp. Warungdowo', notelp:'0812-xxxx-5566', reqBagian:'1 bagian', mudhohi:[{i:'NH',nama:'Nining Hernawati',warna:'brown',tipe:'penerima',nkk:'3273013344556677'}]},
-      { id:'D07', emoji:'🐑', label:'Domba No.07', jenis:'Domba Lokal', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±24 kg', alamat:'RT 03/05 Desa Tanjung', notelp:'0821-xxxx-7788', reqBagian:'1 bagian', mudhohi:[{i:'HF',nama:'Hendra Firmansyah',warna:'green',tipe:'penerima',nkk:'3273020000000003'}]},
-      { id:'D08', emoji:'🐑', label:'Domba No.08', jenis:'Domba Garut', umur:'2 Tahun', sehat:'✓ Sehat', syariat:'✓ Sah', cacat:'Tidak ada', berat:'±27 kg', alamat:'Blok D No.9 Perumahan', notelp:'0877-xxxx-9900', reqBagian:'1 bagian', mudhohi:[{i:'SN',nama:'Siti Nurhasanah',warna:'amber',tipe:'penerima',nkk:'3273020000000004'}]},
-    ],
+  const STORAGE_HEWAN = 'kurbanqu_hewan';
+  const STORAGE_MUDHOHI = 'kurbanqu_mudhohi';
+  const STORAGE_MUDHOHI_ID = 'kurbanqu_next_mudhohi_id';
+  const STORAGE_HEWAN_ID = 'kurbanqu_next_hewan_id';
+  const STORAGE_LEGACY_ANIMALS = 'kurbanqu_animals';
+  const STORAGE_MIGRATED = 'kurbanqu_migrated_v2';
+
+  const JENIS_HEWAN = {
+    sapi:    { emoji: '🐄', label: 'Sapi' },
+    kambing: { emoji: '🐐', label: 'Kambing' },
+    domba:   { emoji: '🐑', label: 'Domba' },
   };
+
+  function loadHewan() {
+    try {
+      const raw = localStorage.getItem(STORAGE_HEWAN);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    return [];
+  }
+
+  function loadMudhohiList() {
+    try {
+      const raw = localStorage.getItem(STORAGE_MUDHOHI);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    return [];
+  }
+
+  let HEWAN = loadHewan();
+  let MUDHOHI = loadMudhohiList();
+  let nextMudhohiId = 1;
+  let nextHewanId = 1;
+
+  function saveStore() {
+    localStorage.setItem(STORAGE_HEWAN, JSON.stringify(HEWAN));
+    localStorage.setItem(STORAGE_MUDHOHI, JSON.stringify(MUDHOHI));
+  }
+
+  function saveNextMudhohiId() {
+    localStorage.setItem(STORAGE_MUDHOHI_ID, String(nextMudhohiId));
+  }
+
+  function saveNextHewanId() {
+    localStorage.setItem(STORAGE_HEWAN_ID, String(nextHewanId));
+  }
+
+  function migrateLegacyAnimals() {
+    if (localStorage.getItem(STORAGE_MIGRATED)) return;
+    const raw = localStorage.getItem(STORAGE_LEGACY_ANIMALS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_MIGRATED, '1');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      let hid = 1;
+      const hewan = [];
+      const mudhohi = [];
+      ['sapi', 'kambing', 'domba'].forEach(jenis => {
+        (parsed[jenis] || []).forEach(a => {
+          const id_hewan = hid++;
+          const sehatStr = (a.sehat || '').toString();
+          const syariatStr = (a.syariat || '').toString();
+          const cacatStr = (a.cacat || 'Tidak ada').toString();
+          hewan.push({
+            id_hewan,
+            jenis,
+            label: a.label || `${JENIS_HEWAN[jenis].label} #${id_hewan}`,
+            umur: a.umur || '—',
+            sehat: sehatStr.includes('Tidak') ? 'Tidak' : 'Ya',
+            cacat: cacatStr === 'Tidak ada' ? 'Tidak' : 'Ada',
+            cacat_ket: cacatStr,
+            st_syariat: syariatStr.includes('Tidak') ? 'Tidak Sah' : 'Sah',
+            berat: a.berat || '—',
+          });
+          (a.mudhohi || []).forEach(m => {
+            mudhohi.push({
+              ...m,
+              hewan_id_hewan: id_hewan,
+            });
+            delete mudhohi[mudhohi.length - 1].tipe;
+          });
+        });
+      });
+      if (hewan.length) {
+        HEWAN = hewan;
+        MUDHOHI = mudhohi;
+        saveStore();
+      }
+    } catch (e) { /* ignore */ }
+    localStorage.setItem(STORAGE_MIGRATED, '1');
+  }
+
+  function initDataIds() {
+    migrateLegacyAnimals();
+    let maxH = 0;
+    HEWAN.forEach(h => { if (h.id_hewan > maxH) maxH = h.id_hewan; });
+    let maxM = 0;
+    MUDHOHI.forEach(m => {
+      if (m.id_mudhohi > maxM) maxM = m.id_mudhohi;
+      delete m.tipe;
+      if (!m.hewan_id_hewan && m.animalId) {
+        const legacy = HEWAN.find(h => String(h.id_hewan) === String(m.animalId) || h.label === m.animalLabel);
+        if (legacy) m.hewan_id_hewan = legacy.id_hewan;
+      }
+    });
+    const storedH = parseInt(localStorage.getItem(STORAGE_HEWAN_ID) || '0', 10);
+    const storedM = parseInt(localStorage.getItem(STORAGE_MUDHOHI_ID) || '0', 10);
+    nextHewanId = Math.max(maxH + 1, storedH || 1);
+    nextMudhohiId = Math.max(maxM + 1, storedM || 1);
+    let changed = false;
+    MUDHOHI.forEach(m => {
+      if (!m.id_mudhohi) { m.id_mudhohi = nextMudhohiId++; changed = true; }
+      if (!m.hewan_id_hewan && HEWAN[0]) { m.hewan_id_hewan = HEWAN[0].id_hewan; changed = true; }
+    });
+    let hewanChanged = false;
+    HEWAN.forEach(h => {
+      if ('alamat' in h) { delete h.alamat; hewanChanged = true; }
+      if ('notelp' in h) { delete h.notelp; hewanChanged = true; }
+    });
+    if (changed || hewanChanged) saveStore();
+    saveNextHewanId();
+    saveNextMudhohiId();
+  }
+
+  function getHewanById(id) {
+    return HEWAN.find(h => String(h.id_hewan) === String(id));
+  }
+
+  function hewanDisplay(h) {
+    if (!h) return { emoji: '🐾', jenisLabel: '—', label: '—' };
+    const meta = JENIS_HEWAN[h.jenis] || { emoji: '🐾', label: h.jenis };
+    return { emoji: meta.emoji, jenisLabel: meta.label, label: h.label };
+  }
+
+  function filterMudhohiHewanSelect() {
+    const jenis = document.getElementById('m-jenis')?.value || '';
+    const sel = document.getElementById('m-hewan');
+    if (!sel) return;
+    if (!jenis) {
+      sel.innerHTML = '<option value="">— Pilih jenis hewan terlebih dahulu —</option>';
+      sel.disabled = true;
+      return;
+    }
+    const list = HEWAN.filter(h => h.jenis === jenis);
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">-- Pilih Hewan (id_hewan) --</option>' +
+      list.map(h => `<option value="${h.id_hewan}">#${h.id_hewan} · ${h.label}</option>`).join('') +
+      (list.length ? '' : '<option value="" disabled>Belum ada hewan jenis ini — tambah di Data Hewan</option>');
+  }
+
+  function mudhohiKey(m) {
+    return String(m.id_mudhohi);
+  }
+
+  function qrIdMudhohi(m) {
+    return String(m.id_mudhohi);
+  }
   
   // avatar color map
   const AVC = {
@@ -59,14 +191,52 @@ const TIMELINE = [
   // HELPERS
   // ═══════════════════════════════════════════
   function getAllAnimals() {
-    return [...ANIMALS.sapi, ...ANIMALS.kambing, ...ANIMALS.domba];
-  }
-  function getAllMudhohi() {
-    const list = [];
-    getAllAnimals().forEach(a => {
-      a.mudhohi.forEach(m => list.push({ ...m, animalId: a.id, animalLabel: a.label, animalEmoji: a.emoji, animalType: a.id.startsWith('S') ? 'sapi' : a.id.startsWith('K') ? 'kambing' : 'domba', tipe: m.tipe || 'penerima', nkk: m.nkk || '' }));
+    return HEWAN.map(h => {
+      const d = hewanDisplay(h);
+      const mh = MUDHOHI.filter(m => m.hewan_id_hewan === h.id_hewan);
+      return {
+        id: String(h.id_hewan),
+        id_hewan: h.id_hewan,
+        emoji: d.emoji,
+        label: h.label,
+        jenis: h.jenis,
+        jenisLabel: d.jenisLabel,
+        umur: h.umur,
+        sehat: h.sehat === 'Ya' ? '✓ Sehat' : '✗ Tidak Sehat',
+        syariat: h.st_syariat === 'Sah' ? '✓ Sah' : '✗ Tidak Sah',
+        cacat: h.cacat === 'Tidak' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
+        berat: h.berat,
+        sehatRaw: h.sehat,
+        cacatRaw: h.cacat,
+        st_syariat: h.st_syariat,
+        mudhohi: mh,
+      };
     });
-    return list;
+  }
+
+  function getAllMudhohi() {
+    return MUDHOHI.map(m => {
+      const h = getHewanById(m.hewan_id_hewan);
+      const d = hewanDisplay(h);
+      return {
+        ...m,
+        hewan_id_hewan: m.hewan_id_hewan,
+        animalId: h ? String(h.id_hewan) : '',
+        animalLabel: h?.label || '—',
+        animalEmoji: d.emoji,
+        animalType: h?.jenis || '',
+        jenisLabel: d.jenisLabel,
+        nkk: m.nkk || '',
+        nama_ayah: m.nama_ayah || '',
+        alamat: m.alamat || '',
+        notelp: m.notelp || '',
+        req: m.req || '',
+      };
+    });
+  }
+
+  function findMudhohi(idMudhohi) {
+    return getAllMudhohi().find(m => String(m.id_mudhohi) === String(idMudhohi));
   }
   function animalStatus(a) {
     const doneIdx = TIMELINE.findIndex(t => t.status === 'active');
@@ -85,12 +255,11 @@ const TIMELINE = [
   const PAGE_TITLES = {
     dashboard:  ['Dashboard Admin', 'Sistem Informasi Distribusi Kurban Berbasis QR'],
     hewan:      ['Data Hewan Kurban', 'Kelola data hewan kurban 1446 H'],
-    mudhohi:    ['Data Mudhohi', 'Daftar penerima daging kurban'],
+    mudhohi:    ['Data Mudhohi', 'Pemilik hewan & bagian — terpisah dari login penerima'],
     tracking:   ['Live Tracking', 'Update status proses kurban real-time'],
     distribusi: ['Distribusi QR', 'Scan & verifikasi penerima daging kurban'],
-    upload:     ['Upload Data Excel', 'Import daftar warga penerima kurban dari file Excel'],
+    upload:     ['Penerima Kurban', 'Upload Excel → login warga (No KK + Nama) → kode QR'],
     tabel:      ['Tabel Distribusi', 'Rekap lengkap status distribusi per penerima'],
-    warga:      ['Data Warga', 'Informasi lengkap per warga / penerima'],
     rekap:      ['Rekap & Statistik', 'Ringkasan pelaksanaan kurban 1446 H'],
   };
   
@@ -109,9 +278,8 @@ const TIMELINE = [
     if (page === 'mudhohi')    renderMudhohiTable();
     if (page === 'tracking')   renderTracking();
     if (page === 'distribusi') { renderScanList(); updateDistStats(); }
-    if (page === 'upload')     renderImportedTable();
+    if (page === 'upload')     renderPenerimaPage();
     if (page === 'tabel')      renderTabelDistribusi();
-    if (page === 'warga')      renderWargaList();
     if (page === 'rekap')      renderRekap();
   }
   
@@ -133,15 +301,14 @@ const TIMELINE = [
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
   function openModalHewan() {
-    ['h-jenis','h-label','h-umur','h-berat','h-alamat','h-telp','h-catatan'].forEach(i => { const e=document.getElementById(i); if(e) e.value=''; });
+    ['h-jenis','h-label','h-umur','h-berat','h-cacat-ket'].forEach(i => { const e=document.getElementById(i); if(e) e.value=''; });
+    const defs = { 'h-sehat':'Ya', 'h-cacat':'Tidak', 'h-syariat':'Sah' };
+    Object.entries(defs).forEach(([id, val]) => { const e=document.getElementById(id); if(e) e.value=val; });
     openModal('modal-hewan');
   }
   function openModalMudhohi() {
-    ['m-nama','m-nkk','m-telp','m-bagian','m-alamat'].forEach(i => { const e=document.getElementById(i); if(e) e.value=''; });
-    // populate hewan select
-    const sel = document.getElementById('m-hewan');
-    sel.innerHTML = '<option value="">-- Pilih Hewan --</option>' +
-      getAllAnimals().map(a => `<option value="${a.id}">${a.emoji} ${a.label}</option>`).join('');
+    ['m-nama','m-nkk','m-ayah','m-telp','m-bagian','m-req','m-alamat','m-jenis'].forEach(i => { const e=document.getElementById(i); if(e) e.value=''; });
+    filterMudhohiHewanSelect();
     openModal('modal-mudhohi');
   }
   
@@ -168,9 +335,9 @@ const TIMELINE = [
     document.getElementById('prog-pct').textContent = pct + '%';
   
     // Bar chart
-    const sapi = ANIMALS.sapi.reduce((a,s) => a + s.mudhohi.length, 0);
-    const kambing = ANIMALS.kambing.length;
-    const domba = ANIMALS.domba.length;
+    const sapi = MUDHOHI.filter(m => getHewanById(m.hewan_id_hewan)?.jenis === 'sapi').length;
+    const kambing = HEWAN.filter(h => h.jenis === 'kambing').length;
+    const domba = HEWAN.filter(h => h.jenis === 'domba').length;
     const bars = [['🐄 Sapi', sapi, '#c8922a'], ['🐐 Kambing', kambing, '#e8b84b'], ['🐑 Domba', domba, '#a09cf8']];
     document.getElementById('bar-chart').innerHTML = bars.map(([lbl, val, col]) => `
       <div class="bar-row">
@@ -183,7 +350,7 @@ const TIMELINE = [
     const dashList = document.getElementById('dash-animal-list');
     dashList.innerHTML = getAllAnimals().slice(0, 3).map(a => {
       const st = animalStatus(a);
-      return `<div class="animal-row" onclick="showDetailHewan('${a.id}')">
+      return `<div class="animal-row" onclick="showDetailHewanFk('${a.id_hewan}')">
         <div class="animal-avatar">${a.emoji}</div>
         <div><div class="animal-name">${a.label}</div><div class="animal-sub">${a.sehat} · ${a.syariat} · ${a.umur}</div></div>
         <span class="status-badge ${st === 'done' ? 'status-done' : st === 'active' ? 'status-active' : 'status-pending'}">${st === 'done' ? 'Selesai' : st === 'active' ? 'Diproses' : 'Pending'}</span>
@@ -221,9 +388,9 @@ const TIMELINE = [
   function renderHewanTable() {
     const q = (document.getElementById('hewan-search')?.value || '').toLowerCase();
     let list = [];
-    if (hewanFilterCurrent === 'semua') list = getAllAnimals();
-    else list = ANIMALS[hewanFilterCurrent] || [];
-    if (q) list = list.filter(a => a.label.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
+    list = getAllAnimals();
+    if (hewanFilterCurrent !== 'semua') list = list.filter(a => a.jenis === hewanFilterCurrent);
+    if (q) list = list.filter(a => a.label.toLowerCase().includes(q) || String(a.id_hewan).includes(q));
   
     const tbody = document.getElementById('hewan-table-body');
     if (!list.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">🐾</div>Tidak ada data</div></td></tr>`; return; }
@@ -232,51 +399,77 @@ const TIMELINE = [
       const done_idx = TIMELINE.findIndex(t => t.status === 'active');
       const status = done_idx >= 4 ? 'done' : done_idx >= 2 ? 'active' : 'pending';
       return `<tr>
-        <td><strong>${a.id}</strong></td>
+        <td><strong>#${a.id_hewan}</strong></td>
         <td><div style="display:flex;align-items:center;gap:10px;">
           <div class="animal-avatar" style="width:34px;height:34px;font-size:16px;">${a.emoji}</div>
           <strong>${a.label}</strong></div></td>
-        <td>${a.jenis}</td>
+        <td><span style="font-size:11px;font-weight:700;color:var(--gold2);">${a.jenisLabel}</span> <span style="color:var(--text3);font-size:10px;">(${a.jenis})</span></td>
         <td>${a.umur} · ${a.berat}</td>
         <td><span style="font-weight:700;color:var(--gold2);">${a.mudhohi.length}</span> orang</td>
         <td><span class="status-badge ${status === 'done' ? 'status-done' : status === 'active' ? 'status-active' : 'status-pending'}">${status === 'done' ? 'Selesai' : status === 'active' ? 'Diproses' : 'Pending'}</span></td>
-        <td><button class="btn btn-ghost btn-sm" onclick="showDetailHewan('${a.id}')">Detail</button>
-            <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="deleteHewan('${a.id}')">Hapus</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="showDetailHewanFk('${a.id_hewan}')">Detail</button>
+            <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="deleteHewan('${a.id_hewan}')">Hapus</button></td>
       </tr>`;
     }).join('');
   }
   
-  function deleteHewan(id) {
-    const type = id.startsWith('S') ? 'sapi' : id.startsWith('K') ? 'kambing' : 'domba';
-    const idx = ANIMALS[type].findIndex(a => a.id === id);
+  function deleteHewan(idHewan) {
+    const idx = HEWAN.findIndex(h => String(h.id_hewan) === String(idHewan));
     if (idx < 0) return;
-    const name = ANIMALS[type][idx].label;
-    ANIMALS[type].splice(idx, 1);
+    const hid = HEWAN[idx].id_hewan;
+    const name = HEWAN[idx].label;
+    const linked = MUDHOHI.filter(m => m.hewan_id_hewan === hid).length;
+    if (linked && !confirm(`Hewan ini memiliki ${linked} mudhohi. Hapus tetap?`)) return;
+    HEWAN.splice(idx, 1);
+    MUDHOHI = MUDHOHI.filter(m => m.hewan_id_hewan !== hid);
+    saveStore();
     renderHewanTable();
     renderDashboard();
+    if (currentPage === 'mudhohi') renderMudhohiTable();
     toast(name + ' dihapus', 'info');
   }
-  
-  function showDetailHewan(id) {
-    const a = getAllAnimals().find(x => x.id === id);
-    if (!a) return;
-    document.getElementById('detail-hewan-title').textContent = a.emoji + ' ' + a.label;
+
+  function showDetailHewanFk(idHewan) {
+    const h = getHewanById(idHewan);
+    if (!h) return;
+    const d = hewanDisplay(h);
+    const mh = MUDHOHI.filter(m => m.hewan_id_hewan === h.id_hewan);
+    const sehatBadge = h.sehat === 'Ya'
+      ? '<span class="status-badge status-done">Sehat</span>'
+      : '<span class="status-badge status-active">Tidak Sehat</span>';
+    const cacatBadge = h.cacat === 'Tidak'
+      ? '<span class="status-badge status-done">Tanpa Cacat</span>'
+      : '<span class="status-badge status-active">Ada Cacat</span>';
+    const syariatBadge = h.st_syariat === 'Sah'
+      ? '<span class="status-badge status-done">Sesuai Syariat</span>'
+      : '<span class="status-badge status-active">Tidak Sesuai</span>';
+
+    document.getElementById('detail-hewan-title').textContent = d.emoji + ' ' + h.label;
     document.getElementById('detail-hewan-body').innerHTML = `
       <div class="detail-card">
-        ${[['ID','id'],['Jenis','jenis'],['Umur','umur'],['Berat','berat'],['Kondisi','sehat'],['Syariat','syariat'],['Cacat','cacat'],['Alamat','alamat'],['No. Telp','notelp']].map(([k,v]) => `
-          <div class="detail-row"><div class="detail-key">${k}</div><div class="detail-val">${a[v]||'—'}</div></div>`).join('')}
+        <div class="detail-row"><div class="detail-key">id_hewan (FK)</div><div class="detail-val" style="font-family:monospace;color:var(--blue);">#${h.id_hewan}</div></div>
+        <div class="detail-row"><div class="detail-key">Jenis Hewan</div><div class="detail-val">${d.jenisLabel} <code style="font-size:10px;color:var(--text3);">enum: ${h.jenis}</code></div></div>
+        <div class="detail-row"><div class="detail-key">Umur</div><div class="detail-val">${h.umur || '—'}</div></div>
+        <div class="detail-row"><div class="detail-key">Sehat</div><div class="detail-val">${sehatBadge}</div></div>
+        <div class="detail-row"><div class="detail-key">Cacat</div><div class="detail-val">${cacatBadge}${h.cacat_ket ? ' · ' + h.cacat_ket : ''}</div></div>
+        <div class="detail-row"><div class="detail-key">Syariat</div><div class="detail-val">${syariatBadge}</div></div>
+        <div class="detail-row"><div class="detail-key">Berat</div><div class="detail-val">${h.berat || '—'}</div></div>
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Daftar Mudhohi (${a.mudhohi.length})</div>
-      ${a.mudhohi.map(m => {
+      <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Mudhohi terhubung (${mh.length})</div>
+      ${mh.length ? mh.map(m => {
         const c = AVC[m.warna] || AVC.brown;
-        const claimed = claimedSet.has(m.nama + a.id);
+        const claimed = claimedSet.has(mudhohiKey(m));
         return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:10px;margin-bottom:6px;">
           <div class="avatar" style="background:${c.bg};color:${c.color};">${m.i}</div>
-          <div style="flex:1;"><strong style="font-size:13px;">${m.nama}</strong><div style="font-size:11px;color:var(--text3);">Bagian: ${m.bagian||'kurban penuh'}</div></div>
+          <div style="flex:1;"><strong style="font-size:13px;">${m.nama}</strong><div style="font-size:11px;color:var(--text3);">Bagian: ${m.bagian||'kurban penuh'} · QR #${m.id_mudhohi}</div></div>
           ${claimed ? '<span class="status-badge status-done">✓ Diambil</span>' : '<span class="status-badge status-pending">Belum</span>'}
         </div>`;
-      }).join('')}`;
+      }).join('') : '<div class="empty-state" style="padding:20px;"><div class="empty-ico">👥</div>Belum ada mudhohi</div>'}`;
     openModal('modal-detail-hewan');
+  }
+
+  function showDetailHewan(id) {
+    showDetailHewanFk(id);
   }
   
   // ═══════════════════════════════════════════
@@ -285,24 +478,43 @@ const TIMELINE = [
   function renderMudhohiTable() {
     const q = (document.getElementById('mudhohi-search')?.value || '').toLowerCase();
     let list = getAllMudhohi();
-    if (q) list = list.filter(m => m.nama.toLowerCase().includes(q));
+    if (q) list = list.filter(m =>
+      m.nama.toLowerCase().includes(q) ||
+      (m.nama_ayah || '').toLowerCase().includes(q) ||
+      String(m.id_mudhohi).includes(q)
+    );
     const tbody = document.getElementById('mudhohi-table-body');
-    if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-ico">👥</div>Tidak ada data</div></td></tr>`; return; }
+    if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-ico">👥</div>Tidak ada data</div></td></tr>`; return; }
     tbody.innerHTML = list.map(m => {
       const c = AVC[m.warna] || AVC.brown;
-      const claimed = claimedSet.has(m.nama + m.animalId);
-      const tipeBadge = m.tipe === 'mudhohi'
-        ? `<span style="background:rgba(200,146,42,0.15);color:var(--gold2);border:1px solid rgba(200,146,42,0.3);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🌟 Mudhohi</span>`
-        : `<span style="background:rgba(78,203,113,0.12);color:var(--green);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🟢 Penerima</span>`;
+      const claimed = claimedSet.has(mudhohiKey(m));
+      const qr = qrIdMudhohi(m);
       return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${miniQR(qr)}
+            <div>
+              <div style="font-family:monospace;font-size:11px;font-weight:700;color:var(--blue);">#${qr}</div>
+              <div style="font-size:10px;color:var(--text3);">id_mudhohi</div>
+            </div>
+          </div>
+        </td>
         <td><div style="display:flex;align-items:center;gap:10px;">
           <div class="avatar" style="background:${c.bg};color:${c.color};">${m.i}</div>
-          <div><strong>${m.nama}</strong><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:monospace;">${m.nkk||'—'}</div></div></div></td>
-        <td>${tipeBadge}</td>
-        <td>${m.animalEmoji} ${m.animalLabel}</td>
-        <td>${m.bagian||'Kurban penuh'}</td>
+          <div><strong>${m.nama}</strong><div style="font-size:10px;color:var(--text3);margin-top:2px;">${m.nama_ayah ? 'Bin ' + m.nama_ayah : '—'}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:monospace;">KK: ${m.nkk||'—'}</div></div></div></td>
+        <td style="font-size:12px;">${m.alamat||'—'}</td>
+        <td style="font-size:12px;">${m.notelp||'—'}</td>
+        <td>
+          <button type="button" class="btn-hewan-fk" onclick="showDetailHewanFk('${m.hewan_id_hewan}')" title="Lihat data hewan FK #${m.hewan_id_hewan}">
+            <span class="btn-hewan-fk-ico">${m.animalEmoji}</span>
+            <span class="btn-hewan-fk-text">${m.jenisLabel}</span>
+            <span class="btn-hewan-fk-id">#${m.hewan_id_hewan}</span>
+          </button>
+        </td>
+        <td><div>${m.bagian||'Kurban penuh'}</div>${m.req ? `<div style="font-size:10px;color:var(--gold2);margin-top:2px;">Req: ${m.req}</div>` : ''}</td>
         <td><span class="status-badge ${claimed ? 'status-done' : 'status-pending'}">${claimed ? '✓ Diambil' : 'Belum'}</span></td>
-        <td>${!claimed ? `<button class="btn btn-gold btn-sm" onclick="markClaimed('${m.nama}','${m.animalId}','${m.animalType}')">✓ Tandai Diambil</button>` : `<button class="btn btn-ghost btn-sm" onclick="unmarkClaimed('${m.nama}','${m.animalId}')">Batalkan</button>`}</td>
+        <td>${!claimed ? `<button class="btn btn-gold btn-sm" onclick="markClaimed('${m.id_mudhohi}')">✓ Tandai Diambil</button>` : `<button class="btn btn-ghost btn-sm" onclick="unmarkClaimed('${m.id_mudhohi}')">Batalkan</button>`}</td>
       </tr>`;
     }).join('');
   }
@@ -382,8 +594,8 @@ const TIMELINE = [
     if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div class="empty-ico">🔍</div>Tidak ditemukan</div>'; return; }
     el.innerHTML = filtered.map(m => {
       const c = AVC[m.warna] || AVC.brown;
-      const claimed = claimedSet.has(m.nama + m.animalId);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--bg3);border-radius:10px;margin-bottom:7px;border:1px solid ${claimed?'rgba(78,203,113,0.2)':'var(--border)'};cursor:pointer;transition:background .15s;" onclick="showScanResult('${m.nama}','${m.animalId}','${m.animalType}')" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='var(--bg3)'">
+      const claimed = claimedSet.has(mudhohiKey(m));
+      return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--bg3);border-radius:10px;margin-bottom:7px;border:1px solid ${claimed?'rgba(78,203,113,0.2)':'var(--border)'};cursor:pointer;transition:background .15s;" onclick="showScanResult('${m.id_mudhohi}')" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='var(--bg3)'">
         <div class="avatar" style="background:${c.bg};color:${c.color};">${m.i}</div>
         <div style="flex:1;"><strong style="font-size:13px;">${m.nama}</strong><div style="font-size:11px;color:var(--text3);">${m.animalEmoji} ${m.animalLabel} · ${m.bagian||'Kurban penuh'}</div></div>
         ${claimed ? '<span class="status-badge status-done" style="font-size:10px;">✓ Diambil</span>' : '<span style="color:var(--text3);font-size:18px;">›</span>'}
@@ -391,69 +603,72 @@ const TIMELINE = [
     }).join('');
   }
   
-  function showScanResult(nama, animalId, type) {
-    const a = ANIMALS[type]?.find(x => x.id === animalId);
-    const m = a?.mudhohi.find(x => x.nama === nama);
-    if (!a || !m) return;
-    const key = nama + animalId;
+  function showScanResult(idMudhohi) {
+    const row = findMudhohi(idMudhohi);
+    if (!row) return;
+    const h = getHewanById(row.hewan_id_hewan);
+    const key = mudhohiKey(row);
     const claimed = claimedSet.has(key);
-    const c = AVC[m.warna] || AVC.brown;
     document.getElementById('scan-result').innerHTML = `
       <div style="background:${claimed?'rgba(224,85,85,0.08)':'rgba(78,203,113,0.08)'};border:1px solid ${claimed?'rgba(224,85,85,0.3)':'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
           <div style="width:52px;height:52px;border-radius:50%;background:${claimed?'rgba(224,85,85,0.15)':'var(--green-bg)'};display:flex;align-items:center;justify-content:center;font-size:24px;">${claimed?'⚠️':'✅'}</div>
           <div>
-            <div style="font-size:17px;font-weight:700;color:var(--text);">${nama}</div>
-            <div style="font-size:12px;color:var(--text3);">${a.emoji} ${a.label} · Bagian ${m.bagian||'penuh'}</div>
+            <div style="font-size:17px;font-weight:700;color:var(--text);">${row.nama}</div>
+            <div style="font-size:12px;color:var(--text3);">${row.animalEmoji} ${row.jenisLabel} #${row.hewan_id_hewan} · QR #${row.id_mudhohi}</div>
           </div>
           <span class="status-badge ${claimed?'status-active':'status-done'}" style="margin-left:auto;">${claimed?'⚠ Sudah Diambil':'✓ Valid'}</span>
         </div>
         ${claimed
           ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;margin-bottom:14px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
-          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markClaimed('${nama}','${animalId}','${type}')">✓ Tandai Sudah Mengambil</button>`}
+          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markClaimed('${row.id_mudhohi}')">✓ Tandai Sudah Mengambil</button>`}
       </div>`;
   }
   
-  function markClaimed(nama, animalId, type, method) {
-    const key = nama + animalId;
+  function markClaimed(idMudhohi, method) {
+    const row = findMudhohi(idMudhohi);
+    if (!row) return;
+    const key = mudhohiKey(row);
     if (claimedSet.has(key)) { toast('Sudah pernah diambil!', 'error'); return; }
     claimedSet.add(key);
     const mt = method || 'QR';
     claimMethod[key] = mt;
     claimTime[key]   = nowTime();
-    if (mt === 'QR') downloadedSet.add(key); // QR scan implies downloaded
-    distLog.unshift({ nama, animal: getAllAnimals().find(a=>a.id===animalId)?.label, time: claimTime[key], method: mt });
+    if (mt === 'QR') downloadedSet.add(key);
+    distLog.unshift({ nama: row.nama, animal: row.animalLabel, time: claimTime[key], method: mt });
     renderDistLog();
     renderScanList();
-    showScanResult(nama, animalId, type);
+    showScanResult(idMudhohi);
     updateDistStats();
     renderDashboard();
     renderMudhohiTable();
     if (currentPage === 'tabel') renderTabelDistribusi();
-    toast(nama + ' berhasil diverifikasi (' + mt + ')', 'success');
+    toast(row.nama + ' berhasil diverifikasi (' + mt + ')', 'success');
   }
   
-  function markClaimedManual(nama, animalId, type) {
-    markClaimed(nama, animalId, type, 'Manual');
+  function markClaimedManual(idMudhohi) {
+    markClaimed(idMudhohi, 'Manual');
   }
   
   function simulateQRDownload(key) {
     downloadedSet.add(key);
     if (currentPage === 'tabel') renderTabelDistribusi();
-    const nama = key.replace(/[A-Z][0-9]+$/, '');
-    toast('QR ' + nama + ' sudah didownload', 'info');
+    const row = findMudhohi(key);
+    toast('QR #' + (row?.id_mudhohi || key) + ' sudah didownload', 'info');
   }
   
-  function unmarkClaimed(nama, animalId) {
-    const key = nama + animalId;
+  function unmarkClaimed(idMudhohi) {
+    const row = findMudhohi(idMudhohi);
+    const key = mudhohiKey(row || { id_mudhohi: idMudhohi });
     claimedSet.delete(key);
     delete claimMethod[key];
     delete claimTime[key];
+    downloadedSet.delete(key);
     renderMudhohiTable();
     renderDashboard();
     updateDistStats();
     if (currentPage === 'tabel') renderTabelDistribusi();
-    toast('Status ' + nama + ' dibatalkan', 'info');
+    toast('Status ' + (row?.nama || idMudhohi) + ' dibatalkan', 'info');
   }
   
   function renderDistLog() {
@@ -470,13 +685,6 @@ const TIMELINE = [
   // ═══════════════════════════════════════════
   // TABEL DISTRIBUSI  (skema: distribusi)
   // ═══════════════════════════════════════════
-  // Generate deterministic 16-digit no_kk from name
-  function fakeNoKK(nama) {
-    let h = 3200000000000000n;
-    for (let i = 0; i < nama.length; i++) h = (h * 31n + BigInt(nama.charCodeAt(i))) % 10000000000000000n;
-    return h.toString().padStart(16,'3');
-  }
-  
   // Mini SVG QR placeholder (unique per code string)
   function miniQR(code) {
     // deterministic cell pattern from code hash
@@ -503,14 +711,13 @@ const TIMELINE = [
   
     const allM = getAllMudhohi();
     let list = allM.map((m, idx) => {
-      const key        = m.nama + m.animalId;
+      const key        = mudhohiKey(m);
       const claimed    = claimedSet.has(key);
       const downloaded = downloadedSet.has(key);
       const method     = claimMethod[key] || (claimed ? 'QR' : '-');
       const waktu      = claimTime[key]   || '-';
-      const noKK       = r.nkk || fakeNoKK(m.nama);
-      // QR_id_qr: unique code per person
-      const qrCode     = m.animalId + '-' + m.nama.replace(/\s+/g,'').toUpperCase().slice(0,6) + '-' + String(idx+1).padStart(3,'0');
+      const noKK       = m.nkk || '—';
+      const qrCode     = qrIdMudhohi(m);
       return { ...m, key, claimed, downloaded, method, waktu, noKK, idStok: idx + 1, qrCode };
     });
   
@@ -608,11 +815,11 @@ const TIMELINE = [
       // ── Aksi admin button
       const aksiBtn = !r.claimed
         ? `<button class="btn btn-gold btn-sm" style="width:100%;" title="Tandai diambil secara manual"
-             onclick="markClaimedManual('${r.nama}','${r.animalId}','${r.animalType}');renderTabelDistribusi();">
+             onclick="markClaimedManual('${r.id_mudhohi}');renderTabelDistribusi();">
              👆 Tandai Manual
            </button>`
         : `<button class="btn btn-ghost btn-sm" style="width:100%;font-size:10px;"
-             onclick="unmarkClaimed('${r.nama}','${r.animalId}');renderTabelDistribusi();">
+             onclick="unmarkClaimed('${r.id_mudhohi}');renderTabelDistribusi();">
              ↩ Batalkan
            </button>`;
   
@@ -625,8 +832,8 @@ const TIMELINE = [
             <div class="avatar" style="background:${c.bg};color:${c.color};font-size:11px;width:36px;height:36px;">${r.i}</div>
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--text);">${r.nama}</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:monospace;letter-spacing:.3px;">${r.noKK}</div>
-              <div style="margin-top:3px;">${r.tipe==='mudhohi'?`<span style="background:rgba(200,146,42,0.15);color:var(--gold2);border:1px solid rgba(200,146,42,0.3);border-radius:20px;padding:1px 7px;font-size:9px;font-weight:700;">🌟 Mudhohi</span>`:`<span style="background:rgba(78,203,113,0.12);color:var(--green);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:1px 7px;font-size:9px;font-weight:700;">🟢 Penerima</span>`}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:monospace;letter-spacing:.3px;">KK: ${r.noKK}</div>
+              ${r.nama_ayah ? `<div style="font-size:10px;color:var(--text3);">Bin ${r.nama_ayah}</div>` : ''}
             </div>
           </div>
         </td>
@@ -652,9 +859,9 @@ const TIMELINE = [
     const allM = getAllMudhohi();
     const rows = [['id_stok','warga_no_kk','Nama KK','QR_id_qr','dowload_qr','st_pengambilan','mtd_pengambilan','Waktu']];
     allM.forEach((m, i) => {
-      const key  = m.nama + m.animalId;
-      const noKK = fakeNoKK(m.nama);
-      const qr   = m.animalId + '-' + m.nama.replace(/\s+/g,'').toUpperCase().slice(0,6) + '-' + String(i+1).padStart(3,'0');
+      const key  = mudhohiKey(m);
+      const noKK = m.nkk || '—';
+      const qr   = qrIdMudhohi(m);
       rows.push([
         String(i+1).padStart(3,'0'),
         noKK,
@@ -676,37 +883,6 @@ const TIMELINE = [
   }
   
   // ═══════════════════════════════════════════
-  // WARGA
-  // ═══════════════════════════════════════════
-  function renderWargaList() {
-    const q = (document.getElementById('warga-search')?.value || '').toLowerCase();
-    let list = getAllMudhohi();
-    if (q) list = list.filter(m => m.nama.toLowerCase().includes(q));
-    const el = document.getElementById('warga-grid');
-    if (!list.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-ico">🏘️</div>Tidak ada data</div>'; return; }
-    el.innerHTML = list.map(m => {
-      const c = AVC[m.warna] || AVC.brown;
-      const a = getAllAnimals().find(x => x.id === m.animalId);
-      const claimed = claimedSet.has(m.nama + m.animalId);
-      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-          <div class="avatar" style="width:44px;height:44px;font-size:15px;background:${c.bg};color:${c.color};">${m.i}</div>
-          <div style="flex:1;"><strong style="font-size:14px;">${m.nama}</strong><div style="font-size:11px;color:var(--text3);margin-top:2px;">${a?.alamat||'—'}</div></div>
-          <span class="status-badge ${claimed?'status-done':'status-pending'}">${claimed?'✓':'Belum'}</span>
-        </div>
-        <div class="divider" style="margin:10px 0;"></div>
-        <div style="font-size:12px;color:var(--text3);">Hewan: <span style="color:var(--text2);font-weight:600;">${m.animalEmoji} ${m.animalLabel}</span></div>
-        <div style="font-size:12px;color:var(--text3);margin-top:4px;">Bagian: <span style="color:var(--text2);font-weight:600;">${m.bagian||'Kurban penuh'}</span></div>
-        <div style="margin-top:14px;">
-          ${!claimed
-            ? `<button class="btn btn-gold btn-sm" style="width:100%;" onclick="markClaimedManual('${m.nama}','${m.animalId}','${m.animalType}');renderWargaList();">✓ Tandai Diambil</button>`
-            : `<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="unmarkClaimed('${m.nama}','${m.animalId}');renderWargaList();">Batalkan</button>`}
-        </div>
-      </div>`;
-    }).join('');
-  }
-  
-  // ═══════════════════════════════════════════
   // REKAP
   // ═══════════════════════════════════════════
   function renderRekap() {
@@ -714,9 +890,9 @@ const TIMELINE = [
     const total = allM.length;
     const diambil = claimedSet.size;
     const pct = total ? Math.round(diambil / total * 100) : 0;
-    const sapi = ANIMALS.sapi.reduce((a,s) => a + s.mudhohi.length, 0);
-    const kambing = ANIMALS.kambing.length;
-    const domba = ANIMALS.domba.length;
+    const sapi = MUDHOHI.filter(m => getHewanById(m.hewan_id_hewan)?.jenis === 'sapi').length;
+    const kambing = HEWAN.filter(h => h.jenis === 'kambing').length;
+    const domba = HEWAN.filter(h => h.jenis === 'domba').length;
     const circ = 2 * Math.PI * 48;
     const off  = circ - (pct / 100) * circ;
   
@@ -748,7 +924,7 @@ const TIMELINE = [
         <div class="card">
           <div class="card-header"><div class="card-title">🐾 Breakdown Hewan</div></div>
           <div class="card-body">
-            ${[['🐄 Sapi', ANIMALS.sapi.length, sapi, '#c8922a'],['🐐 Kambing', ANIMALS.kambing.length, kambing, '#e8b84b'],['🐑 Domba', ANIMALS.domba.length, domba, '#a09cf8']].map(([n,hewan,mh,col]) => `
+            ${[['🐄 Sapi', HEWAN.filter(x=>x.jenis==='sapi').length, sapi, '#c8922a'],['🐐 Kambing', HEWAN.filter(x=>x.jenis==='kambing').length, kambing, '#e8b84b'],['🐑 Domba', HEWAN.filter(x=>x.jenis==='domba').length, domba, '#a09cf8']].map(([n,hewan,mh,col]) => `
               <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
                 <div style="font-size:22px;">${n.split(' ')[0]}</div>
                 <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${n}</div><div style="font-size:11px;color:var(--text3);">${hewan} ekor · ${mh} penerima</div></div>
@@ -780,7 +956,7 @@ const TIMELINE = [
         </div>
         <table class="data-table">
           <thead><tr><th>Nama</th><th>Hewan</th><th>Bagian</th></tr></thead>
-          <tbody>${allM.filter(m => !claimedSet.has(m.nama+m.animalId)).map(m => `
+          <tbody>${allM.filter(m => !claimedSet.has(mudhohiKey(m))).map(m => `
             <tr><td><strong>${m.nama}</strong></td><td>${m.animalEmoji} ${m.animalLabel}</td><td>${m.bagian||'Penuh'}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty-state"><div class="empty-ico">🎉</div>Semua sudah diambil!</div></td></tr>'}
           </tbody>
         </table>
@@ -793,21 +969,21 @@ const TIMELINE = [
   function submitHewan() {
     const jenis  = document.getElementById('h-jenis').value;
     const label  = document.getElementById('h-label').value.trim();
-    if (!jenis || !label) { toast('Jenis & nama wajib diisi!', 'error'); return; }
-    const list   = ANIMALS[jenis];
-    const prefix = jenis === 'sapi' ? 'S' : jenis === 'kambing' ? 'K' : 'D';
-    const id     = prefix + String(list.length + 1).padStart(2, '0');
-    const emoji  = jenis === 'sapi' ? '🐄' : jenis === 'kambing' ? '🐐' : '🐑';
-    list.push({
-      id, emoji, label, jenis: label,
-      umur:   document.getElementById('h-umur').value.trim()   || '—',
-      sehat:  '✓ Sehat', syariat: '✓ Sah',
-      cacat:  document.getElementById('h-catatan').value.trim() || 'Tidak ada',
-      berat:  document.getElementById('h-berat').value.trim()   || '—',
-      alamat: document.getElementById('h-alamat').value.trim()  || '—',
-      notelp: document.getElementById('h-telp').value.trim()    || '—',
-      reqBagian: '—', mudhohi: []
+    if (!jenis || !label) { toast('Jenis & label wajib diisi!', 'error'); return; }
+    const id_hewan = nextHewanId++;
+    HEWAN.push({
+      id_hewan,
+      jenis,
+      label,
+      umur: document.getElementById('h-umur').value.trim() || '—',
+      sehat: document.getElementById('h-sehat').value || 'Ya',
+      cacat: document.getElementById('h-cacat').value || 'Tidak',
+      cacat_ket: document.getElementById('h-cacat-ket').value.trim() || '',
+      st_syariat: document.getElementById('h-syariat').value || 'Sah',
+      berat: document.getElementById('h-berat').value.trim() || '—',
     });
+    saveStore();
+    saveNextHewanId();
     closeModal('modal-hewan');
     renderHewanTable();
     renderDashboard();
@@ -815,15 +991,30 @@ const TIMELINE = [
   }
   
   function submitMudhohi() {
-    const nama    = document.getElementById('m-nama').value.trim();
+    const nama = document.getElementById('m-nama').value.trim();
+    const jenis = document.getElementById('m-jenis').value;
     const hewanId = document.getElementById('m-hewan').value;
-    if (!nama || !hewanId) { toast('Nama & hewan wajib diisi!', 'error'); return; }
-    const type = hewanId.startsWith('S') ? 'sapi' : hewanId.startsWith('K') ? 'kambing' : 'domba';
-    const a = ANIMALS[type].find(x => x.id === hewanId);
-    if (!a) { toast('Hewan tidak ditemukan', 'error'); return; }
+    if (!nama || !jenis || !hewanId) { toast('Nama, jenis hewan & FK hewan wajib diisi!', 'error'); return; }
+    const h = getHewanById(hewanId);
+    if (!h || h.jenis !== jenis) { toast('Hewan FK tidak valid untuk jenis yang dipilih', 'error'); return; }
     const initials = nama.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const warnas = ['brown','green','amber','purple'];
-    a.mudhohi.push({ i: initials, nama, bagian: document.getElementById('m-bagian').value.trim() || 'Kurban penuh', warna: warnas[a.mudhohi.length % 4] });
+    const countOnHewan = MUDHOHI.filter(m => m.hewan_id_hewan === h.id_hewan).length;
+    MUDHOHI.push({
+      id_mudhohi: nextMudhohiId++,
+      hewan_id_hewan: h.id_hewan,
+      i: initials,
+      nama,
+      nama_ayah: document.getElementById('m-ayah').value.trim() || '',
+      alamat: document.getElementById('m-alamat').value.trim() || '',
+      notelp: document.getElementById('m-telp').value.trim() || '',
+      nkk: document.getElementById('m-nkk').value.trim() || '',
+      req: document.getElementById('m-req').value.trim() || '',
+      bagian: document.getElementById('m-bagian').value.trim() || 'Kurban penuh',
+      warna: warnas[countOnHewan % 4],
+    });
+    saveStore();
+    saveNextMudhohiId();
     closeModal('modal-mudhohi');
     renderMudhohiTable();
     renderDashboard();
@@ -838,11 +1029,11 @@ const TIMELINE = [
   }
   
   // ═══════════════════════════════════════════
-  // UPLOAD EXCEL / CSV — Import Data Warga
+  // PENERIMA KURBAN — Excel → login warga + QR
   // ═══════════════════════════════════════════
   
-  let importedWarga = []; // staging area sebelum dikonfirmasi
-  let confirmedWarga = []; // setelah konfirmasi
+  let importedPenerima = [];
+  let confirmedPenerima = loadPenerima();
   
   function handleFileDrop(e) {
     e.preventDefault();
@@ -875,128 +1066,200 @@ const TIMELINE = [
     previewImport(rows, 'paste');
   }
   
+  function getImportMode() {
+    const el = document.querySelector('input[name="import-mode"]:checked');
+    return el?.value === 'replace' ? 'replace' : 'append';
+  }
+
   function parseCSV(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     if (!lines.length) return [];
-    // Detect header — skip if first line looks like header (contains 'nama' / 'kk' / 'no')
     let startIdx = 0;
     const firstLower = lines[0].toLowerCase();
-    if (firstLower.includes('nama') || firstLower.includes('no kk') || firstLower.includes('tipe')) startIdx = 1;
-  
+    if (firstLower.includes('nama') || firstLower.includes('kk')) startIdx = 1;
+
     return lines.slice(startIdx).map(line => {
-      // Handle quoted CSV fields
       const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim());
       return {
-        nkk:    (cols[0] || '').replace(/\D/g,'').slice(0,16),
+        nkk:    normNkk(cols[0] || ''),
         nama:   cols[1] || '',
-        tipe:   ((cols[2] || '').toLowerCase().includes('mudhohi') ? 'mudhohi' : 'penerima'),
-        hewan:  cols[3] || '—',
-        bagian: cols[4] || 'Kurban penuh',
-        alamat: cols[5] || '—',
+        alamat: cols[2] || '',
+        notelp: cols[3] || '',
       };
-    }).filter(r => r.nkk.length >= 10 && r.nama.length >= 2);
+    }).filter(r => r.nama.length >= 2 && r.nkk.length >= 10);
   }
-  
+
+  function updatePenerimaBadge() {
+    const n = loadPenerima().length;
+    const badge = document.getElementById('badge-penerima');
+    if (badge) {
+      badge.textContent = n;
+      badge.style.display = n ? 'inline-flex' : 'none';
+    }
+  }
+
+  function renderPenerimaPage() {
+    updatePenerimaBadge();
+    confirmedPenerima = loadPenerima();
+    const chips = document.getElementById('penerima-stat-chips');
+    if (chips) {
+      const n = confirmedPenerima.length;
+      chips.innerHTML = [
+        ['🎫 Terdaftar', n, 'var(--gold2)', 'var(--gold-dim)'],
+        ['🔐 Bisa login', n, 'var(--green)', 'var(--green-bg)'],
+        ['📱 Dapat QR', n, 'var(--blue)', 'rgba(91,156,246,0.1)'],
+      ].map(([lbl, val, col, bg]) =>
+        `<div style="background:${bg};border:1px solid ${col}33;border-radius:20px;padding:8px 16px;">
+          <span style="font-size:11px;color:var(--text3);">${lbl}</span>
+          <strong style="font-size:18px;color:${col};margin-left:8px;">${val}</strong>
+        </div>`
+      ).join('');
+    }
+    renderPenerimaTable();
+  }
+
   function previewImport(rows, source) {
-    importedWarga = rows;
-    const mudhohi = rows.filter(r => r.tipe === 'mudhohi').length;
-    const penerima = rows.filter(r => r.tipe === 'penerima').length;
-  
+    importedPenerima = rows;
     document.getElementById('preview-stats').innerHTML =
-      `<span style="color:var(--green);font-weight:700;">${rows.length} data</span> &nbsp;·&nbsp;
-       <span style="color:var(--gold2);">🌟 ${mudhohi} Mudhohi</span> &nbsp;·&nbsp;
-       <span style="color:var(--green);">🟢 ${penerima} Penerima</span>`;
-  
+      `<span style="color:var(--green);font-weight:700;">${rows.length} penerima</span> siap diaktifkan`;
+
     if (!rows.length) {
-      document.getElementById('preview-content').innerHTML = '<div class="empty-state"><div class="empty-ico">⚠️</div>Tidak ada data valid ditemukan. Periksa format file.</div>';
+      document.getElementById('preview-content').innerHTML =
+        '<div class="empty-state"><div class="empty-ico">⚠️</div>Data tidak valid. Wajib: No KK (min. 10 digit) + Nama Kepala Keluarga.</div>';
       document.getElementById('preview-actions').style.display = 'none';
       return;
     }
-  
+
     document.getElementById('preview-content').innerHTML = `
-      <table class="data-table" style="min-width:560px;">
-        <thead><tr><th>#</th><th>No KK</th><th>Nama KK</th><th>Tipe</th><th>Hewan</th><th>Bagian</th></tr></thead>
+      <table class="data-table" style="min-width:480px;">
+        <thead><tr><th>#</th><th>No KK</th><th>Nama Kepala Keluarga</th><th>Alamat</th><th>Telp</th></tr></thead>
         <tbody>
-          ${rows.slice(0,20).map((r, i) => `<tr>
-            <td style="color:var(--text3);font-size:11px;">${i+1}</td>
+          ${rows.slice(0, 25).map((r, i) => `<tr>
+            <td style="color:var(--text3);font-size:11px;">${i + 1}</td>
             <td><code style="font-size:10px;color:var(--blue);">${r.nkk}</code></td>
             <td><strong>${r.nama}</strong></td>
-            <td>${r.tipe==='mudhohi'
-              ? `<span style="background:rgba(200,146,42,0.15);color:var(--gold2);border:1px solid rgba(200,146,42,0.3);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🌟 Mudhohi</span>`
-              : `<span style="background:rgba(78,203,113,0.12);color:var(--green);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🟢 Penerima</span>`}</td>
-            <td style="font-size:12px;">${r.hewan}</td>
-            <td style="font-size:12px;">${r.bagian}</td>
+            <td style="font-size:12px;color:var(--text3);">${r.alamat || '—'}</td>
+            <td style="font-size:12px;color:var(--text3);">${r.notelp || '—'}</td>
           </tr>`).join('')}
-          ${rows.length > 20 ? `<tr><td colspan="6" style="text-align:center;color:var(--text3);font-size:12px;">... dan ${rows.length-20} data lainnya</td></tr>` : ''}
+          ${rows.length > 25 ? `<tr><td colspan="5" style="text-align:center;color:var(--text3);font-size:12px;">... +${rows.length - 25} baris</td></tr>` : ''}
         </tbody>
       </table>`;
     document.getElementById('preview-actions').style.display = 'block';
-    toast(rows.length + ' data berhasil diparse dari ' + source, 'success');
+    toast(rows.length + ' baris dari ' + source, 'success');
   }
-  
+
   function importConfirm() {
-    if (!importedWarga.length) return;
-    confirmedWarga = [...importedWarga];
-    importedWarga = [];
-  
-    // Tandai badge upload sudah berisi data
-    document.getElementById('badge-upload').style.display = 'inline-block';
-  
-    renderImportedTable();
-    document.getElementById('preview-content').innerHTML = '<div class="empty-state"><div class="empty-ico">✅</div>Data berhasil diimport ke sistem!</div>';
+    if (!importedPenerima.length) return;
+    const mode = getImportMode();
+    const prev = mode === 'replace' ? 0 : confirmedPenerima.length;
+    const total = mergePenerimaRows(importedPenerima, mode);
+    importedPenerima = [];
+    confirmedPenerima = loadPenerima();
+
+    renderPenerimaPage();
+    document.getElementById('preview-content').innerHTML =
+      '<div class="empty-state"><div class="empty-ico">✅</div>Penerima aktif — warga sudah bisa login &amp; lihat QR</div>';
     document.getElementById('preview-actions').style.display = 'none';
     document.getElementById('preview-stats').innerHTML = '';
-    toast(confirmedWarga.length + ' data warga berhasil diimport!', 'success');
-  
-    // Scroll ke tabel
-    setTimeout(() => document.getElementById('imported-list-card').scrollIntoView({behavior:'smooth'}), 300);
+    toast(
+      mode === 'replace'
+        ? total + ' penerima terdaftar (daftar diganti)'
+        : (total - prev) + ' penerima ditambahkan · total ' + total,
+      'success'
+    );
+    setTimeout(() => document.getElementById('imported-list-card')?.scrollIntoView({ behavior: 'smooth' }), 300);
   }
-  
-  function renderImportedTable() {
-    const card = document.getElementById('imported-list-card');
+
+  function renderPenerimaTable() {
     const tbody = document.getElementById('imported-table-body');
-    if (!confirmedWarga.length) {
-      card.style.display = 'none'; return;
+    const empty = document.getElementById('penerima-empty');
+    if (!tbody) return;
+
+    confirmedPenerima = loadPenerima();
+    const q = (document.getElementById('penerima-search')?.value || '').toLowerCase();
+    let list = confirmedPenerima.map((p, i) => ({ ...p, _idx: i }));
+    if (q) {
+      list = list.filter(p =>
+        p.nama.toLowerCase().includes(q) ||
+        p.nkk.includes(q) ||
+        (p.qrCode || '').toLowerCase().includes(q)
+      );
     }
-    card.style.display = '';
-    const mudhohi = confirmedWarga.filter(r => r.tipe === 'mudhohi').length;
-    document.getElementById('imported-count').textContent = confirmedWarga.length + ' data · 🌟 ' + mudhohi + ' Mudhohi · 🟢 ' + (confirmedWarga.length - mudhohi) + ' Penerima';
-    tbody.innerHTML = confirmedWarga.map((r, i) => `<tr>
-      <td style="color:var(--text3);font-size:11px;">${i+1}</td>
-      <td><code style="font-size:11px;color:var(--blue);">${r.nkk}</code></td>
-      <td><strong>${r.nama}</strong></td>
-      <td>${r.tipe==='mudhohi'
-        ? `<span style="background:rgba(200,146,42,0.15);color:var(--gold2);border:1px solid rgba(200,146,42,0.3);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🌟 Mudhohi</span>`
-        : `<span style="background:rgba(78,203,113,0.12);color:var(--green);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">🟢 Penerima</span>`}</td>
-      <td style="font-size:12px;">${r.hewan}</td>
-      <td style="font-size:12px;">${r.bagian}</td>
-      <td style="font-size:12px;color:var(--text3);">${r.alamat}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="removeImported(${i})">Hapus</button></td>
-    </tr>`).join('');
+
+    document.getElementById('imported-count').textContent =
+      list.length + ' dari ' + confirmedPenerima.length + ' penerima';
+
+    if (!confirmedPenerima.length) {
+      tbody.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    tbody.innerHTML = list.map(p => {
+      const mudhohi = getAllMudhohi().find(m => normNkk(m.nkk) === normNkk(p.nkk));
+      const claimed = mudhohi && claimedSet.has(mudhohiKey(mudhohi));
+      return `<tr>
+        <td style="color:var(--text3);font-size:11px;">${p._idx + 1}</td>
+        <td><code style="font-size:11px;color:var(--blue);">${p.nkk}</code></td>
+        <td><strong>${p.nama}</strong></td>
+        <td><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--gold2);">${p.qrCode || '—'}</span></td>
+        <td style="font-size:12px;color:var(--text3);">${p.alamat || '—'}</td>
+        <td style="font-size:12px;color:var(--text3);">${p.notelp || '—'}</td>
+        <td><span class="status-badge ${claimed ? 'status-done' : 'status-pending'}">${claimed ? '✓ Sudah ambil' : 'Belum ambil'}</span></td>
+        <td><button class="btn btn-danger btn-sm" onclick="removePenerima(${p._idx})">Hapus</button></td>
+      </tr>`;
+    }).join('');
   }
-  
-  function removeImported(idx) {
-    confirmedWarga.splice(idx, 1);
-    renderImportedTable();
-    if (!confirmedWarga.length) document.getElementById('badge-upload').style.display = 'none';
-    toast('Data dihapus dari daftar', 'info');
+
+  function removePenerima(idx) {
+    removePenerimaAt(idx);
+    confirmedPenerima = loadPenerima();
+    renderPenerimaPage();
+    toast('Penerima dihapus dari daftar login', 'info');
   }
-  
+
   function exportImportedCSV() {
-    if (!confirmedWarga.length) return;
-    const rows = [['No KK','Nama KK','Tipe','Hewan','Bagian','Alamat'],
-      ...confirmedWarga.map(r => [r.nkk, r.nama, r.tipe, r.hewan, r.bagian, r.alamat])];
+    const list = loadPenerima();
+    if (!list.length) return;
+    const rows = [['No KK', 'Nama Kepala Keluarga', 'Kode QR', 'Alamat', 'No Telp'],
+      ...list.map(p => [p.nkk, p.nama, p.qrCode, p.alamat, p.notelp])];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], {type:'text/csv'});
+    const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'warga_terdaftar_kurbanqu.csv';
+    a.download = 'penerima_kurban_kurbanqu.csv';
     a.click();
-    toast('CSV berhasil diexport', 'success');
+    toast('CSV penerima diexport', 'success');
   }
-  
+
+  function openModalPenerima() {
+    ['p-nkk', 'p-nama', 'p-alamat', 'p-telp'].forEach(id => {
+      const e = document.getElementById(id);
+      if (e) e.value = '';
+    });
+    openModal('modal-penerima');
+  }
+
+  function submitPenerimaManual() {
+    const nkk = document.getElementById('p-nkk').value.trim();
+    const nama = document.getElementById('p-nama').value.trim();
+    if (!nkk || !nama) { toast('No KK & Nama wajib diisi', 'error'); return; }
+    if (normNkk(nkk).length < 10) { toast('No KK minimal 10 digit', 'error'); return; }
+    mergePenerimaRows([{
+      nkk,
+      nama,
+      alamat: document.getElementById('p-alamat').value.trim(),
+      notelp: document.getElementById('p-telp').value.trim(),
+    }], 'append');
+    confirmedPenerima = loadPenerima();
+    closeModal('modal-penerima');
+    renderPenerimaPage();
+    toast(nama + ' ditambahkan sebagai penerima', 'success');
+  }
+
   function clearImport() {
-    importedWarga = [];
+    importedPenerima = [];
     document.getElementById('csv-paste').value = '';
     document.getElementById('excel-input').value = '';
     document.getElementById('preview-content').innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>';
@@ -1033,6 +1296,9 @@ const TIMELINE = [
   });
   
   // ─── INIT ──────────────────────────────────
+  initDataIds();
+  updatePenerimaBadge();
+  renderPenerimaPage();
   renderDashboard();
   renderScanList();
   updateBadgeTracking();

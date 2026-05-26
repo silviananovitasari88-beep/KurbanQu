@@ -434,22 +434,49 @@ function submitLogin() {
   const errNkk  = document.getElementById('err-nkk');
   const errNama = document.getElementById('err-nama');
   let valid = true;
-  // VALIDASI NO KK HARUS ANGKA
+
+  errNkk.classList.remove('show');
+  errNama.classList.remove('show');
+  nkkEl.classList.remove('error');
+  namaEl.classList.remove('error');
+
   if (!/^\d+$/.test(nkkEl.value.trim())) {
     nkkEl.classList.add('error');
     errNkk.textContent = 'Nomor KK wajib berupa angka';
     errNkk.classList.add('show');
     valid = false;
   }
-   // VALIDASI NAMA
-   if (!namaEl.value.trim()) {
+  if (!namaEl.value.trim()) {
     namaEl.classList.add('error');
+    errNama.textContent = 'Nama Kepala Keluarga wajib diisi';
     errNama.classList.add('show');
     valid = false;
   }
   if (!valid) return;
-  document.getElementById('qr-nama').textContent = namaEl.value.trim();
-  document.getElementById('qr-nkk').textContent  = nkkEl.value.trim();
+
+  const auth = typeof validateWargaLogin === 'function'
+    ? validateWargaLogin(nkkEl.value.trim(), namaEl.value.trim())
+    : { ok: true };
+
+  if (!auth.ok) {
+    nkkEl.classList.add('error');
+    namaEl.classList.add('error');
+    errNama.textContent = auth.msg;
+    errNama.classList.add('show');
+    return;
+  }
+
+  const nama = namaEl.value.trim();
+  const nkk = normNkk(nkkEl.value.trim());
+
+  document.getElementById('qr-nama').textContent = nama;
+  document.getElementById('qr-nkk').textContent  = nkk;
+
+  const qrEl = document.getElementById('qr-kode');
+  if (qrEl && auth.penerima) {
+    qrEl.textContent = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
+  }
+
   goto('pg-qr');
 }
 ['inp-nkk','inp-nama'].forEach(id => {

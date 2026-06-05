@@ -280,17 +280,21 @@
     <div class="page" id="pg-distribusi">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Distribusi QR</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Scan & verifikasi penerima daging kurban</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Distribusi QR — Scan Kamera</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Scan QR code penerima dengan kamera untuk verifikasi otomatis</div>
         </div>
         <div style="font-size:13px;color:var(--text3);">Terverifikasi: <strong id="dist-count" style="color:var(--green);">0</strong> / <span id="dist-total">0</span></div>
       </div>
 
       <div class="dash-grid">
-        <!-- Scanner -->
+        <!-- Scanner kamera -->
         <div>
           <div class="scanner-wrap">
-            <div class="scanner-frame">
+            <!-- Container untuk video streaming dari camera scanner -->
+            <div id="qr-reader" style="width: 100%; max-width: 200px; height: 200px; margin: 0 auto 24px; border-radius: 16px; overflow: hidden; background: #000; display: none;"></div>
+
+            <!-- Placeholder scanner saat kamera belum aktif -->
+            <div class="scanner-frame" id="scanner-placeholder">
               <div class="sc-box">
                 <div class="sc-corner sc-tl"></div>
                 <div class="sc-corner sc-tr"></div>
@@ -298,24 +302,24 @@
                 <div class="sc-corner sc-br"></div>
                 <div class="sc-line"></div>
                 <div style="position:absolute;inset:20px;border-radius:8px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;">
-                  <div style="font-size:12px;color:rgba(255,255,255,0.3);text-align:center;">📷<br>Kamera aktif</div>
+                  <div style="font-size:12px;color:rgba(255,255,255,0.3);text-align:center;">📷<br>Kamera belum aktif</div>
                 </div>
               </div>
             </div>
-            <div style="font-size:14px;font-weight:600;color:var(--text2);">Arahkan QR ke kamera</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:4px;">atau cari nama secara manual</div>
-          </div>
 
-          <!-- Manual search -->
-          <div class="card">
-            <div class="card-header"><div class="card-title">🔍 Cari Manual</div></div>
-            <div class="card-body">
-              <div class="search-box" style="margin-bottom:14px;">
-                <span style="color:var(--text3);">🔍</span>
-                <input type="text" id="scan-search" placeholder="Nama penerima / hewan..." oninput="renderScanList()"/>
-              </div>
-              <div id="scan-list"></div>
+            <!-- Tombol start/stop scanner -->
+            <div style="margin-bottom:15px; display:flex; justify-content:center; gap:10px;">
+              <button id="btn-start" class="btn btn-gold" onclick="startScanner()">Mulai Scan</button>
+              <button id="btn-stop" class="btn btn-danger d-none" onclick="stopScanner()">Stop</button>
             </div>
+
+            <div style="font-size:14px;font-weight:600;color:var(--text2);">Arahkan QR ke kamera</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px;">QR akan terdeteksi otomatis setelah kamera diaktifkan</div>
+          </div>
+          <div style="margin-top:12px;text-align:center;">
+            <button class="btn btn-outline" onclick="navTo('tabel',document.querySelector('[onclick*=tabel]'))">
+              📋 Lihat &amp; Cari di Tabel Distribusi →
+            </button>
           </div>
         </div>
 
@@ -338,11 +342,10 @@
       <!-- Page header -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📋 Tabel Distribusi</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📋 Tabel Distribusi Penerima</div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px;">
-            Berdasarkan skema database &nbsp;
-            <code style="background:var(--bg3);border:1px solid var(--border2);padding:2px 8px;border-radius:5px;font-size:10px;color:var(--blue);">distribusi</code>
-            &nbsp;—&nbsp; id_stok · dowload_qr · warga_no_kk · QR_id_qr · st_pengambilan · mtd_pengambilan
+            Data penerima dari <strong style="color:var(--gold2);">Excel upload</strong> &nbsp;—&nbsp;
+            warga_no_kk · QR_id_qr · st_pengambilan · mtd_pengambilan
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -354,11 +357,37 @@
       <!-- Summary stat chips -->
       <div id="tabel-chips" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
+      <!-- ── PENCARIAN MANUAL (dipindah dari Distribusi QR) ── -->
+      <div class="dash-grid" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔍 Cari &amp; Verifikasi Penerima</div>
+            <span style="font-size:11px;color:var(--text3);">Cari lalu tandai sudah diambil</span>
+          </div>
+          <div class="card-body">
+            <div class="search-box" style="margin-bottom:12px;">
+              <span style="color:var(--text3);">🔍</span>
+              <input type="text" id="tabel-quick-search" placeholder="Ketik nama atau No KK penerima..." oninput="renderQuickScanList()"/>
+            </div>
+            <div id="quick-scan-list" style="max-height:220px;overflow-y:auto;"></div>
+          </div>
+        </div>
+        <div>
+          <div id="tabel-scan-result" style="margin-bottom:14px;"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">✅ Log Verifikasi Hari Ini</div></div>
+            <div style="max-height:180px;overflow-y:auto;" id="tabel-dist-log">
+              <div class="empty-state" style="padding:20px;"><div class="empty-ico" style="font-size:24px;">📋</div>Belum ada</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Filter bar -->
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <div class="search-box" style="flex:1;min-width:180px;max-width:280px;">
           <span style="color:var(--text3);">🔍</span>
-          <input type="text" id="tabel-search" placeholder="Cari nama / no KK..." oninput="renderTabelDistribusi()"/>
+          <input type="text" id="tabel-search" placeholder="Filter tabel: nama / no KK..." oninput="renderTabelDistribusi()"/>
         </div>
         <select id="tabel-filter-status" onchange="renderTabelDistribusi()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:9px 12px;font-size:12px;color:var(--text2);font-family:inherit;outline:none;cursor:pointer;">
           <option value="semua">Semua Status</option>
@@ -381,16 +410,16 @@
       <!-- Table card -->
       <div class="card" style="overflow:hidden;">
         <div style="overflow-x:auto;">
-          <table class="data-table" style="min-width:960px;">
+          <table class="data-table" style="min-width:900px;">
             <thead>
               <tr>
                 <th style="width:54px;text-align:center;">id_stok</th>
-                <th style="min-width:180px;">warga_no_kk &amp; Nama KK</th>
-                <th style="min-width:140px;">QR_id_qr</th>
-                <th style="text-align:center;min-width:120px;">dowload_qr</th>
+                <th style="min-width:190px;">warga_no_kk &amp; Nama KK</th>
+                <th style="min-width:130px;">QR_id_qr</th>
+                <th style="text-align:center;min-width:110px;">dowload_qr</th>
                 <th style="min-width:150px;">st_pengambilan</th>
                 <th style="text-align:center;min-width:120px;">mtd_pengambilan</th>
-                <th style="min-width:90px;">Waktu</th>
+                <th style="min-width:85px;">Waktu</th>
                 <th style="text-align:center;min-width:110px;">Aksi Admin</th>
               </tr>
             </thead>
@@ -398,7 +427,8 @@
           </table>
         </div>
         <div id="tabel-empty" style="display:none;" class="empty-state">
-          <div class="empty-ico">📋</div>Tidak ada data yang cocok
+          <div class="empty-ico">📊</div>
+          Belum ada data penerima. Upload file Excel di menu <strong>Penerima Kurban</strong> lalu klik <em>"✓ Aktifkan sebagai Penerima"</em>.
         </div>
       </div>
 
@@ -449,21 +479,26 @@
             <div class="card-header"><div class="card-title">📂 Upload Excel / CSV</div></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7;">
-                Simpan file Excel sebagai <strong>CSV UTF-8</strong>. Hanya 2 kolom wajib; kolom alamat &amp; telepon opsional.
+                Simpan file Excel sebagai <strong>CSV UTF-8</strong> atau langsung drag .xlsx. 
+                Kolom dan urutan apapun — sistem akan mendeteksi otomatis.
               </div>
               <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:14px;font-family:monospace;font-size:11px;color:var(--text2);line-height:1.8;">
+                <span style="color:var(--text3);"># Format bebas, contoh kolom yang dikenali:</span><br>
                 No KK,Nama Kepala Keluarga,Alamat,No Telp<br>
-                3273011234567890,Ahmad Hidayat,Kp. Cikaret,0812xxxx<br>
-                3273012345678901,Siti Rahmawati,RT 01/02,0857xxxx
+                <span style="color:var(--text3);">— atau —</span><br>
+                NKK;Nama KK;Domisili;HP<br>
+                <span style="color:var(--text3);">— atau —</span><br>
+                3273011234567890,Ahmad Hidayat,Kp. Cikaret,0812xxxx
               </div>
               <div id="drop-zone" class="drop-zone-penerima"
                 onclick="document.getElementById('excel-input').click()"
-                ondragover="event.preventDefault();this.classList.add('drag')"
-                ondragleave="this.classList.remove('drag')"
-                ondrop="handleFileDrop(event)">
+                ondragenter="event.preventDefault();this.classList.add('drag')"
+                ondragover="event.preventDefault();event.stopPropagation();this.classList.add('drag')"
+                ondragleave="event.preventDefault();this.classList.remove('drag')"
+                ondrop="handleFileDrop(event);this.classList.remove('drag')">
                 <div style="font-size:32px;margin-bottom:8px;">📊</div>
-                <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau seret file CSV ke sini</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:6px;">.csv disarankan · .xlsx simpan dulu sebagai CSV</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau seret file ke sini</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:6px;">.csv · .xlsx · .xls — Format kolom otomatis terdeteksi</div>
               </div>
               <input type="file" id="excel-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleFileSelect(this)"/>
 
@@ -731,6 +766,18 @@
 </div>
 
 <script src="{{ asset('js/warga-login.js') }}"></script>
+<!-- SheetJS (xlsx) untuk mengkonversi .xlsx/.xls di browser -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+  if (typeof window.XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/xlsx/dist/xlsx.full.min.js';
+    s.onload = () => console.info('SheetJS loaded fallback');
+    s.onerror = () => console.warn('SheetJS CDN gagal dimuat; .xlsx mungkin tidak bisa diproses.');
+    document.head.appendChild(s);
+  }
+</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
 </body>
 </html>

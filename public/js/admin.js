@@ -2,11 +2,11 @@
 // DATA
 // ═══════════════════════════════════════════
 const TIMELINE = [
-    { label:'Penyembelihan', desc:'Proses penyembelihan hewan kurban telah selesai dilakukan.', status:'done',    time:'06:30 WIB', icon:'🔪' },
-    { label:'Pengulitan',    desc:'Pengulitan dan pembersihan selesai dilakukan tim operasional.', status:'done', time:'07:10 WIB', icon:'🐄' },
-    { label:'Pencacahan',    desc:'Daging sedang dipotong dan disiapkan untuk distribusi.', status:'active',       time:'07:45 WIB', icon:'🥩' },
-    { label:'Penimbangan',   desc:'Daging akan ditimbang dan dikemas per bagian.', status:'pending',              time:'~09:00 WIB', icon:'⚖️' },
-    { label:'Siap Diambil',  desc:'Distribusi QR akan dimulai setelah proses penimbangan selesai.', status:'pending', time:'~10:30 WIB', icon:'✅' },
+    { label:'Penyembelihan', desc:'Proses penyembelihan hewan kurban akan dimulai setelah status dikonfirmasi.', status:'pending', time:'—', icon:'🔪' },
+    { label:'Pengulitan',    desc:'Pengulitan dan pembersihan akan dilakukan setelah penyembelihan selesai.', status:'pending', time:'—', icon:'🐄' },
+    { label:'Pencacahan',    desc:'Daging sedang dipotong dan disiapkan untuk distribusi.', status:'pending',      time:'—', icon:'🥩' },
+    { label:'Penimbangan',   desc:'Daging akan ditimbang dan dikemas per bagian.', status:'pending',              time:'—', icon:'⚖️' },
+    { label:'Siap Diambil',  desc:'Distribusi QR akan dimulai setelah proses penimbangan selesai.', status:'pending', time:'—', icon:'✅' },
   ];
   
   const STORAGE_HEWAN = 'kurbanqu_hewan';
@@ -186,6 +186,28 @@ const TIMELINE = [
   let distLog      = [];
   let hewanFilter  = 'semua';
   let currentPage  = 'dashboard';
+  let html5QrCode = null;
+
+  // ─── Penerima Distribusi State (berdasarkan id_penerima dari upload Excel) ───
+  // Storage terpisah agar tidak terpengaruh MUDHOHI
+  const STORAGE_DIST_CLAIMED   = 'kurbanqu_dist_claimed';
+  const STORAGE_DIST_DOWNLOADED = 'kurbanqu_dist_downloaded';
+  const STORAGE_DIST_METHOD    = 'kurbanqu_dist_method';
+  const STORAGE_DIST_TIME      = 'kurbanqu_dist_time';
+
+  // Claimed set untuk penerima Excel (key = id_penerima)
+  let penerimaClaimedSet    = new Set(JSON.parse(localStorage.getItem(STORAGE_DIST_CLAIMED)   || '[]'));
+  let penerimaDownloadedSet = new Set(JSON.parse(localStorage.getItem(STORAGE_DIST_DOWNLOADED) || '[]'));
+  let penerimaClaimMethod   = JSON.parse(localStorage.getItem(STORAGE_DIST_METHOD) || '{}');
+  let penerimaClaimTime     = JSON.parse(localStorage.getItem(STORAGE_DIST_TIME)   || '{}');
+  let penerimaDistLog       = [];
+
+  function savePenerimaDistState() {
+    localStorage.setItem(STORAGE_DIST_CLAIMED,    JSON.stringify([...penerimaClaimedSet]));
+    localStorage.setItem(STORAGE_DIST_DOWNLOADED, JSON.stringify([...penerimaDownloadedSet]));
+    localStorage.setItem(STORAGE_DIST_METHOD,     JSON.stringify(penerimaClaimMethod));
+    localStorage.setItem(STORAGE_DIST_TIME,       JSON.stringify(penerimaClaimTime));
+  }
   
   // ═══════════════════════════════════════════
   // HELPERS
@@ -264,6 +286,9 @@ const TIMELINE = [
   };
   
   function navTo(page, el) {
+    if (page !== 'distribusi') {
+      stopScanner();
+    }
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('pg-' + page).classList.add('active');
@@ -279,7 +304,7 @@ const TIMELINE = [
     if (page === 'tracking')   renderTracking();
     if (page === 'distribusi') { renderScanList(); updateDistStats(); }
     if (page === 'upload')     renderPenerimaPage();
-    if (page === 'tabel')      renderTabelDistribusi();
+    if (page === 'tabel')      { renderTabelDistribusi(); renderQuickScanList(); renderTabelDistLog(); }
     if (page === 'rekap')      renderRekap();
   }
   
@@ -577,54 +602,179 @@ const TIMELINE = [
   }
   
   // ═══════════════════════════════════════════
-  // DISTRIBUSI / SCAN
+  // DISTRIBUSI / SCAN (kamera QR)
   // ═══════════════════════════════════════════
   function updateDistStats() {
-    const total = getAllMudhohi().length;
-    document.getElementById('dist-count').textContent = claimedSet.size;
+    const penerima = loadPenerima();
+    const total = penerima.length || getAllMudhohi().length;
+    const claimed = penerima.length ? penerimaClaimedSet.size : claimedSet.size;
+    document.getElementById('dist-count').textContent = claimed;
     document.getElementById('dist-total').textContent = total;
   }
-  
+
+  // Scan list digunakan di halaman distribusi — tidak ada lagi, hanya kamera
   function renderScanList() {
-    const q = (document.getElementById('scan-search')?.value || '').toLowerCase();
-    const all = getAllMudhohi();
-    const filtered = q ? all.filter(m => m.nama.toLowerCase().includes(q) || m.animalLabel.toLowerCase().includes(q)) : all.slice(0, 8);
-    const el = document.getElementById('scan-list');
-    if (!el) return;
-    if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div class="empty-ico">🔍</div>Tidak ditemukan</div>'; return; }
-    el.innerHTML = filtered.map(m => {
-      const c = AVC[m.warna] || AVC.brown;
-      const claimed = claimedSet.has(mudhohiKey(m));
-      return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--bg3);border-radius:10px;margin-bottom:7px;border:1px solid ${claimed?'rgba(78,203,113,0.2)':'var(--border)'};cursor:pointer;transition:background .15s;" onclick="showScanResult('${m.id_mudhohi}')" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='var(--bg3)'">
-        <div class="avatar" style="background:${c.bg};color:${c.color};">${m.i}</div>
-        <div style="flex:1;"><strong style="font-size:13px;">${m.nama}</strong><div style="font-size:11px;color:var(--text3);">${m.animalEmoji} ${m.animalLabel} · ${m.bagian||'Kurban penuh'}</div></div>
-        ${claimed ? '<span class="status-badge status-done" style="font-size:10px;">✓ Diambil</span>' : '<span style="color:var(--text3);font-size:18px;">›</span>'}
-      </div>`;
-    }).join('');
+    // Fungsi ini dipanggil saat navTo('distribusi') — cukup update stats
+    updateDistStats();
   }
-  
-  function showScanResult(idMudhohi) {
-    const row = findMudhohi(idMudhohi);
-    if (!row) return;
-    const h = getHewanById(row.hewan_id_hewan);
-    const key = mudhohiKey(row);
-    const claimed = claimedSet.has(key);
+
+  function startScanner() {
+    const readerEl = document.getElementById('qr-reader');
+    const placeholderEl = document.getElementById('scanner-placeholder');
+    const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
+
+    if (!readerEl) return;
+
+    readerEl.style.display = 'block';
+    placeholderEl.style.display = 'none';
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 180, height: 180 } },
+      (decodedText) => {
+        console.log("QR terbaca:", decodedText);
+        showScanResultByQR(decodedText);
+      },
+      (error) => { /* diabaikan */ }
+    ).then(() => {
+      if (btnStart) btnStart.classList.add('d-none');
+      if (btnStop) btnStop.classList.remove('d-none');
+    }).catch(err => {
+      toast('Gagal akses kamera: ' + err, 'error');
+      readerEl.style.display = 'none';
+      placeholderEl.style.display = 'block';
+    });
+  }
+
+  function stopScanner() {
+    const readerEl = document.getElementById('qr-reader');
+    const placeholderEl = document.getElementById('scanner-placeholder');
+    const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
+
+    if (html5QrCode) {
+      const stopPromise = (html5QrCode.isScanning) ? html5QrCode.stop() : Promise.resolve();
+      
+      stopPromise.then(() => {
+        html5QrCode = null;
+        if (readerEl) readerEl.style.display = 'none';
+        if (placeholderEl) placeholderEl.style.display = 'block';
+        if (btnStart) btnStart.classList.remove('d-none');
+        if (btnStop) btnStop.classList.add('d-none');
+      }).catch(err => {
+        console.error("Gagal menghentikan scanner:", err);
+        html5QrCode = null;
+        if (readerEl) readerEl.style.display = 'none';
+        if (placeholderEl) placeholderEl.style.display = 'block';
+        if (btnStart) btnStart.classList.remove('d-none');
+        if (btnStop) btnStop.classList.add('d-none');
+      });
+    } else {
+      if (readerEl) readerEl.style.display = 'none';
+      if (placeholderEl) placeholderEl.style.display = 'block';
+      if (btnStart) btnStart.classList.remove('d-none');
+      if (btnStop) btnStop.classList.add('d-none');
+    }
+  }
+
+  window.startScanner = startScanner;
+  window.stopScanner = stopScanner;
+
+  // Scan result ketika QR berhasil di-scan kamera (berdasarkan qrCode penerima)
+  function showScanResultByQR(qrCode) {
+    const penerima = loadPenerima();
+    const p = penerima.find(p => (p.qrCode || '').toUpperCase() === String(qrCode).toUpperCase());
+    if (!p) {
+      document.getElementById('scan-result').innerHTML = `
+        <div style="background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:14px;padding:20px;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="font-size:36px;">❌</div>
+            <div>
+              <div style="font-size:17px;font-weight:700;color:var(--red);">QR Tidak Dikenali</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:4px;">Kode: <code>${qrCode}</code> — tidak terdaftar sebagai penerima.</div>
+            </div>
+          </div>
+        </div>`;
+      toast('QR tidak dikenali: ' + qrCode, 'error');
+      return;
+    }
+    showScanResultPenerima(p.id_penerima);
+  }
+
+  function showScanResultPenerima(idPenerima) {
+    const penerima = loadPenerima();
+    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
+    if (!p) return;
+    const key = String(p.id_penerima);
+    const claimed = penerimaClaimedSet.has(key);
     document.getElementById('scan-result').innerHTML = `
       <div style="background:${claimed?'rgba(224,85,85,0.08)':'rgba(78,203,113,0.08)'};border:1px solid ${claimed?'rgba(224,85,85,0.3)':'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
           <div style="width:52px;height:52px;border-radius:50%;background:${claimed?'rgba(224,85,85,0.15)':'var(--green-bg)'};display:flex;align-items:center;justify-content:center;font-size:24px;">${claimed?'⚠️':'✅'}</div>
           <div>
-            <div style="font-size:17px;font-weight:700;color:var(--text);">${row.nama}</div>
-            <div style="font-size:12px;color:var(--text3);">${row.animalEmoji} ${row.jenisLabel} #${row.hewan_id_hewan} · QR #${row.id_mudhohi}</div>
+            <div style="font-size:17px;font-weight:700;color:var(--text);">${p.nama}</div>
+            <div style="font-size:12px;color:var(--text3);">No KK: ${p.nkk} · QR: <strong>${p.qrCode}</strong></div>
+            ${p.alamat ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📍 ${p.alamat}</div>` : ''}
           </div>
           <span class="status-badge ${claimed?'status-active':'status-done'}" style="margin-left:auto;">${claimed?'⚠ Sudah Diambil':'✓ Valid'}</span>
         </div>
         ${claimed
-          ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;margin-bottom:14px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
-          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markClaimed('${row.id_mudhohi}')">✓ Tandai Sudah Mengambil</button>`}
+          ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
+          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${p.id_penerima}','QR')">✓ Tandai Sudah Mengambil (QR)</button>`}
       </div>`;
   }
-  
+
+  // ─── Mark claimed untuk penerima dari Excel ───
+  function markPenerimaClaimed(idPenerima, method) {
+    const penerima = loadPenerima();
+    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
+    if (!p) return;
+    const key = String(p.id_penerima);
+    if (penerimaClaimedSet.has(key)) { toast('Sudah pernah diambil!', 'error'); return; }
+    penerimaClaimedSet.add(key);
+    const mt = method || 'Manual';
+    penerimaClaimMethod[key] = mt;
+    penerimaClaimTime[key]   = nowTime();
+    if (mt === 'QR') penerimaDownloadedSet.add(key);
+    savePenerimaDistState();
+    penerimaDistLog.unshift({ nama: p.nama, nkk: p.nkk, time: penerimaClaimTime[key], method: mt });
+    renderDistLog();
+    updateDistStats();
+    renderDashboard();
+    if (currentPage === 'tabel') renderTabelDistribusi();
+    if (currentPage === 'distribusi') showScanResultPenerima(idPenerima);
+    toast(p.nama + ' berhasil diverifikasi (' + mt + ')', 'success');
+  }
+
+  function unmarkPenerimaClaimed(idPenerima) {
+    const key = String(idPenerima);
+    penerimaClaimedSet.delete(key);
+    delete penerimaClaimMethod[key];
+    delete penerimaClaimTime[key];
+    penerimaDownloadedSet.delete(key);
+    savePenerimaDistState();
+    updateDistStats();
+    renderDashboard();
+    if (currentPage === 'tabel') renderTabelDistribusi();
+    const penerima = loadPenerima();
+    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
+    toast('Status ' + (p?.nama || idPenerima) + ' dibatalkan', 'info');
+  }
+
+  function simulatePenerimaQRDownload(idPenerima) {
+    const key = String(idPenerima);
+    penerimaDownloadedSet.add(key);
+    savePenerimaDistState();
+    if (currentPage === 'tabel') renderTabelDistribusi();
+    const penerima = loadPenerima();
+    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
+    toast('QR ' + (p?.qrCode || key) + ' sudah didownload', 'info');
+  }
+
+  // ─── Legacy mudhohi claimed (untuk halaman Mudhohi) ───
   function markClaimed(idMudhohi, method) {
     const row = findMudhohi(idMudhohi);
     if (!row) return;
@@ -637,26 +787,21 @@ const TIMELINE = [
     if (mt === 'QR') downloadedSet.add(key);
     distLog.unshift({ nama: row.nama, animal: row.animalLabel, time: claimTime[key], method: mt });
     renderDistLog();
-    renderScanList();
-    showScanResult(idMudhohi);
-    updateDistStats();
-    renderDashboard();
     renderMudhohiTable();
-    if (currentPage === 'tabel') renderTabelDistribusi();
+    renderDashboard();
     toast(row.nama + ' berhasil diverifikasi (' + mt + ')', 'success');
   }
-  
+
   function markClaimedManual(idMudhohi) {
     markClaimed(idMudhohi, 'Manual');
   }
-  
+
   function simulateQRDownload(key) {
     downloadedSet.add(key);
-    if (currentPage === 'tabel') renderTabelDistribusi();
     const row = findMudhohi(key);
     toast('QR #' + (row?.id_mudhohi || key) + ' sudah didownload', 'info');
   }
-  
+
   function unmarkClaimed(idMudhohi) {
     const row = findMudhohi(idMudhohi);
     const key = mudhohiKey(row || { id_mudhohi: idMudhohi });
@@ -667,23 +812,26 @@ const TIMELINE = [
     renderMudhohiTable();
     renderDashboard();
     updateDistStats();
-    if (currentPage === 'tabel') renderTabelDistribusi();
     toast('Status ' + (row?.nama || idMudhohi) + ' dibatalkan', 'info');
   }
-  
+
   function renderDistLog() {
     const el = document.getElementById('dist-log');
-    if (!distLog.length) { el.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Belum ada yang diverifikasi</div>'; return; }
-    el.innerHTML = distLog.map((l, i) => `
+    const logs = penerimaDistLog.length ? penerimaDistLog : distLog;
+    if (!logs.length) {
+      if (el) el.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Belum ada yang diverifikasi</div>';
+      return;
+    }
+    if (el) el.innerHTML = logs.map((l, i) => `
       <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-        <div style="flex:1;"><strong style="font-size:13px;">${l.nama}</strong><div style="font-size:11px;color:var(--text3);">${l.animal}</div></div>
+        <div style="flex:1;"><strong style="font-size:13px;">${l.nama}</strong><div style="font-size:11px;color:var(--text3);">${l.nkk || l.animal || ''} · ${l.method || 'QR'}</div></div>
         <div style="font-size:11px;color:var(--text3);font-weight:600;">${l.time}</div>
       </div>`).join('');
   }
   
   // ═══════════════════════════════════════════
-  // TABEL DISTRIBUSI  (skema: distribusi)
+  // TABEL DISTRIBUSI  — menggunakan data Penerima dari upload Excel
   // ═══════════════════════════════════════════
   // Mini SVG QR placeholder (unique per code string)
   function miniQR(code) {
@@ -708,19 +856,29 @@ const TIMELINE = [
     const fStatus = document.getElementById('tabel-filter-status')?.value || 'semua';
     const fMetode = document.getElementById('tabel-filter-metode')?.value || 'semua';
     const fQr     = document.getElementById('tabel-filter-qr')?.value    || 'semua';
-  
-    const allM = getAllMudhohi();
-    let list = allM.map((m, idx) => {
-      const key        = mudhohiKey(m);
-      const claimed    = claimedSet.has(key);
-      const downloaded = downloadedSet.has(key);
-      const method     = claimMethod[key] || (claimed ? 'QR' : '-');
-      const waktu      = claimTime[key]   || '-';
-      const noKK       = m.nkk || '—';
-      const qrCode     = qrIdMudhohi(m);
-      return { ...m, key, claimed, downloaded, method, waktu, noKK, idStok: idx + 1, qrCode };
+
+    // ── Gunakan data dari upload Excel (Penerima Kurban) ──
+    const allPenerima = loadPenerima();
+
+    let list = allPenerima.map((p, idx) => {
+      const key        = String(p.id_penerima);
+      const claimed    = penerimaClaimedSet.has(key);
+      const downloaded = penerimaDownloadedSet.has(key);
+      const method     = penerimaClaimMethod[key] || (claimed ? 'QR' : '-');
+      const waktu      = penerimaClaimTime[key]   || '-';
+      return {
+        ...p,
+        key,
+        claimed,
+        downloaded,
+        method,
+        waktu,
+        noKK: p.nkk || '—',
+        qrCode: p.qrCode || ('P' + String(p.id_penerima).padStart(5,'0')),
+        idStok: idx + 1,
+      };
     });
-  
+
     // filters
     if (q) list = list.filter(r => r.nama.toLowerCase().includes(q) || r.noKK.includes(q));
     if (fStatus === 'diambil') list = list.filter(r => r.claimed);
@@ -728,17 +886,17 @@ const TIMELINE = [
     if (fMetode !== 'semua')   list = list.filter(r => r.method === fMetode);
     if (fQr === 'downloaded')     list = list.filter(r => r.downloaded);
     if (fQr === 'not_downloaded') list = list.filter(r => !r.downloaded);
-  
+
     // summary chips
-    const total   = allM.length;
-    const diambil = claimedSet.size;
-    const dlCount = downloadedSet.size;
-    const qrAuto  = Object.values(claimMethod).filter(v => v === 'QR').length;
-    const manual  = Object.values(claimMethod).filter(v => v === 'Manual').length;
-  
+    const total   = allPenerima.length;
+    const diambil = penerimaClaimedSet.size;
+    const dlCount = penerimaDownloadedSet.size;
+    const qrAuto  = Object.values(penerimaClaimMethod).filter(v => v === 'QR').length;
+    const manual  = Object.values(penerimaClaimMethod).filter(v => v === 'Manual').length;
+
     document.getElementById('tabel-summary').innerHTML =
       `<span style="font-size:12px;color:var(--text3);">Menampilkan <strong style="color:var(--text);">${list.length}</strong> dari ${total} data</span>`;
-  
+
     document.getElementById('tabel-chips').innerHTML = [
       [`🗂 Total`, total, 'var(--text2)', 'var(--bg4)'],
       [`✅ Diambil`, diambil, 'var(--green)', 'var(--green-bg)'],
@@ -752,21 +910,26 @@ const TIMELINE = [
         <strong style="font-size:14px;color:${col};">${val}</strong>
       </div>`
     ).join('');
-  
+
     const tbody = document.getElementById('tabel-distribusi-body');
     const empty = document.getElementById('tabel-empty');
-  
+
     if (!list.length) {
       tbody.innerHTML = '';
-      empty.style.display = 'block';
+      if (empty) empty.style.display = 'block';
       return;
     }
-    empty.style.display = 'none';
-  
+    if (empty) empty.style.display = 'none';
+
     tbody.innerHTML = list.map(r => {
-      const c = AVC[r.warna] || AVC.brown;
-  
-      // ── dowload_qr: ENUM('Ya','Tidak') — otomatis berubah saat user download
+      // avatar warna berdasarkan hash nama
+      let seed = 0;
+      for (let i = 0; i < r.nama.length; i++) seed = (seed * 31 + r.nama.charCodeAt(i)) >>> 0;
+      const warnas = ['brown','green','amber','purple'];
+      const c = AVC[warnas[seed % 4]] || AVC.brown;
+      const initials = r.nama.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+      // ── download_qr badge
       const dlBadge = r.downloaded
         ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(91,156,246,0.12);border:1px solid rgba(91,156,246,0.25);border-radius:20px;padding:4px 10px;">
              <span style="font-size:10px;">⬇</span>
@@ -776,13 +939,13 @@ const TIMELINE = [
              <span style="font-size:10px;">📵</span>
              <span style="font-size:10px;font-weight:700;color:var(--text3);">Tidak</span>
            </div>`;
-  
+
       const dlBtn = !r.downloaded
-        ? `<br><button class="btn btn-sm" style="margin-top:5px;background:rgba(91,156,246,0.1);color:var(--blue);border:1px solid rgba(91,156,246,0.2);font-size:10px;padding:3px 9px;" 
-             onclick="simulateQRDownload('${r.key}')">⬇ Download QR</button>`
+        ? `<br><button class="btn btn-sm" style="margin-top:5px;background:rgba(91,156,246,0.1);color:var(--blue);border:1px solid rgba(91,156,246,0.2);font-size:10px;padding:3px 9px;"
+             onclick="simulatePenerimaQRDownload('${r.id_penerima}')">⬇ Download QR</button>`
         : `<br><span style="font-size:10px;color:var(--text3);margin-top:4px;display:inline-block;">✓ File tersimpan</span>`;
-  
-      // ── st_pengambilan — auto via QR, manual via button
+
+      // ── st_pengambilan
       const stBadge = r.claimed
         ? `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(78,203,113,0.25);border-radius:8px;padding:5px 10px;">
              <span style="font-size:13px;">${r.method === 'QR' ? '📱' : '👆'}</span>
@@ -798,8 +961,8 @@ const TIMELINE = [
                <div style="font-size:10px;color:var(--text3);">Menunggu pengambilan</div>
              </div>
            </div>`;
-  
-      // ── mtd_pengambilan: ENUM('QR','Manual') — sesuai DB schema
+
+      // ── mtd_pengambilan
       const mtdBadge = r.method === 'QR'
         ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
              <span style="background:rgba(91,156,246,0.12);color:var(--blue);border:1px solid rgba(91,156,246,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">📱 QR</span>
@@ -811,29 +974,29 @@ const TIMELINE = [
                <span style="font-size:9px;color:var(--text3);">Admin input</span>
              </div>`
           : `<span style="color:var(--text3);font-size:12px;">—</span>`;
-  
-      // ── Aksi admin button
+
+      // ── Aksi admin
       const aksiBtn = !r.claimed
         ? `<button class="btn btn-gold btn-sm" style="width:100%;" title="Tandai diambil secara manual"
-             onclick="markClaimedManual('${r.id_mudhohi}');renderTabelDistribusi();">
+             onclick="markPenerimaClaimed('${r.id_penerima}','Manual');renderTabelDistribusi();">
              👆 Tandai Manual
            </button>`
         : `<button class="btn btn-ghost btn-sm" style="width:100%;font-size:10px;"
-             onclick="unmarkClaimed('${r.id_mudhohi}');renderTabelDistribusi();">
+             onclick="unmarkPenerimaClaimed('${r.id_penerima}');renderTabelDistribusi();">
              ↩ Batalkan
            </button>`;
-  
+
       return `<tr>
         <td style="text-align:center;">
           <span style="font-family:monospace;font-size:11px;color:var(--text3);font-weight:700;">#${String(r.idStok).padStart(3,'0')}</span>
         </td>
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
-            <div class="avatar" style="background:${c.bg};color:${c.color};font-size:11px;width:36px;height:36px;">${r.i}</div>
+            <div class="avatar" style="background:${c.bg};color:${c.color};font-size:11px;width:36px;height:36px;">${initials}</div>
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--text);">${r.nama}</div>
               <div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:monospace;letter-spacing:.3px;">KK: ${r.noKK}</div>
-              ${r.nama_ayah ? `<div style="font-size:10px;color:var(--text3);">Bin ${r.nama_ayah}</div>` : ''}
+              ${r.alamat ? `<div style="font-size:10px;color:var(--text3);">📍 ${r.alamat}</div>` : ''}
             </div>
           </div>
         </td>
@@ -842,7 +1005,7 @@ const TIMELINE = [
             <div style="opacity:${r.downloaded ? 1 : 0.4};transition:opacity .3s;">${miniQR(r.qrCode)}</div>
             <div>
               <div style="font-family:monospace;font-size:10px;color:var(--blue);background:rgba(91,156,246,0.08);border:1px solid rgba(91,156,246,0.15);padding:3px 7px;border-radius:5px;">${r.qrCode}</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px;">${r.animalEmoji} ${r.animalLabel} · ${r.bagian||'Penuh'}</div>
+              ${r.notelp ? `<div style="font-size:10px;color:var(--text3);margin-top:3px;">📞 ${r.notelp}</div>` : ''}
             </div>
           </div>
         </td>
@@ -856,21 +1019,21 @@ const TIMELINE = [
   }
   
   function exportTabelCSV() {
-    const allM = getAllMudhohi();
-    const rows = [['id_stok','warga_no_kk','Nama KK','QR_id_qr','dowload_qr','st_pengambilan','mtd_pengambilan','Waktu']];
-    allM.forEach((m, i) => {
-      const key  = mudhohiKey(m);
-      const noKK = m.nkk || '—';
-      const qr   = qrIdMudhohi(m);
+    const allPenerima = loadPenerima();
+    const rows = [['id_stok','warga_no_kk','Nama KK','QR_id_qr','download_qr','st_pengambilan','mtd_pengambilan','Waktu']];
+    allPenerima.forEach((p, i) => {
+      const key  = String(p.id_penerima);
+      const noKK = p.nkk || '—';
+      const qr   = p.qrCode || ('P' + String(p.id_penerima).padStart(5,'0'));
       rows.push([
         String(i+1).padStart(3,'0'),
         noKK,
-        m.nama,
+        p.nama,
         qr,
-        downloadedSet.has(key) ? 'Ya' : 'Tidak',
-        claimedSet.has(key)    ? 'Sudah Diambil' : 'Belum Diambil',
-        claimMethod[key] || '-',
-        claimTime[key]   || '-'
+        penerimaDownloadedSet.has(key) ? 'Ya' : 'Tidak',
+        penerimaClaimedSet.has(key)    ? 'Sudah Diambil' : 'Belum Diambil',
+        penerimaClaimMethod[key] || '-',
+        penerimaClaimTime[key]   || '-'
       ]);
     });
     const csv  = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
@@ -882,6 +1045,96 @@ const TIMELINE = [
     toast('CSV berhasil diexport', 'success');
   }
   
+  // ═══════════════════════════════════════════
+  // QUICK SCAN LIST (Tabel Distribusi — pencarian manual penerima)
+  // ═══════════════════════════════════════════
+  function renderQuickScanList() {
+    const q = (document.getElementById('tabel-quick-search')?.value || '').trim().toLowerCase();
+    const el = document.getElementById('quick-scan-list');
+    if (!el) return;
+
+    const penerima = loadPenerima();
+    if (!penerima.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="empty-ico" style="font-size:24px;">📊</div>Belum ada penerima. Upload Excel di menu Penerima Kurban.</div>';
+      return;
+    }
+
+    if (!q) {
+      el.innerHTML = '<div style="padding:12px 16px;font-size:12px;color:var(--text3);">Ketik nama atau No KK untuk mencari penerima...</div>';
+      return;
+    }
+
+    const filtered = penerima.filter(p =>
+      p.nama.toLowerCase().includes(q) ||
+      (p.nkk || '').includes(q) ||
+      (p.qrCode || '').toLowerCase().includes(q)
+    ).slice(0, 10);
+
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="empty-ico" style="font-size:24px;">🔍</div>Tidak ditemukan</div>';
+      return;
+    }
+
+    el.innerHTML = filtered.map(p => {
+      const key = String(p.id_penerima);
+      const claimed = penerimaClaimedSet.has(key);
+      let seed = 0;
+      for (let i = 0; i < p.nama.length; i++) seed = (seed * 31 + p.nama.charCodeAt(i)) >>> 0;
+      const warnas = ['brown','green','amber','purple'];
+      const c = AVC[warnas[seed % 4]] || AVC.brown;
+      const initials = p.nama.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--bg3);border-radius:10px;margin-bottom:7px;border:1px solid ${claimed?'rgba(78,203,113,0.2)':'var(--border)'};cursor:pointer;transition:background .15s;" onclick="showTabelScanResult('${p.id_penerima}')" onmouseover="this.style.background='var(--bg4)'" onmouseout="this.style.background='var(--bg3)'">
+        <div class="avatar" style="background:${c.bg};color:${c.color};font-size:11px;">${initials}</div>
+        <div style="flex:1;">
+          <strong style="font-size:13px;">${p.nama}</strong>
+          <div style="font-size:11px;color:var(--text3);">KK: ${p.nkk || '—'} · QR: <strong style="color:var(--gold2);">${p.qrCode}</strong>${p.alamat ? ' · ' + p.alamat : ''}</div>
+        </div>
+        ${claimed ? '<span class="status-badge status-done" style="font-size:10px;">✓ Diambil</span>' : '<span style="color:var(--text3);font-size:18px;">›</span>'}
+      </div>`;
+    }).join('');
+  }
+
+  function showTabelScanResult(idPenerima) {
+    const penerima = loadPenerima();
+    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
+    if (!p) return;
+    const key = String(p.id_penerima);
+    const claimed = penerimaClaimedSet.has(key);
+    const el = document.getElementById('tabel-scan-result');
+    if (!el) return;
+    el.innerHTML = `
+      <div style="background:${claimed?'rgba(224,85,85,0.08)':'rgba(78,203,113,0.08)'};border:1px solid ${claimed?'rgba(224,85,85,0.3)':'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="width:52px;height:52px;border-radius:50%;background:${claimed?'rgba(224,85,85,0.15)':'var(--green-bg)'};display:flex;align-items:center;justify-content:center;font-size:24px;">${claimed?'⚠️':'✅'}</div>
+          <div style="flex:1;">
+            <div style="font-size:17px;font-weight:700;color:var(--text);">${p.nama}</div>
+            <div style="font-size:12px;color:var(--text3);">No KK: ${p.nkk} · QR: <strong style="color:var(--gold2);">${p.qrCode}</strong></div>
+            ${p.alamat ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📍 ${p.alamat}</div>` : ''}
+          </div>
+          <span class="status-badge ${claimed?'status-active':'status-done'}" style="margin-left:auto;">${claimed?'⚠ Sudah Diambil':'✓ Valid'}</span>
+        </div>
+        ${claimed
+          ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
+          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${p.id_penerima}','Manual');showTabelScanResult('${p.id_penerima}');renderTabelDistribusi();">👆 Tandai Sudah Mengambil</button>`}
+      </div>`;
+    renderTabelDistLog();
+  }
+
+  function renderTabelDistLog() {
+    const el = document.getElementById('tabel-dist-log');
+    if (!el) return;
+    if (!penerimaDistLog.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="empty-ico" style="font-size:24px;">📋</div>Belum ada</div>';
+      return;
+    }
+    el.innerHTML = penerimaDistLog.slice(0, 10).map((l, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;"><strong style="font-size:12px;">${l.nama}</strong><div style="font-size:10px;color:var(--text3);">${l.method || 'Manual'}</div></div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600;">${l.time}</div>
+      </div>`).join('');
+  }
+
   // ═══════════════════════════════════════════
   // REKAP
   // ═══════════════════════════════════════════
@@ -1037,26 +1290,68 @@ const TIMELINE = [
   
   function handleFileDrop(e) {
     e.preventDefault();
+    e.stopPropagation();
     const dz = document.getElementById('drop-zone');
-    dz.style.borderColor = 'var(--border2)'; dz.style.background = '';
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    if (dz) { dz.classList.remove('drag'); }
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) { toast('Tidak ada file yang terdeteksi', 'error'); return; }
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    if (!['csv','xlsx','xls'].includes(ext)) {
+      toast('Format file tidak didukung. Gunakan .csv, .xlsx, atau .xls', 'error');
+      return;
+    }
     readFileAsCSV(file);
   }
+  // Expose ke window agar bisa dipanggil dari ondrop di HTML
+  window.handleFileDrop = handleFileDrop;
+
   function handleFileSelect(input) {
     const file = input.files[0];
     if (!file) return;
     readFileAsCSV(file);
   }
+  window.handleFileSelect = handleFileSelect;
   
   function readFileAsCSV(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const text = e.target.result;
-      const rows = parseCSV(text);
-      previewImport(rows, file.name);
-    };
-    reader.readAsText(file, 'UTF-8');
+      const ext = (file.name || '').split('.').pop().toLowerCase();
+      const isExcel = ext === 'xlsx' || ext === 'xls';
+      if (isExcel && typeof window.XLSX === 'undefined') {
+        toast('Library Excel belum siap. Coba lagi atau simpan file sebagai CSV UTF-8.', 'error');
+        return;
+      }
+      // If Excel file, read as array buffer and convert to CSV using SheetJS (xlsx)
+      if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const wb = window.XLSX.read(data, { type: 'array' });
+            const first = wb.SheetNames[0];
+            const csv = window.XLSX.utils.sheet_to_csv(wb.Sheets[first] || {});
+            const rows = parseCSV(csv);
+            previewImport(rows, file.name);
+          } catch (err) {
+            console.error('Excel conversion failed', err);
+            toast('Gagal membaca file Excel. Simpan sebagai CSV UTF-8 sebagai alternatif.', 'error');
+          }
+        };
+        reader.onerror = () => {
+          toast('Gagal membaca file Excel. Pastikan file tidak rusak.', 'error');
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const text = e.target.result;
+        const rows = parseCSV(text);
+        previewImport(rows, file.name);
+      };
+      reader.onerror = () => {
+        toast('Gagal membaca file CSV. Pastikan file menggunakan encoding UTF-8.', 'error');
+      };
+      reader.readAsText(file, 'UTF-8');
   }
   
   function parseCSVPaste() {
@@ -1065,28 +1360,123 @@ const TIMELINE = [
     const rows = parseCSV(text);
     previewImport(rows, 'paste');
   }
+  window.parseCSVPaste = parseCSVPaste;
   
   function getImportMode() {
     const el = document.querySelector('input[name="import-mode"]:checked');
     return el?.value === 'replace' ? 'replace' : 'append';
   }
 
+  /**
+   * Auto-detect CSV format:
+   * - separator: comma / semicolon / tab
+   * - header kolom: No KK, Nama KK, Nama Kepala Keluarga, Alamat, Telepon, dll
+   * - posisi kolom: bisa urutan apapun, dideteksi dari header
+   */
   function parseCSV(text) {
+    if (!text) return [];
+    // Hapus BOM UTF-8 dan normalize line endings
+    text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     if (!lines.length) return [];
-    let startIdx = 0;
-    const firstLower = lines[0].toLowerCase();
-    if (firstLower.includes('nama') || firstLower.includes('kk')) startIdx = 1;
 
-    return lines.slice(startIdx).map(line => {
-      const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim());
+    // ── Deteksi separator (comma, semicolon, tab)
+    const firstLine = lines[0];
+    const countSemi = (firstLine.match(/;/g) || []).length;
+    const countComma = (firstLine.match(/,/g) || []).length;
+    const countTab = (firstLine.match(/\t/g) || []).length;
+    let sep = ',';
+    if (countSemi > countComma && countSemi > countTab) sep = ';';
+    else if (countTab > countComma) sep = '\t';
+
+    // ── Fungsi split satu baris sesuai separator (handle quoted fields)
+    function splitLine(line) {
+      const re = sep === ',' 
+        ? /,(?=(?:[^"]*"[^"]*")*[^"]*$)/
+        : sep === ';'
+          ? /;(?=(?:[^"]*"[^"]*")*[^"]*$)/
+          : /\t/;
+      return line.split(re).map(c => c.replace(/^"|"$/g,'').trim());
+    }
+
+    // ── Deteksi header baris pertama
+    const headerLine = lines[0].toLowerCase();
+    const isHeader = headerLine.includes('nama') || headerLine.includes('kk') ||
+                     headerLine.includes('no') || headerLine.includes('nkk') ||
+                     headerLine.includes('kepala') || headerLine.includes('keluarga') ||
+                     headerLine.includes('telp') || headerLine.includes('alamat');
+
+    let colNkk = -1, colNama = -1, colAlamat = -1, colTelp = -1;
+
+    if (isHeader) {
+      // Petakan kolom dari header
+      const headers = splitLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g,''));
+      headers.forEach((h, i) => {
+        // Deteksi kolom No KK
+        if (colNkk < 0 && (h.includes('nkk') || h.includes('nokk') || h.includes('nomorkk') ||
+            h.includes('nokk') || h.includes('nok') || h === 'kk' || h.includes('kartukeluarga'))) {
+          colNkk = i;
+        }
+        // Deteksi kolom Nama
+        if (colNama < 0 && (h.includes('nama') || h.includes('kepala') || h.includes('namakk') ||
+            h.includes('namakeluarga') || h.includes('namalenngkap') || h === 'name')) {
+          colNama = i;
+        }
+        // Deteksi kolom Alamat
+        if (colAlamat < 0 && (h.includes('alamat') || h.includes('address') || h.includes('jalan') ||
+            h.includes('domisili') || h.includes('rtrw'))) {
+          colAlamat = i;
+        }
+        // Deteksi kolom Telepon
+        if (colTelp < 0 && (h.includes('telp') || h.includes('telepon') || h.includes('hp') ||
+            h.includes('phone') || h.includes('nohp') || h.includes('notelp') ||
+            h.includes('handphone') || h.includes('wa') || h.includes('whatsapp'))) {
+          colTelp = i;
+        }
+      });
+    }
+
+    // Fallback: jika header tidak terdeteksi, pakai posisi default
+    const dataLines = isHeader ? lines.slice(1) : lines;
+    const useHeader = colNkk >= 0 || colNama >= 0;
+
+    // Jika tidak ada header sama sekali, coba tebak posisi dari baris pertama data
+    if (!useHeader) {
+      const firstData = splitLine(dataLines[0] || '');
+      // Cari kolom yang terlihat seperti No KK (panjang, hanya angka)
+      firstData.forEach((val, i) => {
+        const digits = val.replace(/\D/g,'');
+        if (colNkk < 0 && digits.length >= 10) colNkk = i;
+      });
+      // Kolom nama = kolom lain yang bukan angka murni
+      firstData.forEach((val, i) => {
+        if (i !== colNkk && colNama < 0 && val.replace(/[a-zA-Z\s]/g,'').length < val.length / 2 && val.length >= 2) {
+          colNama = i;
+        }
+      });
+    }
+
+    // Default akhir jika masih tidak ketemu
+    if (colNkk < 0) colNkk = 0;
+    if (colNama < 0) colNama = 1;
+    if (colAlamat < 0) colAlamat = 2;
+    if (colTelp < 0) colTelp = 3;
+
+    return dataLines.map(line => {
+      if (!line.trim()) return null;
+      const cols = splitLine(line);
+      const nkk  = normNkk(cols[colNkk] || '');
+      const nama  = (cols[colNama] || '').trim();
+      // Toleran: terima No KK minimal 6 digit, nama minimal 1 karakter
+      if (!nama || nama.length < 1) return null;
+      if (nkk.length < 6) return null;
       return {
-        nkk:    normNkk(cols[0] || ''),
-        nama:   cols[1] || '',
-        alamat: cols[2] || '',
-        notelp: cols[3] || '',
+        nkk,
+        nama,
+        alamat: colAlamat < cols.length ? (cols[colAlamat] || '').trim() : '',
+        notelp: colTelp  < cols.length ? (cols[colTelp]  || '').trim() : '',
       };
-    }).filter(r => r.nama.length >= 2 && r.nkk.length >= 10);
+    }).filter(r => r !== null);
   }
 
   function updatePenerimaBadge() {
@@ -1157,14 +1547,18 @@ const TIMELINE = [
     confirmedPenerima = loadPenerima();
 
     renderPenerimaPage();
+    updateDistStats();
     document.getElementById('preview-content').innerHTML =
-      '<div class="empty-state"><div class="empty-ico">✅</div>Penerima aktif — warga sudah bisa login &amp; lihat QR</div>';
+      '<div class="empty-state"><div class="empty-ico">✅</div>Penerima aktif — warga sudah bisa login &amp; lihat QR. Data muncul di <strong>Tabel Distribusi</strong>.</div>';
     document.getElementById('preview-actions').style.display = 'none';
     document.getElementById('preview-stats').innerHTML = '';
+    // Update badge distribusi
+    const badgeDist = document.getElementById('badge-distribusi');
+    if (badgeDist) badgeDist.textContent = penerimaClaimedSet.size;
     toast(
       mode === 'replace'
-        ? total + ' penerima terdaftar (daftar diganti)'
-        : (total - prev) + ' penerima ditambahkan · total ' + total,
+        ? total + ' penerima terdaftar (daftar diganti) — cek Tabel Distribusi'
+        : (total - prev) + ' penerima ditambahkan · total ' + total + ' — cek Tabel Distribusi',
       'success'
     );
     setTimeout(() => document.getElementById('imported-list-card')?.scrollIntoView({ behavior: 'smooth' }), 300);
@@ -1260,13 +1654,20 @@ const TIMELINE = [
 
   function clearImport() {
     importedPenerima = [];
-    document.getElementById('csv-paste').value = '';
-    document.getElementById('excel-input').value = '';
-    document.getElementById('preview-content').innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>';
-    document.getElementById('preview-actions').style.display = 'none';
-    document.getElementById('preview-stats').innerHTML = '';
+    const pasteEl = document.getElementById('csv-paste');
+    const inputEl = document.getElementById('excel-input');
+    if (pasteEl) pasteEl.value = '';
+    if (inputEl) inputEl.value = '';
+    const previewContent = document.getElementById('preview-content');
+    const previewActions = document.getElementById('preview-actions');
+    const previewStats  = document.getElementById('preview-stats');
+    if (previewContent) previewContent.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>';
+    if (previewActions) previewActions.style.display = 'none';
+    if (previewStats)  previewStats.innerHTML = '';
     toast('Form dibersihkan', 'info');
   }
+  window.clearImport = clearImport;
+  window.importConfirm = importConfirm;
   
   // Close modal on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o => {

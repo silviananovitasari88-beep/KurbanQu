@@ -12,42 +12,42 @@ const AV = {
 const TIMELINE = [
   {
     label: "Penyembelihan",
-    desc:  "Hewan kurban telah disembelih",
-    status: "done",
-    time:  "06:30 WIB",
+    desc:  "Proses penyembelihan akan dimulai setelah status dikonfirmasi",
+    status: "pending",
+    time:  "—",
     icon:  "🔪"
   },
   {
     label: "Pengulitan",
-    desc:  "Proses pengulitan hewan kurban",
-    status: "done",
-    time:  "07:10 WIB",
+    desc:  "Proses pengulitan hewan kurban akan dilakukan setelah penyembelihan selesai",
+    status: "pending",
+    time:  "—",
     icon:  "🐄"
   },
   {
     label: "Pencacahan",
-    desc:  "Daging dipotong & dibersihkan",
-    status: "active",
-    time:  "07:45 WIB",
+    desc:  "Daging akan dipotong & dibersihkan setelah tahap sebelumnya selesai",
+    status: "pending",
+    time:  "—",
     icon:  "🥩"
   },
   {
     label: "Penimbangan",
-    desc:  "Daging ditimbang & dikemas",
+    desc:  "Daging akan ditimbang & dikemas setelah pencacahan selesai",
     status: "pending",
-    time:  "~09:00 WIB",
+    time:  "—",
     icon:  "⚖️"
   },
   {
     label: "Siap Diambil",
-    desc:  "Daging siap diambil penerima",
+    desc:  "Daging akan siap diambil penerima setelah proses penimbangan selesai",
     status: "pending",
-    time:  "~10:30 WIB",
+    time:  "—",
     icon:  "✅"
   },
 ];
 
-const ANIMALS = {
+let ANIMALS = {
   sapi: [
     { id:"S01", emoji:"🐄", label:"Sapi Putih No.01", jenis:"Sapi", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±230 kg",
       alamat:"Kp. Cikaret RT 02/03", notelp:"0812-xxxx-1234", reqBagian:"7 bagian",
@@ -122,6 +122,58 @@ const ANIMALS = {
       mudhohi:[{i:"SN",nama:"Siti Nurhasanah",warna:"amber"}]},
   ],
 };
+
+const STORAGE_HEWAN = 'kurbanqu_hewan';
+const STORAGE_MUDHOHI = 'kurbanqu_mudhohi';
+
+function loadSharedAnimalData() {
+  try {
+    const rawH = localStorage.getItem(STORAGE_HEWAN);
+    const rawM = localStorage.getItem(STORAGE_MUDHOHI);
+    const hewan = rawH === null ? [] : JSON.parse(rawH || '[]');
+    const mudhohi = rawM === null ? [] : JSON.parse(rawM || '[]');
+    if (!Array.isArray(hewan) || !Array.isArray(mudhohi)) return false;
+
+    const mudhohiByHewan = {};
+    mudhohi.forEach(m => {
+      const uid = String(m.hewan_id_hewan || '');
+      if (!mudhohiByHewan[uid]) mudhohiByHewan[uid] = [];
+      mudhohiByHewan[uid].push({
+        i: (m.nama || '??').slice(0, 2).toUpperCase(),
+        nama: m.nama || '—',
+        warna: m.warna || 'brown',
+      });
+    });
+
+    const grouped = { sapi: [], kambing: [], domba: [] };
+    hewan.forEach(h => {
+      const jenis = String(h.jenis || '').toLowerCase();
+      const key = ['sapi', 'kambing', 'domba'].includes(jenis) ? jenis : 'sapi';
+      grouped[key].push({
+        id: `${key[0].toUpperCase()}${String(h.id_hewan || '').padStart(2, '0')}`,
+        emoji: key === 'sapi' ? '🐄' : key === 'kambing' ? '🐐' : '🐑',
+        label: h.label || `${key.charAt(0).toUpperCase() + key.slice(1)} #${h.id_hewan}`,
+        jenis: key,
+        umur: h.umur || '—',
+        sehat: h.sehat === 'Ya' ? '✓ Sehat' : '✗ Tidak Sehat',
+        syariat: h.st_syariat === 'Sah' ? '✓ Sah' : '✗ Tidak Sah',
+        cacat: h.cacat === 'Tidak' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
+        berat: h.berat || '—',
+        alamat: h.alamat || '—',
+        notelp: h.notelp || '—',
+        reqBagian: h.req || '1 bagian',
+        mudhohi: mudhohiByHewan[String(h.id_hewan || '')] || [],
+      });
+    });
+
+    ANIMALS = grouped;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+loadSharedAnimalData();
 
 // Update counts in chips
 document.getElementById('cnt-sapi').textContent    = ANIMALS.sapi.length;

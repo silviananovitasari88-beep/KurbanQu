@@ -100,7 +100,7 @@ function mergePenerimaRows(rows, mode) {
   (rows || []).forEach(r => {
     const nkk = normNkk(r.nkk);
     const nama = String(r.nama || '').trim();
-    if (nkk.length < 10 || nama.length < 2) return;
+    if (nkk.length < 6 || nama.length < 1) return;
     const key = nkk + '|' + normNama(nama);
     const existing = map.get(key);
     const id = existing?.id_penerima || nextId++;

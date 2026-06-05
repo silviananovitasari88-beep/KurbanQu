@@ -10,9 +10,10 @@ class Warga extends Model
     protected $table = 'warga';
     protected $primaryKey = 'no_kk';
     public $incrementing = false; // Karena no_kk biasanya bukan auto-increment
+    public $timestamps = false; // ← Disable auto timestamps, kita handle manual
 
     protected $fillable = [
-        'no_kk', 'nama_kk', 'QR_id_qr'
+        'no_kk', 'nama_kk', 'alamat', 'no_telp', 'QR_id_qr', 'id_penerima', 'created_at', 'updated_at'
     ];
 
     public function distribusi(): HasMany {

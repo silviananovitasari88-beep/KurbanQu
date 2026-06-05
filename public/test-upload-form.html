@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload Penerima</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        form { max-width: 600px; }
+        textarea { width: 100%; height: 200px; }
+        button { padding: 10px 20px; margin-top: 10px; }
+        #result { margin-top: 20px; padding: 15px; background: #f0f0f0; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Test Upload Penerima Kurban</h1>
+    
+    <form id="testForm">
+        <h3>Data Penerima (JSON format):</h3>
+        <textarea id="dataInput" required>{
+  "penerima": [
+    {"nkk": "2222222222", "nama": "Budi Santoso", "alamat": "Jl Mawar", "notelp": "081234567"},
+    {"nkk": "3333333333", "nama": "Siti Nurhayati", "alamat": "Jl Melati", "notelp": "082345678"}
+  ]
+}</textarea>
+        
+        <div>
+            <label>Mode:</label>
+            <select id="mode">
+                <option value="append">Append (tambah)</option>
+                <option value="replace">Replace (ganti)</option>
+            </select>
+        </div>
+        
+        <button type="button" onclick="testUpload()">Test Upload</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testUpload() {
+            const dataStr = document.getElementById('dataInput').value;
+            const mode = document.getElementById('mode').value;
+            
+            try {
+                const data = JSON.parse(dataStr);
+                data.mode = mode;
+                
+                fetch('/KurbanQu/simpan-penerima', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(r => r.json())
+                .then(res => {
+                    const div = document.getElementById('result');
+                    if (res.success) {
+                        div.className = 'success';
+                        div.innerHTML = `<strong>✅ SUCCESS!</strong><br><br>` + JSON.stringify(res, null, 2).replace(/\n/g, '<br>');
+                    } else {
+                        div.className = 'error';
+                        div.innerHTML = `<strong>❌ FAILED!</strong><br><br>` + JSON.stringify(res, null, 2).replace(/\n/g, '<br>');
+                    }
+                })
+                .catch(e => {
+                    document.getElementById('result').className = 'error';
+                    document.getElementById('result').innerHTML = '<strong>ERROR:</strong> ' + e.message;
+                });
+            } catch (e) {
+                document.getElementById('result').innerHTML = '<strong>JSON Parse Error:</strong> ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

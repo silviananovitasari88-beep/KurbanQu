@@ -33,10 +33,20 @@ function loadPenerima() {
 }
 
 function savePenerima(list) {
-  localStorage.setItem(STORAGE_PENERIMA, JSON.stringify(list));
-  localStorage.setItem(STORAGE_CONFIRMED_WARGA, JSON.stringify(list));
-  syncLoginIndex(list);
+    localStorage.setItem(STORAGE_PENERIMA, JSON.stringify(list));
+    localStorage.setItem(STORAGE_CONFIRMED_WARGA, JSON.stringify(list));
+    syncLoginIndex(list);
+
+    fetch('/simpan-penerima', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        body: JSON.stringify({ penerima: list })
+    });
 }
+
 
 function loadNextPenerimaId() {
   const stored = parseInt(localStorage.getItem(STORAGE_PENERIMA_ID) || '0', 10);

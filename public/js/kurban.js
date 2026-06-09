@@ -521,6 +521,10 @@ function submitLogin() {
   const nama = namaEl.value.trim();
   const nkk = normNkk(nkkEl.value.trim());
 
+  if (auth.penerima) {
+    sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
+  }
+
   document.getElementById('qr-nama').textContent = nama;
   document.getElementById('qr-nkk').textContent  = nkk;
 
@@ -677,6 +681,76 @@ function startQrDots() {
 function stopQrDots() {
   if (qrCardDotTimer) { clearInterval(qrCardDotTimer); qrCardDotTimer = null; }
 }
+
+function getCurrentWargaLogin() {
+  try {
+    const raw = sessionStorage.getItem('kurbanqu_current_warga');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function downloadMyQr() {
+  const currentWarga = getCurrentWargaLogin();
+  const downloadBtn = document.getElementById('download-qr-btn');
+
+  if (!currentWarga) {
+    alert('Silakan login terlebih dahulu untuk mengunduh QR.');
+    goto('pg-login');
+    return;
+  }
+
+  if (downloadBtn) {
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Mengunduh...';
+  }
+
+  try {
+    const response = await fetch('/warga/qr/download', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'image/png',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+      body: JSON.stringify({
+        nkk: currentWarga.nkk,
+        nama: currentWarga.nama,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      throw new Error(errorPayload.message || 'Gagal mengunduh QR');
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `qr-${String(currentWarga.qrCode || 'warga').replace(/[^A-Za-z0-9_-]+/g, '-')}.png`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+
+    sessionStorage.setItem('kurbanqu_qr_downloaded', '1');
+    if (downloadBtn) {
+      downloadBtn.textContent = 'QR tersimpan di galeri';
+      downloadBtn.disabled = false;
+    }
+  } catch (error) {
+    console.error(error);
+    alert(error.message || 'Gagal mengunduh QR');
+    if (downloadBtn) {
+      downloadBtn.disabled = false;
+      downloadBtn.textContent = '⬇  Simpan QR ke Galeri';
+    }
+  }
+}
+
+window.downloadMyQr = downloadMyQr;
 
 // Auto-show after 400ms on page load
 setTimeout(showQrCard, 400);

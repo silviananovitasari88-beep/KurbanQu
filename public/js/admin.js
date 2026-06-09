@@ -201,6 +201,29 @@ const TIMELINE = [
   let penerimaClaimMethod   = JSON.parse(localStorage.getItem(STORAGE_DIST_METHOD) || '{}');
   let penerimaClaimTime     = JSON.parse(localStorage.getItem(STORAGE_DIST_TIME)   || '{}');
   let penerimaDistLog       = [];
+  let backendDistribusiByKk = {};
+  let backendDistribusiLoaded = false;
+  let pendingImportTempFile = '';
+
+  async function refreshDistribusiSnapshot() {
+    try {
+      const response = await fetch('/admin/api/distribusi/snapshot', {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      backendDistribusiByKk = payload.data || {};
+      backendDistribusiLoaded = true;
+      if (currentPage === 'tabel') renderTabelDistribusi();
+      updateDistStats();
+    } catch (error) {
+      console.warn('Gagal memuat snapshot distribusi', error);
+    }
+  }
+
+  function getBackendDistribusiRow(key) {
+    return backendDistribusiByKk[String(key)] || null;
+  }
 
   function savePenerimaDistState() {
     localStorage.setItem(STORAGE_DIST_CLAIMED,    JSON.stringify([...penerimaClaimedSet]));
@@ -607,7 +630,10 @@ const TIMELINE = [
   function updateDistStats() {
     const penerima = loadPenerima();
     const total = penerima.length || getAllMudhohi().length;
-    const claimed = penerima.length ? penerimaClaimedSet.size : claimedSet.size;
+    const backendRows = Object.values(backendDistribusiByKk || {});
+    const claimed = backendDistribusiLoaded
+      ? backendRows.filter(r => String(r.st_pengambilan || '').toLowerCase() === 'selesai').length
+      : (penerima.length ? penerimaClaimedSet.size : claimedSet.size);
     document.getElementById('dist-count').textContent = claimed;
     document.getElementById('dist-total').textContent = total;
   }
@@ -709,7 +735,8 @@ const TIMELINE = [
     const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
     if (!p) return;
     const key = String(p.id_penerima);
-    const claimed = penerimaClaimedSet.has(key);
+      const backend = getBackendDistribusiRow(p.nkk);
+      const claimed = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
     document.getElementById('scan-result').innerHTML = `
       <div style="background:${claimed?'rgba(224,85,85,0.08)':'rgba(78,203,113,0.08)'};border:1px solid ${claimed?'rgba(224,85,85,0.3)':'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
@@ -747,6 +774,47 @@ const TIMELINE = [
     if (currentPage === 'tabel') renderTabelDistribusi();
     if (currentPage === 'distribusi') showScanResultPenerima(idPenerima);
     toast(p.nama + ' berhasil diverifikasi (' + mt + ')', 'success');
+  }
+
+  async function markDistribusiManual(idStok, noKk, qrCode) {
+    try {
+      const response = await fetch(`/admin/api/distribusi/${encodeURIComponent(idStok)}/manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({
+          warga_no_kk: String(noKk || '').replace(/\D/g, ''),
+          qr_id_qr: qrCode || '',
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Gagal memperbarui status distribusi');
+      }
+
+      const key = String(noKk || '').replace(/\D/g, '');
+      const penerima = loadPenerima().find(p => String(p.nkk || '').replace(/\D/g, '') === key);
+      if (penerima) {
+        const idKey = String(penerima.id_penerima);
+        penerimaClaimedSet.add(idKey);
+        penerimaClaimMethod[idKey] = 'manual_admin';
+        penerimaClaimTime[idKey] = payload.data?.updated_at || nowTime();
+        savePenerimaDistState();
+      }
+
+      await refreshDistribusiSnapshot();
+      if (currentPage === 'tabel') renderTabelDistribusi();
+      renderDashboard();
+      updateDistStats();
+      toast('Distribusi selesai via manual admin', 'success');
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Gagal memperbarui status manual', 'error');
+    }
   }
 
   function unmarkPenerimaClaimed(idPenerima) {
@@ -862,10 +930,11 @@ const TIMELINE = [
 
     let list = allPenerima.map((p, idx) => {
       const key        = String(p.id_penerima);
-      const claimed    = penerimaClaimedSet.has(key);
-      const downloaded = penerimaDownloadedSet.has(key);
-      const method     = penerimaClaimMethod[key] || (claimed ? 'QR' : '-');
-      const waktu      = penerimaClaimTime[key]   || '-';
+      const backend    = getBackendDistribusiRow(p.nkk);
+      const claimed    = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
+      const downloaded = backend ? String(backend.dowload_qr || '').toLowerCase() === 'sudah_download' : penerimaDownloadedSet.has(key);
+      const method     = backend?.mtd_pengambilan || penerimaClaimMethod[key] || (claimed ? 'manual_admin' : '-');
+      const waktu      = backend?.updated_at || backend?.jam_pengambilan || penerimaClaimTime[key] || '-';
       return {
         ...p,
         key,
@@ -875,7 +944,7 @@ const TIMELINE = [
         waktu,
         noKK: p.nkk || '—',
         qrCode: p.qrCode || ('P' + String(p.id_penerima).padStart(5,'0')),
-        idStok: idx + 1,
+        id_stok: backend?.id_stok || idx + 1,
       };
     });
 
@@ -931,27 +1000,26 @@ const TIMELINE = [
 
       // ── download_qr badge
       const dlBadge = r.downloaded
-        ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(91,156,246,0.12);border:1px solid rgba(91,156,246,0.25);border-radius:20px;padding:4px 10px;">
-             <span style="font-size:10px;">⬇</span>
-             <span style="font-size:10px;font-weight:700;color:var(--blue);">Ya</span>
+         ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(78,203,113,0.12);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:4px 10px;">
+           <span style="font-size:10px;">✅</span>
+           <span style="font-size:10px;font-weight:700;color:var(--green);">Sudah didownload</span>
            </div>`
-        : `<div style="display:inline-flex;align-items:center;gap:5px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
+         : `<div style="display:inline-flex;align-items:center;gap:5px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
              <span style="font-size:10px;">📵</span>
-             <span style="font-size:10px;font-weight:700;color:var(--text3);">Tidak</span>
+           <span style="font-size:10px;font-weight:700;color:var(--text3);">Belum didownload</span>
            </div>`;
 
       const dlBtn = !r.downloaded
-        ? `<br><button class="btn btn-sm" style="margin-top:5px;background:rgba(91,156,246,0.1);color:var(--blue);border:1px solid rgba(91,156,246,0.2);font-size:10px;padding:3px 9px;"
-             onclick="simulatePenerimaQRDownload('${r.id_penerima}')">⬇ Download QR</button>`
-        : `<br><span style="font-size:10px;color:var(--text3);margin-top:4px;display:inline-block;">✓ File tersimpan</span>`;
+         ? `<br><span style="font-size:10px;color:var(--text3);margin-top:4px;display:inline-block;">Menunggu aksi unduh dari warga</span>`
+         : `<br><span style="font-size:10px;color:var(--green);margin-top:4px;display:inline-block;font-weight:700;">✓ File tersimpan</span>`;
 
       // ── st_pengambilan
       const stBadge = r.claimed
         ? `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(78,203,113,0.25);border-radius:8px;padding:5px 10px;">
-             <span style="font-size:13px;">${r.method === 'QR' ? '📱' : '👆'}</span>
+             <span style="font-size:13px;">${String(r.method || '').toLowerCase() === 'manual_admin' ? '👆' : '📱'}</span>
              <div>
                <div style="font-size:11px;font-weight:700;color:var(--green);">Sudah Diambil</div>
-               <div style="font-size:10px;color:var(--text3);">${r.method === 'QR' ? 'Otomatis via QR' : 'Admin klik manual'}</div>
+               <div style="font-size:10px;color:var(--text3);">${String(r.method || '').toLowerCase() === 'manual_admin' ? 'Admin klik manual' : 'Otomatis via QR'}</div>
              </div>
            </div>`
         : `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
@@ -963,12 +1031,12 @@ const TIMELINE = [
            </div>`;
 
       // ── mtd_pengambilan
-      const mtdBadge = r.method === 'QR'
+      const mtdBadge = String(r.method || '').toLowerCase() === 'qr'
         ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
              <span style="background:rgba(91,156,246,0.12);color:var(--blue);border:1px solid rgba(91,156,246,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">📱 QR</span>
              <span style="font-size:9px;color:var(--text3);">Otomatis</span>
            </div>`
-        : r.method === 'Manual'
+        : String(r.method || '').toLowerCase() === 'manual_admin'
           ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
                <span style="background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,184,75,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">👆 Manual</span>
                <span style="font-size:9px;color:var(--text3);">Admin input</span>
@@ -977,8 +1045,8 @@ const TIMELINE = [
 
       // ── Aksi admin
       const aksiBtn = !r.claimed
-        ? `<button class="btn btn-gold btn-sm" style="width:100%;" title="Tandai diambil secara manual"
-             onclick="markPenerimaClaimed('${r.id_penerima}','Manual');renderTabelDistribusi();">
+        ? `<button class="btn btn-gold btn-sm" style="width:100%;" title="Tandai selesai secara manual"
+             onclick="markDistribusiManual('${r.id_stok}','${r.noKK}','${r.qrCode}')">
              👆 Tandai Manual
            </button>`
         : `<button class="btn btn-ghost btn-sm" style="width:100%;font-size:10px;"
@@ -1077,7 +1145,8 @@ const TIMELINE = [
 
     el.innerHTML = filtered.map(p => {
       const key = String(p.id_penerima);
-      const claimed = penerimaClaimedSet.has(key);
+      const backend = getBackendDistribusiRow(p.nkk);
+      const claimed = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
       let seed = 0;
       for (let i = 0; i < p.nama.length; i++) seed = (seed * 31 + p.nama.charCodeAt(i)) >>> 0;
       const warnas = ['brown','green','amber','purple'];
@@ -1099,7 +1168,8 @@ const TIMELINE = [
     const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
     if (!p) return;
     const key = String(p.id_penerima);
-    const claimed = penerimaClaimedSet.has(key);
+    const backend = getBackendDistribusiRow(p.nkk);
+    const claimed = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
     const el = document.getElementById('tabel-scan-result');
     if (!el) return;
     el.innerHTML = `
@@ -1652,21 +1722,90 @@ const TIMELINE = [
     toast(nama + ' ditambahkan sebagai penerima', 'success');
   }
 
-  function clearImport() {
-    importedPenerima = [];
-    const pasteEl = document.getElementById('csv-paste');
-    const inputEl = document.getElementById('excel-input');
-    if (pasteEl) pasteEl.value = '';
-    if (inputEl) inputEl.value = '';
-    const previewContent = document.getElementById('preview-content');
-    const previewActions = document.getElementById('preview-actions');
-    const previewStats  = document.getElementById('preview-stats');
-    if (previewContent) previewContent.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>';
-    if (previewActions) previewActions.style.display = 'none';
-    if (previewStats)  previewStats.innerHTML = '';
-    toast('Form dibersihkan', 'info');
+  function clearAllPenerima() {
+    const hasData = loadPenerima().length > 0 || importedPenerima.length > 0;
+    if (!hasData && !pendingImportTempFile) {
+      toast('Tidak ada data penerima untuk dibersihkan', 'info');
+      return;
+    }
+
+    if (!confirm('Hapus semua data penerima, distribusi, dan riwayat terkait?')) {
+      return;
+    }
+
+    fetch('/admin/api/penerima', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+    }).then(async response => {
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Gagal menghapus semua data penerima');
+      }
+
+      importedPenerima = [];
+      confirmedPenerima = [];
+      backendDistribusiByKk = {};
+      backendDistribusiLoaded = false;
+      penerimaClaimedSet = new Set();
+      penerimaDownloadedSet = new Set();
+      penerimaClaimMethod = {};
+      penerimaClaimTime = {};
+      penerimaDistLog = [];
+      pendingImportTempFile = '';
+
+      [
+        STORAGE_PENERIMA,
+        STORAGE_CONFIRMED_WARGA,
+        STORAGE_WARGA_LOGIN,
+        STORAGE_PENERIMA_ID,
+        STORAGE_DIST_CLAIMED,
+        STORAGE_DIST_DOWNLOADED,
+        STORAGE_DIST_METHOD,
+        STORAGE_DIST_TIME,
+      ].forEach(key => localStorage.removeItem(key));
+
+      const pasteEl = document.getElementById('csv-paste');
+      const inputEl = document.getElementById('excel-input');
+      const dropZone = document.getElementById('drop-zone');
+      if (pasteEl) pasteEl.value = '';
+      if (inputEl) inputEl.value = '';
+      if (dropZone) {
+        dropZone.classList.remove('drag');
+        dropZone.innerHTML = `
+          <div style="font-size:32px;margin-bottom:8px;">📊</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau drag &amp; drop file di sini</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">.csv · .xlsx · .xls — Format kolom otomatis terdeteksi</div>
+        `;
+      }
+
+      const previewContent = document.getElementById('preview-content');
+      const previewActions = document.getElementById('preview-actions');
+      const previewStats  = document.getElementById('preview-stats');
+      if (previewContent) previewContent.innerHTML = '<div class="empty-state"><div class="empty-ico">📋</div>Data akan tampil di sini setelah diproses</div>';
+      if (previewActions) previewActions.style.display = 'none';
+      if (previewStats)  previewStats.innerHTML = '';
+
+      updatePenerimaBadge();
+      renderPenerimaPage();
+      renderDashboard();
+      updateDistStats();
+      renderTabelDistribusi();
+      renderQuickScanList();
+      renderTabelDistLog();
+      toast('Semua data penerima berhasil dihapus', 'success');
+    }).catch(error => {
+      console.error(error);
+      toast(error.message || 'Gagal menghapus semua data penerima', 'error');
+    });
   }
-  window.clearImport = clearImport;
+  window.registerPendingImportTempFile = function(tempFile) {
+    pendingImportTempFile = tempFile || '';
+  };
+  window.clearAllPenerima = clearAllPenerima;
   window.importConfirm = importConfirm;
   
   // Close modal on overlay click
@@ -1703,3 +1842,4 @@ const TIMELINE = [
   renderDashboard();
   renderScanList();
   updateBadgeTracking();
+  refreshDistribusiSnapshot();

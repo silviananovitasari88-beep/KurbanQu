@@ -133,7 +133,7 @@ function validateWargaLogin(nkk, nama) {
   }
   const n = normNkk(nkk);
   const nm = normNama(nama);
-  if (n.length < 10) {
+  if (n.length < 8) {
     return { ok: false, msg: 'Nomor KK minimal 10 digit.' };
   }
   const p = findPenerimaByLogin(nkk, nama);

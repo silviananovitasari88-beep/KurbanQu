@@ -498,7 +498,7 @@
                 ondragleave="event.preventDefault();this.classList.remove('drag')"
                 ondrop="handleFileDrop(event);this.classList.remove('drag')">
                 <div style="font-size:32px;margin-bottom:8px;">📊</div>
-                <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau seret file ke sini</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text2);">Klik atau drag &amp; drop file di sini</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:6px;">.csv · .xlsx · .xls — Format kolom otomatis terdeteksi</div>
               </div>
               <input type="file" id="excel-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleFileSelect(this)"/>
@@ -516,7 +516,7 @@
               </div>
               <div style="display:flex;gap:10px;margin-top:12px;">
                 <button class="btn btn-gold" style="flex:1;" onclick="parseCSVPaste()">🔍 Proses &amp; Preview</button>
-                <button class="btn btn-ghost" onclick="clearImport()">Bersihkan</button>
+                <button class="btn btn-ghost" onclick="clearAllPenerima()">Bersihkan</button>
               </div>
             </div>
           </div>

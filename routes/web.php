@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\WargaQrController;
 use App\Models\Warga;
 use App\Models\WargaUpload;
 
@@ -16,6 +17,14 @@ Route::get('/admin', function () {
     return view('admin.dashboard');
 });                                         
 //  return view('admin.dashboard');
+
+Route::get('/admin/api/distribusi/snapshot', [AdminController::class, 'distribusiSnapshot']);
+Route::post('/admin/api/distribusi/{idStok}/manual', [AdminController::class, 'updateDistribusiManual']);
+Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImport']);
+Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
+Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
+
+Route::post('/warga/qr/download', [WargaQrController::class, 'download']);
 
 Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     // ✅ Validasi input

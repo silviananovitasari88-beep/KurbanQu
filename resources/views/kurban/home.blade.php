@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KurbanQu</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ asset('css/kurban.css') }}" />
 </head>
 <body>
@@ -212,7 +213,7 @@
         </div>
       </div>
 
-      <button class="btn-outline" style="margin-top:16px;background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff;">⬇&nbsp; Simpan QR ke Galeri</button>
+      <button id="download-qr-btn" class="btn-outline" style="margin-top:16px;background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff;" onclick="downloadMyQr()">⬇&nbsp; Simpan QR ke Galeri</button>
     </div>
 
     <div class="scroll-area" style="position:relative;z-index:1;background:#f5f0e8;border-radius:28px 28px 0 0;margin-top:16px;padding-top:8px;">

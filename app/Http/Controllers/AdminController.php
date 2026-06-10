@@ -170,7 +170,7 @@ class AdminController extends Controller
 		$deleted = [];
 
 		DB::transaction(function () use (&$deleted) {
-			foreach (['distribusi', 'warga', 'warga_uploads', 'QR'] as $table) {
+			foreach (['distribusi', 'warga', 'QR'] as $table) {
 				if (!Schema::hasTable($table)) {
 					continue;
 				}

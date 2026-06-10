@@ -1613,6 +1613,23 @@ const TIMELINE = [
     const mode = getImportMode();
     const prev = mode === 'replace' ? 0 : confirmedPenerima.length;
     const total = mergePenerimaRows(importedPenerima, mode);
+    // Kirim ke database
+    const payload = importedPenerima.slice();
+    fetch('/simpan-penerima', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+    },
+    body: JSON.stringify({ penerima: payload, mode: mode }),
+})
+.then(r => r.json())
+.then(res => {
+    if (res.success) toast(res.message, 'success');
+    else toast(res.message || 'Gagal simpan ke database', 'error');
+})
+.catch(() => toast('Gagal koneksi ke server', 'error'));  
     importedPenerima = [];
     confirmedPenerima = loadPenerima();
 

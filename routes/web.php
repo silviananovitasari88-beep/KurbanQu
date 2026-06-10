@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WargaQrController;
 use App\Models\Warga;
-use App\Models\WargaUpload;
 
 // Route untuk Halaman Depan / Dashboard Warga (yang kemarin)
 Route::get('/', function () {
@@ -43,17 +42,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     
     try {
         DB::beginTransaction();
-        
-        // ✅ Log ke warga_uploads (insert direct ke database)
-        $now = date('Y-m-d H:i:s');
-        $uploadId = DB::table('warga_uploads')->insertGetId([
-            'filename' => 'web_upload_' . date('Y-m-d_H-i-s'),
-            'jumlah_baris' => count($penerima),
-            'mode' => $mode,
-            'admin_id' => auth()->check() ? auth()->id() : null,
-            'status' => 'pending',
-            'uploaded_at' => $now,
-        ]);
         
         // ✅ Handle replace mode
         if ($mode === 'replace') {
@@ -128,14 +116,7 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
         }
         
         DB::commit();
-        
-        // ✅ Update upload status
-        DB::table('warga_uploads')->where('id', $uploadId)->update([
-            'status' => $failed === 0 ? 'success' : 'failed',
-            'error_message' => count($errors) > 0 ? implode("\n", $errors) : null,
-            'processed_at' => $now,
-        ]);
-        
+
         // ✅ Return detailed response
         return response()->json([
             'success' => true,
@@ -151,15 +132,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
         
     } catch (\Exception $e) {
         DB::rollBack();
-        
-        // ✅ Log error
-        if (isset($uploadId)) {
-            DB::table('warga_uploads')->where('id', $uploadId)->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-                'processed_at' => date('Y-m-d H:i:s'),
-            ]);
-        }
         
         return response()->json([
             'success' => false,

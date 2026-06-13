@@ -47,81 +47,7 @@ const TIMELINE = [
   },
 ];
 
-let ANIMALS = {
-  sapi: [
-    { id:"S01", emoji:"🐄", label:"Sapi Putih No.01", jenis:"Sapi", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±230 kg",
-      alamat:"Kp. Cikaret RT 02/03", notelp:"0812-xxxx-1234", reqBagian:"7 bagian",
-      mudhohi:[
-        {i:"AH",nama:"Ahmad Hidayat",    bagian:"1/7",warna:"brown"},
-        {i:"SR",nama:"Siti Rahmawati",   bagian:"2/7",warna:"green"},
-        {i:"BU",nama:"Budi Utomo",       bagian:"3/7",warna:"amber"},
-        {i:"RN",nama:"Rina Nuraini",     bagian:"4/7",warna:"purple"},
-        {i:"MS",nama:"Maman Suparman",   bagian:"5/7",warna:"brown"},
-        {i:"DF",nama:"Dewi Fitriani",    bagian:"6/7",warna:"green"},
-        {i:"YP",nama:"Yusuf Pratama",    bagian:"7/7",warna:"amber"},
-      ]},
-    { id:"S02", emoji:"🐄", label:"Sapi Hitam No.02", jenis:"Sapi", umur:"4 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±250 kg",
-      alamat:"Jl. Mawar No.7 RT 01/04", notelp:"0821-xxxx-5678", reqBagian:"7 bagian",
-      mudhohi:[
-        {i:"HM",nama:"Hendra Maulana",   bagian:"1/7",warna:"amber"},
-        {i:"NR",nama:"Nurul Rizki",      bagian:"2/7",warna:"purple"},
-        {i:"AS",nama:"Agus Santoso",     bagian:"3/7",warna:"brown"},
-        {i:"LW",nama:"Lilis Wulandari",  bagian:"4/7",warna:"green"},
-        {i:"FZ",nama:"Fajar Zulkifli",   bagian:"5/7",warna:"amber"},
-        {i:"TH",nama:"Tini Hartati",     bagian:"6/7",warna:"brown"},
-        {i:"RP",nama:"Rizal Permana",    bagian:"7/7",warna:"purple"},
-      ]},
-  ],
-  kambing: [
-    { id:"K01", emoji:"🐐", label:"Kambing No.01", jenis:"Kambing Jawa", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±32 kg",
-      alamat:"Kp. Babakan RT 03/05", notelp:"0838-xxxx-0011", reqBagian:"1 bagian",
-      mudhohi:[{i:"DN",nama:"Drs. Haji Nurdian",  warna:"amber"}]},
-    { id:"K02", emoji:"🐐", label:"Kambing No.02", jenis:"Kambing PE", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±35 kg",
-      alamat:"Jl. Kenanga No.3", notelp:"0857-xxxx-2233", reqBagian:"1 bagian",
-      mudhohi:[{i:"FH",nama:"Fitri Handayani",    warna:"brown"}]},
-    { id:"K03", emoji:"🐐", label:"Kambing No.03", jenis:"Kambing Boer", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±40 kg",
-      alamat:"Perum Griya Asri Blok B2", notelp:"0812-xxxx-4455", reqBagian:"1 bagian",
-      mudhohi:[{i:"ZA",nama:"Zainal Abidin",      warna:"green"}]},
-    { id:"K04", emoji:"🐐", label:"Kambing No.04", jenis:"Kambing Jawa", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±30 kg",
-      alamat:"RT 04 RW 02", notelp:"0877-xxxx-6677", reqBagian:"1 bagian",
-      mudhohi:[{i:"ML",nama:"Mulyadi",             warna:"purple"}]},
-    { id:"K05", emoji:"🐐", label:"Kambing No.05", jenis:"Kambing Kacang", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Mata kiri", berat:"±28 kg",
-      alamat:"Kp. Sindangjaya", notelp:"0821-xxxx-8899", reqBagian:"1 bagian",
-      mudhohi:[{i:"IS",nama:"Ibu Sumiati",         warna:"brown"}]},
-    { id:"K06", emoji:"🐐", label:"Kambing No.06", jenis:"Kambing PE", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±38 kg",
-      alamat:"Jl. Merdeka Blok C", notelp:"0856-xxxx-0012", reqBagian:"1 bagian",
-      mudhohi:[{i:"RJ",nama:"Rudi Juanda",         warna:"green"}]},
-    { id:"K07", emoji:"🐐", label:"Kambing No.07", jenis:"Kambing Boer", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±36 kg",
-      alamat:"RT 01/07 Desa Sukamaju", notelp:"0899-xxxx-3344", reqBagian:"1 bagian",
-      mudhohi:[{i:"SA",nama:"Samsul Arifin",       warna:"amber"}]},
-  ],
-  domba: [
-    { id:"D01", emoji:"🐑", label:"Domba No.01", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±28 kg",
-      alamat:"Kp. Cikaret Hilir", notelp:"0813-xxxx-5566", reqBagian:"1 bagian",
-      mudhohi:[{i:"MP",nama:"Muhamad Prayogo",warna:"purple"}]},
-    { id:"D02", emoji:"🐑", label:"Domba No.02", jenis:"Domba Garut", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±30 kg",
-      alamat:"Jl. Anggrek No.5", notelp:"0812-xxxx-7788", reqBagian:"1 bagian",
-      mudhohi:[{i:"IK",nama:"Ibu Komariah",  warna:"brown"}]},
-    { id:"D03", emoji:"🐑", label:"Domba No.03", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±26 kg",
-      alamat:"RT 06/02 Blok Timur", notelp:"0878-xxxx-9900", reqBagian:"1 bagian",
-      mudhohi:[{i:"AB",nama:"Agus Budiman",   warna:"green"}]},
-    { id:"D04", emoji:"🐑", label:"Domba No.04", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±29 kg",
-      alamat:"Perum Bukit Indah No.12", notelp:"0838-xxxx-1122", reqBagian:"1 bagian",
-      mudhohi:[{i:"YL",nama:"Yuli Lestari",   warna:"amber"}]},
-    { id:"D05", emoji:"🐑", label:"Domba No.05", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±25 kg",
-      alamat:"Gang Masjid No.3", notelp:"0857-xxxx-3344", reqBagian:"1 bagian",
-      mudhohi:[{i:"DK",nama:"Dadang Kurnia",  warna:"purple"}]},
-    { id:"D06", emoji:"🐑", label:"Domba No.06", jenis:"Domba Garut", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±32 kg",
-      alamat:"Kp. Warungdowo", notelp:"0812-xxxx-5566", reqBagian:"1 bagian",
-      mudhohi:[{i:"NH",nama:"Nining Hernawati",warna:"brown"}]},
-    { id:"D07", emoji:"🐑", label:"Domba No.07", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±24 kg",
-      alamat:"RT 03/05 Desa Tanjung", notelp:"0821-xxxx-7788", reqBagian:"1 bagian",
-      mudhohi:[{i:"HF",nama:"Hendra Firmansyah",warna:"green"}]},
-    { id:"D08", emoji:"🐑", label:"Domba No.08", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±27 kg",
-      alamat:"Blok D No.9 Perumahan", notelp:"0877-xxxx-9900", reqBagian:"1 bagian",
-      mudhohi:[{i:"SN",nama:"Siti Nurhasanah",warna:"amber"}]},
-  ],
-};
+
 
 const STORAGE_HEWAN = 'kurbanqu_hewan';
 const STORAGE_MUDHOHI = 'kurbanqu_mudhohi';
@@ -707,7 +633,7 @@ async function downloadMyQr() {
   }
 
   try {
-    const response = await fetch('/warga/qr/download', {
+    const response = await fetch('/warga/download-qr', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -6,6 +6,12 @@
   <title>KurbanQu</title>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ asset('css/kurban.css') }}" />
+  <script>
+  window.__wargaSession = {
+      nkk : "{{ $warga->no_kk   ?? ($penerima->nkk  ?? '') }}",
+      nama: "{{ $warga->nama_kk ?? ($penerima->nama ?? '') }}",
+  };
+</script>
 </head>
 <body>
 <div class="app">

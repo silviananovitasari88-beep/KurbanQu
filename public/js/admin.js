@@ -212,7 +212,13 @@ const TIMELINE = [
       });
       if (!response.ok) return;
       const payload = await response.json();
-      backendDistribusiByKk = payload.data || {};
+      // Normalisasi key: strip non-digit agar cocok dengan nkk localStorage
+      const rawData = payload.data || {};
+      backendDistribusiByKk = {};
+      Object.entries(rawData).forEach(([k, v]) => {
+        const normKey = String(k).replace(/\D/g, '');
+        backendDistribusiByKk[normKey] = v;
+      });
       backendDistribusiLoaded = true;
       if (currentPage === 'tabel') renderTabelDistribusi();
       updateDistStats();
@@ -222,7 +228,8 @@ const TIMELINE = [
   }
 
   function getBackendDistribusiRow(key) {
-    return backendDistribusiByKk[String(key)] || null;
+    const normKey = String(key || '').replace(/\D/g, '');
+    return backendDistribusiByKk[normKey] || null;
   }
 
   function savePenerimaDistState() {
@@ -931,8 +938,8 @@ const TIMELINE = [
     let list = allPenerima.map((p, idx) => {
       const key        = String(p.id_penerima);
       const backend    = getBackendDistribusiRow(p.nkk);
-      const claimed    = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
-      const downloaded = backend ? String(backend.dowload_qr || '').toLowerCase() === 'sudah_download' : penerimaDownloadedSet.has(key);
+      const claimed    = backend ? ['selesai','sudah'].includes(String(backend.st_pengambilan || '').toLowerCase()) : penerimaClaimedSet.has(key);
+      const downloaded = backend ? ['sudah_download','sudah'].includes(String(backend.dowload_qr || '').toLowerCase()) : penerimaDownloadedSet.has(key);
       const method     = backend?.mtd_pengambilan || penerimaClaimMethod[key] || (claimed ? 'manual_admin' : '-');
       const waktu      = backend?.updated_at || backend?.jam_pengambilan || penerimaClaimTime[key] || '-';
       return {
@@ -956,12 +963,20 @@ const TIMELINE = [
     if (fQr === 'downloaded')     list = list.filter(r => r.downloaded);
     if (fQr === 'not_downloaded') list = list.filter(r => !r.downloaded);
 
-    // summary chips
+    // summary chips — prioritas dari backend DB
     const total   = allPenerima.length;
-    const diambil = penerimaClaimedSet.size;
-    const dlCount = penerimaDownloadedSet.size;
-    const qrAuto  = Object.values(penerimaClaimMethod).filter(v => v === 'QR').length;
-    const manual  = Object.values(penerimaClaimMethod).filter(v => v === 'Manual').length;
+    const diambil = backendDistribusiLoaded
+      ? Object.values(backendDistribusiByKk).filter(b => String(b.st_pengambilan||'').toLowerCase() === 'selesai').length
+      : penerimaClaimedSet.size;
+    const dlCount = backendDistribusiLoaded
+      ? Object.values(backendDistribusiByKk).filter(b => String(b.dowload_qr||'').toLowerCase() === 'sudah_download').length
+      : penerimaDownloadedSet.size;
+    const qrAuto  = backendDistribusiLoaded
+      ? Object.values(backendDistribusiByKk).filter(b => String(b.mtd_pengambilan||'').toLowerCase() === 'qr').length
+      : Object.values(penerimaClaimMethod).filter(v => v === 'QR').length;
+    const manual  = backendDistribusiLoaded
+      ? Object.values(backendDistribusiByKk).filter(b => ['manual','manual_admin'].includes(String(b.mtd_pengambilan||'').toLowerCase())).length
+      : Object.values(penerimaClaimMethod).filter(v => v === 'Manual').length;
 
     document.getElementById('tabel-summary').innerHTML =
       `<span style="font-size:12px;color:var(--text3);">Menampilkan <strong style="color:var(--text);">${list.length}</strong> dari ${total} data</span>`;
@@ -1860,3 +1875,14 @@ const TIMELINE = [
   renderScanList();
   updateBadgeTracking();
   refreshDistribusiSnapshot();
+
+  // ── Auto-refresh snapshot dari DB setiap 10 detik (realtime status download & scan)
+  setInterval(async () => {
+    await refreshDistribusiSnapshot();
+    // Re-render tabel distribusi jika sedang aktif
+    if (document.getElementById('pg-distribusi')?.classList.contains('active') ||
+        document.getElementById('pg-tabel-distribusi')?.classList.contains('active')) {
+      renderDistribusiPage();
+    }
+  }, 10000);
+  

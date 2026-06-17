@@ -554,7 +554,7 @@ function submitLogin() {
     sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
   }
 
-  document.getElementById('qr-nama').textContent = nama;
+ document.getElementById('qr-nama').textContent = nama;
   document.getElementById('qr-nkk').textContent  = nkk;
 
   const qrEl = document.getElementById('qr-kode');
@@ -562,7 +562,22 @@ function submitLogin() {
     qrEl.textContent = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
   }
 
+  // Update status login ke backend
+  fetch('/warga/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+    },
+    body: JSON.stringify({ nkk, nama })
+  }).catch(e => console.warn('Gagal update status login:', e));
+
+  if (auth.penerima) {
+    sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
+  }
+
   goto('pg-qr');
+  
 }
 ['inp-nkk','inp-nama'].forEach(id => {
   document.getElementById(id).addEventListener('input', function() {

@@ -15,6 +15,11 @@ Route::get('/', function () {
 Route::post('/warga/download-qr', [WargaQrController::class, 'download'])
     ->name('warga.download-qr');
 
+// login warga
+Route::post('/warga/login', [WargaQrController::class, 'login'])->name('warga.login');
+Route::get('/warga/login', function() { return redirect('/'); }); // ← tambah ini
+
+
 // Route untuk Halaman Dashboard Utama Admin Kurban
 Route::get('/admin', function () {
     return view('admin.dashboard');

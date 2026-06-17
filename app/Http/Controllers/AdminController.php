@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Faacades\Storage;
 
 class AdminController extends Controller
 {
@@ -144,7 +144,7 @@ class AdminController extends Controller
 	public function deleteTempImport(Request $request): JsonResponse
 	{
 		$data = $request->validate([
-			'temp_file' => ['required', 'string', 'max:255'],
+			'temp_file' => ['required', 'string', 'max:255'],a
 		]);
 
 		$tempFile = basename(str_replace(['\\', '..'], ['/', ''], $data['temp_file']));

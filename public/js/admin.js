@@ -608,12 +608,23 @@ const TIMELINE = [
     const old = TIMELINE[idx].status;
     TIMELINE[idx].status = status;
     if (status !== 'pending') TIMELINE[idx].time = nowTime();
+    else TIMELINE[idx].time = '—';
     const msg = `${TIMELINE[idx].label} → ${status === 'done' ? 'Selesai' : status === 'active' ? 'Berjalan' : 'Reset'}`;
     trackingLog.unshift({ time: nowTime(), msg, type: status === 'done' ? 'success' : 'info' });
     renderTracking();
     renderTrackingWidget();
     updateBadgeTracking();
     toast(msg, status === 'done' ? 'success' : 'info');
+
+    // ── Simpan ke DB agar warga bisa lihat realtime ──────────────────────
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch('/admin/api/tracking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+      body: JSON.stringify({
+        steps: TIMELINE.map(t => ({ label: t.label, status: t.status, time: t.time }))
+      })
+    }).catch(e => console.warn('Gagal simpan tracking:', e));
   }
   
   function updateBadgeTracking() {
@@ -1885,4 +1896,3 @@ const TIMELINE = [
       renderDistribusiPage();
     }
   }, 10000);
-  

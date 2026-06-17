@@ -159,3 +159,6 @@ function removePenerimaAt(index) {
 function mergeWargaLogin(rows) {
   return mergePenerimaRows(rows, 'append');
 }
+
+
+

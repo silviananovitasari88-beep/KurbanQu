@@ -783,7 +783,7 @@ const TIMELINE = [
     const mt = method || 'Manual';
     penerimaClaimMethod[key] = mt;
     penerimaClaimTime[key]   = nowTime();
-    if (mt === 'QR') penerimaDownloadedSet.add(key);
+
     savePenerimaDistState();
     penerimaDistLog.unshift({ nama: p.nama, nkk: p.nkk, time: penerimaClaimTime[key], method: mt });
     renderDistLog();
@@ -950,7 +950,7 @@ const TIMELINE = [
       const key        = String(p.id_penerima);
       const backend    = getBackendDistribusiRow(p.nkk);
       const claimed    = backend ? ['selesai','sudah'].includes(String(backend.st_pengambilan || '').toLowerCase()) : penerimaClaimedSet.has(key);
-      const downloaded = backend ? ['sudah_download','sudah'].includes(String(backend.dowload_qr || '').toLowerCase()) : penerimaDownloadedSet.has(key);
+      const downloaded = backend ? ['sudah_download','sudah_login','sudah'].includes(String(backend.dowload_qr || '').toLowerCase()) : penerimaDownloadedSet.has(key);
       const method     = backend?.mtd_pengambilan || penerimaClaimMethod[key] || (claimed ? 'manual_admin' : '-');
       const waktu      = backend?.updated_at || backend?.jam_pengambilan || penerimaClaimTime[key] || '-';
       return {
@@ -1028,16 +1028,16 @@ const TIMELINE = [
       const dlBadge = r.downloaded
          ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(78,203,113,0.12);border:1px solid rgba(78,203,113,0.25);border-radius:20px;padding:4px 10px;">
            <span style="font-size:10px;">✅</span>
-           <span style="font-size:10px;font-weight:700;color:var(--green);">Sudah didownload</span>
+           <span style="font-size:10px;font-weight:700;color:var(--green);">Sudah Login</span>
            </div>`
          : `<div style="display:inline-flex;align-items:center;gap:5px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 10px;">
              <span style="font-size:10px;">📵</span>
-           <span style="font-size:10px;font-weight:700;color:var(--text3);">Belum didownload</span>
+           <span style="font-size:10px;font-weight:700;color:var(--text3);">Belum Login</span>
            </div>`;
 
       const dlBtn = !r.downloaded
-         ? `<br><span style="font-size:10px;color:var(--text3);margin-top:4px;display:inline-block;">Menunggu aksi unduh dari warga</span>`
-         : `<br><span style="font-size:10px;color:var(--green);margin-top:4px;display:inline-block;font-weight:700;">✓ File tersimpan</span>`;
+         ? `<br><span style="font-size:10px;color:var(--text3);margin-top:4px;display:inline-block;">Belum login</span>`
+         : `<br><span style="font-size:10px;color:var(--green);margin-top:4px;display:inline-block;font-weight:700;">✓ Sudah Login</span>`
 
       // ── st_pengambilan
       const stBadge = r.claimed

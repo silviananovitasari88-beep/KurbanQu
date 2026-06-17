@@ -96,8 +96,8 @@ class WargaQrController extends Controller
 
         // ── 7. Catat status download ─────────────────────────────────────────
         DB::table('distribusi')
-            ->where('warga_no_kk', $nkk)
-            ->update(['dowload_qr' => 'sudah_download']);
+    ->where('warga_no_kk', $nkk)
+   ->update(['dowload_qr' => 'sudah_download']);
 
         $downloadName = 'qr-kurban-' . $qrPayload . '.png';
 
@@ -297,5 +297,43 @@ SVG;
         $imagick->destroy();
 
         return $pngData;
+    
+
+    }  // ← penutup renderPngWithImagick
+
+    public function login(Request $request)
+    {
+        $data = $request->validate([
+            'nkk'  => ['required', 'string'],
+            'nama' => ['required', 'string'],
+        ]);
+
+        $nkk  = preg_replace('/\D+/', '', $data['nkk']);
+        $nama = strtolower(preg_replace('/\s+/', ' ', trim($data['nama'])));
+
+        $warga = DB::table('warga')
+            ->where('no_kk', $nkk)
+            ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
+            ->first();
+
+        if (!$warga) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak ditemukan. Pastikan No. KK dan Nama sesuai.',
+            ], 404);
+        }
+
+        DB::table('distribusi')
+            ->where('warga_no_kk', $nkk)
+            ->update(['dowload_qr' => 'sudah_login']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login berhasil',
+            'data' => [
+                'nama' => $warga->nama_kk,
+                'nkk'  => $nkk,
+            ]
+        ]);
     }
 }

@@ -6,6 +6,8 @@
   <title>KurbanQu</title>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ asset('css/kurban.css') }}" />
+  <!-- QR Code generator library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>
   window.__wargaSession = {
       nkk : "{{ $warga->no_kk   ?? ($penerima->nkk  ?? '') }}",
@@ -132,6 +134,13 @@
       <div style="font-size:28px;color:#3d2510;margin-bottom:9px;font-family:Georgia,serif;line-height:1.5;">فَصَلِّ لِرَبِّكَ وَٱنْحَرْ</div>
       <div style="font-size:12.5px;color:#7a6040;font-style:italic;line-height:1.7;">"Maka dirikanlah salat karena Tuhanmu;<br>dan berqurbanlah."</div>
     </div>
+    <td>
+    @if($item->st_pengambilan === 'Sudah Diambil')
+        <span class="badge bg-success">✓ SUDAH AMBIL</span>
+    @else
+        <span class="badge bg-secondary">BELUM AMBIL</span>
+    @endif
+</td>
     <div class="scroll-area">
       <div style="padding:22px 20px 36px;">
         <div class="card">
@@ -190,18 +199,28 @@
 
         <div style="font-size:13px;font-weight:600;color:#9a8060;margin-bottom:18px;text-transform:uppercase;letter-spacing:.8px;">QR Code Anda</div>
 
-        <!-- QR Code visual -->
-        <div style="width:180px;height:180px;margin:0 auto 20px;border:3px solid #3d2510;border-radius:16px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;box-shadow:inset 0 2px 8px rgba(61,37,16,0.08);">
-          <div style="position:absolute;width:42px;height:42px;border:4px solid #3d2510;border-radius:7px;top:12px;left:12px;"></div>
-          <div style="position:absolute;width:42px;height:42px;border:4px solid #3d2510;border-radius:7px;top:12px;right:12px;"></div>
-          <div style="position:absolute;width:42px;height:42px;border:4px solid #3d2510;border-radius:7px;bottom:12px;left:12px;"></div>
-          <!-- Inner fills -->
-          <div style="position:absolute;width:22px;height:22px;background:#3d2510;border-radius:4px;top:22px;left:22px;"></div>
-          <div style="position:absolute;width:22px;height:22px;background:#3d2510;border-radius:4px;top:22px;right:22px;"></div>
-          <div style="position:absolute;width:22px;height:22px;background:#3d2510;border-radius:4px;bottom:22px;left:22px;"></div>
-          <!-- Center dots pattern -->
-          <div style="display:grid;grid-template-columns:repeat(5,10px);gap:3px;">
-            <div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div><div style="width:10px;height:10px;background:transparent;border-radius:2px;"></div><div style="width:10px;height:10px;background:#3d2510;border-radius:2px;"></div>
+        <!-- QR Code asli - di-generate JS via QRious library -->
+        <div style="width:200px;height:200px;margin:0 auto 20px;border:3px solid #3d2510;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:inset 0 2px 8px rgba(61,37,16,0.08);overflow:hidden;">
+          <canvas id="qr-canvas" width="180" height="180"></canvas>
+        </div>
+
+        <!-- Info antrian -->
+        <div id="qr-info-box" style="width:100%;background:#fdf6e9;border:1px solid #e4d5bf;border-radius:12px;padding:12px 16px;margin-bottom:12px;text-align:left;display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid #eddfc0;margin-bottom:6px;">
+            <span style="font-size:11px;color:#9a8060;">🔢 No. Antrian</span>
+            <span id="qr-antrian" style="font-size:16px;font-weight:800;color:#3d2510;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid #eddfc0;margin-bottom:6px;">
+            <span style="font-size:11px;color:#9a8060;">⏱ Durasi Sesi</span>
+            <span id="qr-durasi" style="font-size:12px;font-weight:600;color:#3d2510;">15 menit</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid #eddfc0;margin-bottom:6px;">
+            <span style="font-size:11px;color:#9a8060;">📍 Lokasi</span>
+            <span id="qr-lokasi" style="font-size:12px;font-weight:600;color:#3d2510;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+            <span style="font-size:11px;color:#9a8060;">🕐 Perkiraan Jam</span>
+            <span id="qr-jam" style="font-size:12px;font-weight:700;color:#c8922a;">—</span>
           </div>
         </div>
 

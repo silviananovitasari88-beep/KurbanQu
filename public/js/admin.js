@@ -221,6 +221,8 @@ const TIMELINE = [
       });
       backendDistribusiLoaded = true;
       if (currentPage === 'tabel') renderTabelDistribusi();
+      if (currentPage === 'penerima') renderPenerimaTable(); 
+      
       updateDistStats();
     } catch (error) {
       console.warn('Gagal memuat snapshot distribusi', error);
@@ -729,8 +731,34 @@ const TIMELINE = [
 
   // Scan result ketika QR berhasil di-scan kamera (berdasarkan qrCode penerima)
   function showScanResultByQR(qrCode) {
+    const code = String(qrCode || '').trim().toUpperCase();
     const penerima = loadPenerima();
-    const p = penerima.find(p => (p.qrCode || '').toUpperCase() === String(qrCode).toUpperCase());
+
+    // Cari di localStorage dulu
+    let p = penerima.find(p => (p.qrCode || '').toUpperCase() === code);
+
+    // Jika tidak ketemu, coba cocokkan dengan format P + id_penerima
+    if (!p) {
+      const numMatch = code.match(/^P0*(\d+)$/);
+      if (numMatch) {
+        const idNum = parseInt(numMatch[1], 10);
+        p = penerima.find(pp => parseInt(pp.id_penerima, 10) === idNum);
+      }
+    }
+
+    // Jika masih tidak ketemu, cari di backendDistribusiByKk
+    if (!p && backendDistribusiLoaded) {
+      const backendRow = Object.values(backendDistribusiByKk).find(b => {
+        const bCode = String(b.qr_id_qr || b.QR_id_qr || '').toUpperCase();
+        return bCode === code;
+      });
+      if (backendRow) {
+        // Cari penerima by nkk
+        const nkkNorm = String(backendRow.warga_no_kk || '').replace(/\D/g,'');
+        p = penerima.find(pp => String(pp.nkk||'').replace(/\D/g,'') === nkkNorm);
+      }
+    }
+
     if (!p) {
       document.getElementById('scan-result').innerHTML = `
         <div style="background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:14px;padding:20px;">
@@ -773,18 +801,46 @@ const TIMELINE = [
   }
 
   // ─── Mark claimed untuk penerima dari Excel ───
-  function markPenerimaClaimed(idPenerima, method) {
+  async function markPenerimaClaimed(idPenerima, method) {
     const penerima = loadPenerima();
     const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
     if (!p) return;
     const key = String(p.id_penerima);
-    if (penerimaClaimedSet.has(key)) { toast('Sudah pernah diambil!', 'error'); return; }
+    const mt = method || 'QR';
+
+    // Cek apakah sudah diambil (dari backend DB dulu)
+    const backend = getBackendDistribusiRow(p.nkk);
+    const sudahDiambil = backend
+      ? ['selesai','sudah'].includes(String(backend.st_pengambilan||'').toLowerCase())
+      : penerimaClaimedSet.has(key);
+
+    if (sudahDiambil) { toast('Sudah pernah diambil!', 'error'); return; }
+
+    // Update localStorage
     penerimaClaimedSet.add(key);
-    const mt = method || 'Manual';
     penerimaClaimMethod[key] = mt;
     penerimaClaimTime[key]   = nowTime();
-
     savePenerimaDistState();
+
+    // ── Update DB via API ────────────────────────────────────────────────
+    const nkkNorm = String(p.nkk || '').replace(/\D/g, '');
+    const idStok  = backend?.id_stok || null;
+
+    if (idStok) {
+      try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        await fetch(`/admin/api/distribusi/${idStok}/manual`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+          body: JSON.stringify({ warga_no_kk: nkkNorm, qr_id_qr: p.qrCode || null, method: mt }),
+        });
+        // Refresh snapshot setelah update
+        await refreshDistribusiSnapshot();
+      } catch (e) {
+        console.warn('Gagal update DB distribusi:', e);
+      }
+    }
+
     penerimaDistLog.unshift({ nama: p.nama, nkk: p.nkk, time: penerimaClaimTime[key], method: mt });
     renderDistLog();
     updateDistStats();
@@ -950,7 +1006,7 @@ const TIMELINE = [
       const key        = String(p.id_penerima);
       const backend    = getBackendDistribusiRow(p.nkk);
       const claimed    = backend ? ['selesai','sudah'].includes(String(backend.st_pengambilan || '').toLowerCase()) : penerimaClaimedSet.has(key);
-      const downloaded = backend ? ['sudah_download','sudah_login','sudah'].includes(String(backend.dowload_qr || '').toLowerCase()) : penerimaDownloadedSet.has(key);
+      const downloaded = backend ? ['sudah_download','sudah_login','sudah'].includes(String(backend.login || '').toLowerCase()) : penerimaDownloadedSet.has(key);
       const method     = backend?.mtd_pengambilan || penerimaClaimMethod[key] || (claimed ? 'manual_admin' : '-');
       const waktu      = backend?.updated_at || backend?.jam_pengambilan || penerimaClaimTime[key] || '-';
       return {
@@ -980,7 +1036,7 @@ const TIMELINE = [
       ? Object.values(backendDistribusiByKk).filter(b => String(b.st_pengambilan||'').toLowerCase() === 'selesai').length
       : penerimaClaimedSet.size;
     const dlCount = backendDistribusiLoaded
-      ? Object.values(backendDistribusiByKk).filter(b => String(b.dowload_qr||'').toLowerCase() === 'sudah_download').length
+      ? Object.values(backendDistribusiByKk).filter(b => String(b.login||'').toLowerCase() === 'sudah_login').length
       : penerimaDownloadedSet.size;
     const qrAuto  = backendDistribusiLoaded
       ? Object.values(backendDistribusiByKk).filter(b => String(b.mtd_pengambilan||'').toLowerCase() === 'qr').length
@@ -1703,18 +1759,21 @@ const TIMELINE = [
     }
     if (empty) empty.style.display = 'none';
 
+   // BARU — ambil dari database via backendDistribusiByKk
     tbody.innerHTML = list.map(p => {
-      const mudhohi = getAllMudhohi().find(m => normNkk(m.nkk) === normNkk(p.nkk));
-      const claimed = mudhohi && claimedSet.has(mudhohiKey(mudhohi));
-      return `<tr>
-        <td style="color:var(--text3);font-size:11px;">${p._idx + 1}</td>
-        <td><code style="font-size:11px;color:var(--blue);">${p.nkk}</code></td>
-        <td><strong>${p.nama}</strong></td>
-        <td><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--gold2);">${p.qrCode || '—'}</span></td>
-        <td style="font-size:12px;color:var(--text3);">${p.alamat || '—'}</td>
-        <td style="font-size:12px;color:var(--text3);">${p.notelp || '—'}</td>
-        <td><span class="status-badge ${claimed ? 'status-done' : 'status-pending'}">${claimed ? '✓ Sudah ambil' : 'Belum ambil'}</span></td>
-        <td><button class="btn btn-danger btn-sm" onclick="removePenerima(${p._idx})">Hapus</button></td>
+    const backend = getBackendDistribusiRow(p.nkk);
+    const stPengambilan = backend?.st_pengambilan || '';
+    const sudahAmbil = stPengambilan === 'Sudah Diambil';
+
+    return `<tr>
+      <td style="color:var(--text3);font-size:11px;">${p._idx + 1}</td>
+      <td><code style="font-size:11px;color:var(--blue);">${p.nkk}</code></td>
+      <td><strong>${p.nama}</strong></td>
+      <td><span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--gold2);">${p.qrCode || '—'}</span></td>
+      <td style="font-size:12px;color:var(--text3);">${p.alamat || '—'}</td>
+      <td style="font-size:12px;color:var(--text3);">${p.notelp || '—'}</td>
+      <td><span class="status-badge ${sudahAmbil ? 'status-done' : 'status-pending'}">${sudahAmbil ? '✓ Sudah Ambil' : 'Belum Ambil'}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="removePenerima(${p._idx})">Hapus</button></td>
       </tr>`;
     }).join('');
   }

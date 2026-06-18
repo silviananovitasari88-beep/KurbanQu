@@ -12,10 +12,12 @@ class Distribusi extends Model
     protected $primaryKey = 'id_stok';
 
     protected $fillable = [
-        'dowload_qr', 'warga_no_kk', 'QR_id_qr', 
-        'st_pengambilan', 'mtd_pengambilan'
-    ];
-
+    'login',           
+    'warga_no_kk', 
+    'QR_id_qr', 
+    'st_pengambilan', 
+    'mtd_pengambilan'
+];
     public function warga(): BelongsTo {
         return $this->belongsTo(Warga::class, 'warga_no_kk');
     }

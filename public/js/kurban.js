@@ -559,7 +559,10 @@ function submitLogin() {
 
   const qrEl = document.getElementById('qr-kode');
   if (qrEl && auth.penerima) {
-    qrEl.textContent = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
+    const qrPayload = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
+    qrEl.textContent = qrPayload;
+    // Render QR Code asli ke canvas
+    renderQrCanvas(qrPayload, auth.penerima.id_penerima);
   }
 
   // Update status login ke backend
@@ -735,6 +738,45 @@ function getCurrentWargaLogin() {
   }
 }
 
+// ── Render QR Code asli ke canvas + isi info antrian ────────────────────────
+function renderQrCanvas(qrPayload, idPenerima) {
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas) return;
+
+  // Generate QR Code ke canvas pakai QRious
+  if (typeof QRious !== 'undefined') {
+    new QRious({
+      element: canvas,
+      value: qrPayload,
+      size: 180,
+      level: 'H',
+      background: '#ffffff',
+      foreground: '#3d2510',
+      padding: 6,
+    });
+  }
+
+  // Hitung info antrian dari id_penerima
+  const noAntrian = idPenerima || 1;
+  const durasi    = 15; // menit default
+  const baseMin   = 8 * 60; // 08:00
+  const estMin    = baseMin + ((noAntrian - 1) * durasi);
+  const jamH      = Math.floor(estMin / 60) % 24;
+  const jamM      = estMin % 60;
+  const jamStr    = String(jamH).padStart(2,'0') + ':' + String(jamM).padStart(2,'0') + ' WIB (perkiraan)';
+
+  // Isi elemen info
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('qr-antrian', noAntrian);
+  setEl('qr-durasi',  durasi + ' menit');
+  setEl('qr-lokasi',  'Masjid Al-Ikhlas');
+  setEl('qr-jam',     jamStr);
+
+  // Tampilkan kotak info
+  const box = document.getElementById('qr-info-box');
+  if (box) box.style.display = 'block';
+}
+
 async function downloadMyQr() {
   const currentWarga = getCurrentWargaLogin();
   const downloadBtn = document.getElementById('download-qr-btn');
@@ -751,7 +793,7 @@ async function downloadMyQr() {
   }
 
   try {
-    const response = await fetch('/warga/qr/download', {
+   const response = await fetch('/warga/download-qr', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

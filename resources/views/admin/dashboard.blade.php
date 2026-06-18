@@ -222,7 +222,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Data Mudhohi</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Pemilik hewan &amp; bagian kurban (bukan daftar login warga)</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Pemilik hewan &amp; bagian kurban</div>
         </div>
         <button class="btn btn-gold" onclick="openModalMudhohi()">+ Tambah Mudhohi</button>
       </div>
@@ -346,7 +346,7 @@
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📋 Tabel Distribusi Penerima</div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px;">
             Data penerima dari <strong style="color:var(--gold2);">Excel upload</strong> &nbsp;—&nbsp;
-            warga_no_kk · QR_id_qr · st_pengambilan · mtd_pengambilan
+            
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -417,7 +417,7 @@
                 <th style="width:54px;text-align:center;">id_stok</th>
                 <th style="min-width:190px;">warga_no_kk &amp; Nama KK</th>
                 <th style="min-width:130px;">QR_id_qr</th>
-                <th style="text-align:center;min-width:110px;">dowload_qr</th>
+                <th style="text-align:center;min-width:110px;">Login</th>
                 <th style="min-width:150px;">st_pengambilan</th>
                 <th style="text-align:center;min-width:120px;">mtd_pengambilan</th>
                 <th style="min-width:85px;">Waktu</th>
@@ -447,9 +447,6 @@
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">🎫 Penerima Kurban</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px;max-width:520px;line-height:1.6;">
-            Unggah daftar penerima daging kurban. Mereka login di aplikasi warga dengan <strong>No KK</strong> + <strong>Nama Kepala Keluarga</strong>, lalu mendapat kode QR.
-          </div>
         </div>
         <button class="btn btn-gold" onclick="openModalPenerima()">+ Tambah Manual</button>
       </div>
@@ -458,17 +455,17 @@
       <div class="flow-steps" style="margin-bottom:20px;">
         <div class="flow-step">
           <div class="flow-step-num">1</div>
-          <div><strong>Admin upload Excel/CSV</strong><div class="flow-step-desc">No KK + Nama Kepala Keluarga</div></div>
+          <div><strong>Admin upload Excel/CSV</strong><div class="flow-step-desc"></div></div>
         </div>
         <div class="flow-step-arrow">→</div>
         <div class="flow-step">
           <div class="flow-step-num">2</div>
-          <div><strong>Konfirmasi daftar</strong><div class="flow-step-desc">Sistem buat kode QR unik</div></div>
+          <div><strong>Konfirmasi daftar</strong><div class="flow-step-desc"></div></div>
         </div>
         <div class="flow-step-arrow">→</div>
         <div class="flow-step">
           <div class="flow-step-num">3</div>
-          <div><strong>Warga login</strong><div class="flow-step-desc">Halaman depan → tampil QR</div></div>
+          <div><strong>Warga login</strong><div class="flow-step-desc"></div></div>
         </div>
       </div>
 
@@ -482,15 +479,7 @@
               <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7;">
                 Simpan file Excel sebagai <strong>CSV UTF-8</strong> atau langsung drag .xlsx. 
                 Kolom dan urutan apapun — sistem akan mendeteksi otomatis.
-              </div>
-              <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:14px;font-family:monospace;font-size:11px;color:var(--text2);line-height:1.8;">
-                <span style="color:var(--text3);"># Format bebas, contoh kolom yang dikenali:</span><br>
-                No KK,Nama Kepala Keluarga,Alamat,No Telp<br>
-                <span style="color:var(--text3);">— atau —</span><br>
-                NKK;Nama KK;Domisili;HP<br>
-                <span style="color:var(--text3);">— atau —</span><br>
-                3273011234567890,Ahmad Hidayat,Kp. Cikaret,0812xxxx
-              </div>
+              </div> 
               <div id="drop-zone" class="drop-zone-penerima"
                 onclick="document.getElementById('excel-input').click()"
                 ondragenter="event.preventDefault();this.classList.add('drag')"

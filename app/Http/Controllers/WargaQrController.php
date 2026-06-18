@@ -97,7 +97,7 @@ class WargaQrController extends Controller
         // ── 7. Catat status download ─────────────────────────────────────────
         DB::table('distribusi')
     ->where('warga_no_kk', $nkk)
-   ->update(['dowload_qr' => 'sudah_download']);
+   ->update(['login' => 'sudah_login']);
 
         $downloadName = 'qr-kurban-' . $qrPayload . '.png';
 
@@ -322,11 +322,19 @@ SVG;
                 'message' => 'Data tidak ditemukan. Pastikan No. KK dan Nama sesuai.',
             ], 404);
         }
+     $penerima = DB::table('warga')
+        ->leftJoin('distribusi', 'warga.no_kk', '=', 'distribusi.warga_no_kk')
+        ->select(
+            'warga.*',
+            'distribusi.st_pengambilan',
+            'distribusi.login',
+            'distribusi.id_stok'
+            )
+        ->get();
 
         DB::table('distribusi')
             ->where('warga_no_kk', $nkk)
-            ->update(['dowload_qr' => 'sudah_login']);
-
+            ->update(['login' => 'sudah_login']);
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil',

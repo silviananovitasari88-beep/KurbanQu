@@ -15,11 +15,6 @@ Route::get('/', function () {
 Route::post('/warga/download-qr', [WargaQrController::class, 'download'])
     ->name('warga.download-qr');
 
-// login warga
-Route::post('/warga/login', [WargaQrController::class, 'login'])->name('warga.login');
-Route::get('/warga/login', function() { return redirect('/'); }); // ← tambah ini
-
-
 // Route untuk Halaman Dashboard Utama Admin Kurban
 Route::get('/admin', function () {
     return view('admin.dashboard');
@@ -150,35 +145,54 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     }
 });
 
+// Route: Update status login warga
+Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
+    $data = $request->validate([
+        'nkk'  => 'required|string',
+        'nama' => 'required|string',
+    ]);
 
-// ── API Tracking Proses Kurban (Admin → Warga realtime) ─────────────────────
+    $nkk  = preg_replace('/\D+/', '', $data['nkk']);
+    $nama = strtolower(trim(preg_replace('/\s+/', ' ', $data['nama'])));
 
-// GET: ambil status tracking (dipanggil kurban.js setiap 10 detik)
-Route::get('/api/tracking', function () {
-    try {
-        $raw = \Illuminate\Support\Facades\Cache::get('kurban_tracking_steps');
-        $steps = $raw ? json_decode($raw, true) : [];
+    // Cek warga ada di DB
+    $warga = DB::table('warga')
+        ->where('no_kk', $nkk)
+        ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
+        ->first();
 
-        // Default steps jika belum ada
-        if (empty($steps)) {
-            $steps = [
-                ['label' => 'Penyembelihan', 'status' => 'pending', 'time' => '—'],
-                ['label' => 'Pengulitan',    'status' => 'pending', 'time' => '—'],
-                ['label' => 'Pencacahan',    'status' => 'pending', 'time' => '—'],
-                ['label' => 'Penimbangan',   'status' => 'pending', 'time' => '—'],
-                ['label' => 'Siap Diambil',  'status' => 'pending', 'time' => '—'],
-            ];
-        }
-
-        return response()->json(['success' => true, 'steps' => $steps]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'steps' => []], 500);
+    if (!$warga) {
+        return response()->json(['success' => false, 'message' => 'Warga tidak ditemukan'], 404);
     }
+
+    // Update dowload_qr = 'sudah_login' di distribusi
+    DB::table('distribusi')
+        ->where('warga_no_kk', $nkk)
+        ->update(['dowload_qr' => 'sudah_login']);
+
+    return response()->json(['success' => true]);
 });
 
-// POST: simpan status tracking dari admin
-Route::post('/admin/api/tracking', function (\Illuminate\Http\Request $request) {
-    $data = $request->validate(['steps' => 'required|array']);
-    \Illuminate\Support\Facades\Cache::put('kurban_tracking_steps', json_encode($data['steps']), 86400);
-    return response()->json(['success' => true]);
+// Route: Cek status pengambilan warga (polling dari halaman warga)
+Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
+    $nkk = preg_replace('/\D+/', '', $request->query('nkk', ''));
+    if (!$nkk) {
+        return response()->json(['success' => false], 400);
+    }
+
+    $dist = DB::table('distribusi')
+        ->where('warga_no_kk', $nkk)
+        ->first();
+
+    if (!$dist) {
+        return response()->json(['success' => false, 'st_pengambilan' => 'pending']);
+    }
+
+    return response()->json([
+        'success'         => true,
+        'st_pengambilan'  => $dist->st_pengambilan ?? 'pending',
+        'mtd_pengambilan' => $dist->mtd_pengambilan ?? null,
+        'dowload_qr'      => $dist->dowload_qr ?? 'Belum',
+        'updated_at'      => $dist->updated_at ?? null,
+    ]);
 });

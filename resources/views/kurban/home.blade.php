@@ -134,13 +134,6 @@
       <div style="font-size:28px;color:#3d2510;margin-bottom:9px;font-family:Georgia,serif;line-height:1.5;">فَصَلِّ لِرَبِّكَ وَٱنْحَرْ</div>
       <div style="font-size:12.5px;color:#7a6040;font-style:italic;line-height:1.7;">"Maka dirikanlah salat karena Tuhanmu;<br>dan berqurbanlah."</div>
     </div>
-    <td>
-    @if($item->st_pengambilan === 'Sudah Diambil')
-        <span class="badge bg-success">✓ SUDAH AMBIL</span>
-    @else
-        <span class="badge bg-secondary">BELUM AMBIL</span>
-    @endif
-</td>
     <div class="scroll-area">
       <div style="padding:22px 20px 36px;">
         <div class="card">
@@ -182,7 +175,7 @@
           <div style="font-size:22px;font-weight:800;color:#fff;">Kupon Kurban</div>
           <div style="font-size:13px;color:#d4bfa0;margin-top:2px;">Tunjukkan ke panitia</div>
         </div>
-        <div style="border:1.5px solid #e8b84b;border-radius:20px;padding:6px 14px;font-size:11px;color:#e8b84b;font-weight:700;background:rgba(232,184,75,0.1);">⏳ Belum diambil</div>
+        <div id="qr-status-badge" style="border:1.5px solid #e8b84b;border-radius:20px;padding:6px 14px;font-size:11px;color:#e8b84b;font-weight:700;background:rgba(232,184,75,0.1);">⏳ Belum diambil</div>
       </div>
     </div>
 
@@ -228,8 +221,16 @@
         <div id="qr-nama" style="font-size:18px;font-weight:800;color:#3d2510;">—</div>
         <div id="qr-nkk"  style="font-size:13px;color:#9a8060;margin-top:4px;font-weight:500;">—</div>
 
-        <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;background:#fff8e8;border:1.5px solid #f5d080;border-radius:20px;font-size:12px;color:#854f0b;font-weight:600;">
+        <div id="qr-status-box" style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;background:#fff8e8;border:1.5px solid #f5d080;border-radius:20px;font-size:12px;color:#854f0b;font-weight:600;">
           <span style="font-size:15px;">🕐</span> Menunggu pengambilan
+        </div>
+
+        <!-- Overlay sukses sudah diambil (hidden by default) -->
+        <div id="qr-sudah-ambil" style="display:none;margin-top:16px;flex-direction:column;align-items:center;gap:10px;padding:20px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4caf50;border-radius:20px;text-align:center;">
+          <div style="font-size:48px;">✅</div>
+          <div style="font-size:16px;font-weight:800;color:#2e7d32;">Daging Kurban Sudah Diambil</div>
+          <div style="font-size:12px;color:#558b2f;">Terima kasih, semoga berkah!</div>
+          <div id="qr-waktu-ambil" style="font-size:11px;color:#9a8060;margin-top:4px;"></div>
         </div>
 
         <!-- Instruction hint -->

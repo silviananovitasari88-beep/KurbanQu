@@ -712,3 +712,21 @@
     resize: vertical;
     line-height: 1.6;
   }
+
+  /* Sembunyikan elemen inject Html5Qrcode yang bikin garis hitam */
+#qr-reader img,
+#qr-reader > div:last-child:not(:first-child) {
+    display: none !important;
+}
+
+#qr-reader video {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 16px;
+    display: block;
+    object-fit: cover;
+}
+
+#qr-reader__scan_region {
+    background: transparent !important;
+}

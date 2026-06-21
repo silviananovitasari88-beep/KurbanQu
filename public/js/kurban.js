@@ -837,6 +837,75 @@ async function downloadMyQr() {
 }
 
 window.downloadMyQr = downloadMyQr;
+// ── Polling status pengambilan dari server (realtime) ───────────────────────
+async function pollStatusPengambilan() {
+  const session = sessionStorage.getItem('kurbanqu_current_warga');
+  if (!session) return;
+  const warga = JSON.parse(session);
+  const nkk = String(warga.nkk || '').replace(/\D/g, '');
+  if (!nkk) return;
+
+  try {
+    const res = await fetch('/warga/status?nkk=' + nkk, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success) return;
+
+    const st = String(data.st_pengambilan || '').toLowerCase();
+    const sudahDiambil = ['selesai', 'sudah'].includes(st);
+
+    // Update badge kanan atas
+    const badge = document.getElementById('qr-status-badge');
+    if (badge) {
+      if (sudahDiambil) {
+        badge.style.border = '1.5px solid #4caf50';
+        badge.style.color = '#4caf50';
+        badge.style.background = 'rgba(76,175,80,0.1)';
+        badge.textContent = '✅ Sudah diambil';
+      } else {
+        badge.style.border = '1.5px solid #e8b84b';
+        badge.style.color = '#e8b84b';
+        badge.style.background = 'rgba(232,184,75,0.1)';
+        badge.textContent = '⏳ Belum diambil';
+      }
+    }
+
+    // Update status box & overlay
+    const statusBox    = document.getElementById('qr-status-box');
+    const sudahAmbil   = document.getElementById('qr-sudah-ambil');
+    const waktuEl      = document.getElementById('qr-waktu-ambil');
+
+    if (sudahDiambil) {
+      if (statusBox)  statusBox.style.display  = 'none';
+      if (sudahAmbil) {
+        sudahAmbil.style.display = 'flex';
+        if (waktuEl && data.updated_at) {
+          try {
+            const dt = new Date(data.updated_at);
+            const jam = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            waktuEl.textContent = 'Diambil pukul ' + jam + ' WIB';
+          } catch(e) {}
+        }
+      }
+      // Nonaktifkan QR agar tidak bisa scan ulang
+      const canvas = document.getElementById('qr-canvas');
+      if (canvas) canvas.style.opacity = '0.3';
+    } else {
+      if (statusBox)  statusBox.style.display  = 'flex';
+      if (sudahAmbil) sudahAmbil.style.display = 'none';
+    }
+  } catch(e) { /* silent */ }
+}
+
+// Polling setiap 5 detik saat halaman QR aktif
+setInterval(() => {
+  if (document.getElementById('pg-qr')?.classList.contains('active')) {
+    pollStatusPengambilan();
+  }
+}, 5000);
+
 
 // Auto-show after 400ms on page load
 setTimeout(showQrCard, 400);

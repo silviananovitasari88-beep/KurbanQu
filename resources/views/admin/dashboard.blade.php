@@ -292,8 +292,7 @@
         <div>
           <div class="scanner-wrap">
             <!-- Container untuk video streaming dari camera scanner -->
-            <div id="qr-reader" style="width: 100%; max-width: 200px; height: 200px; margin: 0 auto 24px; border-radius: 16px; overflow: hidden; background: #000; display: none;"></div>
-
+            <div id="qr-reader" style="width: 100%; max-width: 240px; margin: 0 auto 24px; border-radius: 16px; overflow: hidden; background: transparent; display: none;"></div>
             <!-- Placeholder scanner saat kamera belum aktif -->
             <div class="scanner-frame" id="scanner-placeholder">
               <div class="sc-box">

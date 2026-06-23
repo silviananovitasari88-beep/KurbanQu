@@ -29,12 +29,32 @@ class WargaQrController extends Controller
             ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$normalizedNama])
             ->first();
 
-        if (!$warga) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data warga tidak ditemukan. Pastikan No. KK dan Nama sesuai.',
-            ], 404);
-        }
+        // Update status login & download_qr untuk admin
+       // ✅ GANTI bagian update & insert fallback di method download()
+
+if ($warga) {
+    $updated = DB::table('distribusi')
+        ->where('warga_no_kk', $warga->no_kk)
+        ->update([
+            'login'        => 'sudah_login',      // ← kolom yang dibaca admin
+            'dowload_qr'   => 'sudah_login',
+            'status_login' => 'Sudah Login',
+        ]);
+
+    // Hanya insert jika memang belum ada (seharusnya sudah ada setelah fix Bug 1)
+    if ((int) $updated === 0) {
+        DB::table('distribusi')->insert([
+            'warga_no_kk'    => $warga->no_kk,
+            'st_pengambilan' => 'pending',
+            'mtd_pengambilan' => null,
+            'login'          => 'sudah_login',
+            'dowload_qr'     => 'sudah_login',
+            'status_login'   => 'Sudah Login',
+        ]);
+    }
+}
+
+
 
         // ── 3. Tentukan payload QR — selalu pakai format P00000 ──────────────
         //    JANGAN pakai QR_id_qr (integer FK), pakai id_penerima
@@ -95,9 +115,12 @@ class WargaQrController extends Controller
         $pngData = $this->renderPngWithImagick($svg);
 
         // ── 7. Catat status download ─────────────────────────────────────────
-        DB::table('distribusi')
-    ->where('warga_no_kk', $nkk)
-   ->update(['login' => 'sudah_login']);
+DB::table('warga')
+    ->where('no_kk', $nkk)
+    ->update([
+        'last_login_at' => now(),
+        'is_online' => true,
+    ]);
 
         $downloadName = 'qr-kurban-' . $qrPayload . '.png';
 
@@ -302,46 +325,53 @@ SVG;
     }  // ← penutup renderPngWithImagick
 
     public function login(Request $request)
-    {
-        $data = $request->validate([
-            'nkk'  => ['required', 'string'],
-            'nama' => ['required', 'string'],
+
+    $data = $request->validate([
+        'nkk'  => ['required', 'string'],
+        'nama' => ['required', 'string'],
+    ]);
+
+    $nkk  = preg_replace('/\D+/', '', $data['nkk']);
+    $nama = strtolower(preg_replace('/\s+/', ' ', trim($data['nama'])));
+
+    $warga = DB::table('warga')
+        ->where('no_kk', $nkk)
+        ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
+        ->first();
+
+    if (!$warga) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Data tidak ditemukan. Pastikan No. KK dan Nama sesuai.',
+        ], 404);
+    }
+
+    // Update status login
+    $updated = DB::table('distribusi')
+        ->where('warga_no_kk', $nkk)
+        ->update([
+            'login'      => 'sudah_login',
+            'dowload_qr' => 'sudah_login',
         ]);
 
-        $nkk  = preg_replace('/\D+/', '', $data['nkk']);
-        $nama = strtolower(preg_replace('/\s+/', ' ', trim($data['nama'])));
-
-        $warga = DB::table('warga')
-            ->where('no_kk', $nkk)
-            ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
-            ->first();
-
-        if (!$warga) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data tidak ditemukan. Pastikan No. KK dan Nama sesuai.',
-            ], 404);
-        }
-     $penerima = DB::table('warga')
-        ->leftJoin('distribusi', 'warga.no_kk', '=', 'distribusi.warga_no_kk')
-        ->select(
-            'warga.*',
-            'distribusi.st_pengambilan',
-            'distribusi.login',
-            'distribusi.id_stok'
-            )
-        ->get();
-
-        DB::table('distribusi')
-            ->where('warga_no_kk', $nkk)
-            ->update(['login' => 'sudah_login']);
-        return response()->json([
-            'success' => true,
-            'message' => 'Login berhasil',
-            'data' => [
-                'nama' => $warga->nama_kk,
-                'nkk'  => $nkk,
-            ]
+    // Fallback jika baris distribusi belum ada
+    if ((int) $updated === 0) {
+        DB::table('distribusi')->insert([
+            'warga_no_kk'    => $nkk,
+            'st_pengambilan' => 'pending',
+            'login'          => 'sudah_login',
+            'dowload_qr'     => 'sudah_login',
         ]);
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Login berhasil',
+        'data' => [
+            'nama'  => $warga->nama_kk,
+            'nkk'   => $nkk,
+            'login' => 'sudah_login',
+        ]
+    ]);
+}
 }

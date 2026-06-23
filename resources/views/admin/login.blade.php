@@ -1,3 +1,43 @@
+<?php
+// 1. WAJIB: Memulai session di baris paling atas
+session_start();
+
+// 2. Hubungkan ke database phpMyAdmin Anda
+$host     = "localhost";
+$db_user  = "root";      // Sesuaikan dengan user MySQL Anda
+$db_pass  = "";          // Sesuaikan dengan password MySQL Anda
+$db_name  = "kurbanqu";  // Sesuaikan dengan nama database Anda
+
+$koneksi = mysqli_connect($host, $db_user, $db_pass, $db_name);
+
+if (!$koneksi) {
+    die("Koneksi database gagal: " . mysqli_connect_error());
+}
+
+$error_login = "";
+
+// 3. Proses data ketika tombol Masuk/Submit ditekan
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['aksi_login'])) {
+    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
+    $password = mysqli_real_escape_string($koneksi, $_POST['password']);
+
+    // Sesuaikan nama tabel 'users' atau 'admin' dan nama kolom sesuai di phpMyAdmin Anda
+    $query  = "SELECT * FROM users WHERE username='$username' AND password='$password'";
+    $result = mysqli_query($koneksi, $query);
+
+    if (mysqli_num_rows($result) > 0) {
+        // Jika data cocok, simpan status login ke Session
+        $_SESSION['status'] = 'login';
+        $_SESSION['username'] = $username;
+
+        // Alihkan langsung ke halaman dashboard admin Anda
+        header("Location: admin/index.php"); 
+        exit();
+    } else {
+        $error_login = "Username atau Password salah!";
+    }
+}
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -490,11 +530,6 @@
     document.getElementById('confirmWrap').style.borderColor = '';
   });
 </script>
-
-</body>
-</html>
-
-<h1>LOGIN ADMIN BERHASIL 🎉</h1>
 
 </body>
 </html>

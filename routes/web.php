@@ -95,8 +95,25 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         $updateData['QR_id_qr'] = $row['qrCode'];
                     }
                     DB::table('warga')->where('no_kk', $nkk)->update($updateData);
+
+                    // Pastikan baris distribusi ada walaupun warga sudah ada
+                    $distExists = DB::table('distribusi')
+                        ->where('warga_no_kk', $nkk)
+                        ->exists();
+
+                    if (!$distExists) {
+                        DB::table('distribusi')->insert([
+                            'warga_no_kk'    => $nkk,
+                            'st_pengambilan' => 'pending',
+                            'mtd_pengambilan' => null,
+                            'login'          => null,
+                            'dowload_qr'     => null,
+                        ]);
+                    }
+
                     $updated++;
                 } else {
+
                     // Create new record dengan raw SQL untuk avoid Eloquent timestamp issue
                     $insertData = [
                         'no_kk'       => $nkk,
@@ -110,7 +127,18 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         $insertData['QR_id_qr'] = $row['qrCode'];
                     }
                     DB::table('warga')->insert($insertData);
-                    $created++;
+                   // Otomatis buat row distribusi untuk warga baru
+DB::table('distribusi')->insert([
+    'warga_no_kk'    => $nkk,
+    'st_pengambilan' => 'pending',
+    'mtd_pengambilan' => null,
+    'login'          => null,
+    'dowload_qr'     => null,
+]);
+
+\Log::info('Insert distribusi untuk: ' . $nkk);
+
+$created++;
                 }
                 
             } catch (\Exception $e) {
@@ -165,10 +193,15 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
         return response()->json(['success' => false, 'message' => 'Warga tidak ditemukan'], 404);
     }
 
-    // Update dowload_qr = 'sudah_login' di distribusi
+// Update login/status di distribusi
     DB::table('distribusi')
         ->where('warga_no_kk', $nkk)
-        ->update(['dowload_qr' => 'sudah_login']);
+       ->update([
+           'login' => 'sudah_login',
+           // admin UI membaca dowload_qr untuk badge "Sudah Login"
+           'dowload_qr' => 'sudah_login',
+       ]);
+
 
     return response()->json(['success' => true]);
 });
@@ -195,4 +228,22 @@ Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
         'dowload_qr'      => $dist->dowload_qr ?? 'Belum',
         'updated_at'      => $dist->updated_at ?? null,
     ]);
+});
+
+Route::get('/api/tracking', function () {
+    return response()->json([
+        'success' => true,
+        'steps' => []
+    ]);
+});
+
+Route::post('/admin/api/distribusi/{idStok}/batalkan', function(\Illuminate\Http\Request $request, $idStok) {
+    DB::table('distribusi')
+        ->where('id_stok', $idStok)
+        ->update([
+            'st_pengambilan'  => 'pending',
+            'mtd_pengambilan' => null,
+        ]);
+
+    return response()->json(['success' => true]);
 });

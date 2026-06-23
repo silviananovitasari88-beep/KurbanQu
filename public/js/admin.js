@@ -779,12 +779,18 @@ const TIMELINE = [
     if (!p) return;
     const key = String(p.id_penerima);
     if (penerimaClaimedSet.has(key)) { toast('Sudah pernah diambil!', 'error'); return; }
+
     penerimaClaimedSet.add(key);
     const mt = method || 'Manual';
     penerimaClaimMethod[key] = mt;
     penerimaClaimTime[key]   = nowTime();
-
     savePenerimaDistState();
+
+    const backend = getBackendDistribusiRow(p.nkk);
+    if (backend && backend.id_stok) {
+        markDistribusiDenganMetode(backend.id_stok, p.nkk, p.qrCode, mt);
+    }
+
     penerimaDistLog.unshift({ nama: p.nama, nkk: p.nkk, time: penerimaClaimTime[key], method: mt });
     renderDistLog();
     updateDistStats();
@@ -793,6 +799,28 @@ const TIMELINE = [
     if (currentPage === 'distribusi') showScanResultPenerima(idPenerima);
     toast(p.nama + ' berhasil diverifikasi (' + mt + ')', 'success');
   }
+
+  async function markDistribusiDenganMetode(idStok, noKk, qrCode, method) {
+    try {
+        const response = await fetch(`/admin/api/distribusi/${encodeURIComponent(idStok)}/manual`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            },
+            body: JSON.stringify({
+                warga_no_kk: String(noKk || '').replace(/\D/g, ''),
+                qr_id_qr: qrCode || '',
+                metode: method, // ← kirim metode
+            }),
+        });
+        await refreshDistribusiSnapshot();
+        if (currentPage === 'tabel') renderTabelDistribusi();
+    } catch (error) {
+        console.error(error);
+    }
+}
 
   async function markDistribusiManual(idStok, noKk, qrCode) {
     try {
@@ -806,6 +834,7 @@ const TIMELINE = [
         body: JSON.stringify({
           warga_no_kk: String(noKk || '').replace(/\D/g, ''),
           qr_id_qr: qrCode || '',
+          metode: 'Manual', //
         }),
       });
 
@@ -837,17 +866,42 @@ const TIMELINE = [
 
   function unmarkPenerimaClaimed(idPenerima) {
     const key = String(idPenerima);
+
+    // Deklarasi dulu semua variabel
+    const penerimaList = loadPenerima();
+    const targetP = penerimaList.find(item => String(item.id_penerima) === key);
+
     penerimaClaimedSet.delete(key);
     delete penerimaClaimMethod[key];
     delete penerimaClaimTime[key];
     penerimaDownloadedSet.delete(key);
     savePenerimaDistState();
+
+    if (targetP) {
+        const backend = getBackendDistribusiRow(targetP.nkk);
+        if (backend && backend.id_stok) {
+           fetch(`/admin/api/distribusi/${backend.id_stok}/batalkan`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+    },
+    body: JSON.stringify({
+        warga_no_kk: targetP.nkk
+    }),
+})
+.then(() => refreshDistribusiSnapshot())
+.then(() => {
+    if (currentPage === 'tabel') renderTabelDistribusi();
+});
+        }
+    }
+
     updateDistStats();
     renderDashboard();
     if (currentPage === 'tabel') renderTabelDistribusi();
-    const penerima = loadPenerima();
-    const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
-    toast('Status ' + (p?.nama || idPenerima) + ' dibatalkan', 'info');
+    toast('Status ' + (targetP?.nama || idPenerima) + ' dibatalkan', 'info');
   }
 
   function simulatePenerimaQRDownload(idPenerima) {
@@ -1057,17 +1111,17 @@ const TIMELINE = [
            </div>`;
 
       // ── mtd_pengambilan
-      const mtdBadge = String(r.method || '').toLowerCase() === 'qr'
+     const mtdBadge = String(r.method || '').toLowerCase() === 'qr'
+    ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+         <span style="background:rgba(91,156,246,0.12);color:var(--blue);border:1px solid rgba(91,156,246,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">📱 QR</span>
+         <span style="font-size:9px;color:var(--text3);">Otomatis</span>
+       </div>`
+    : ['manual_admin', 'manual'].includes(String(r.method || '').toLowerCase())
         ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-             <span style="background:rgba(91,156,246,0.12);color:var(--blue);border:1px solid rgba(91,156,246,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">📱 QR</span>
-             <span style="font-size:9px;color:var(--text3);">Otomatis</span>
+             <span style="background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,184,75,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">👆 Manual</span>
+             <span style="font-size:9px;color:var(--text3);">Admin input</span>
            </div>`
-        : String(r.method || '').toLowerCase() === 'manual_admin'
-          ? `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-               <span style="background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,184,75,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;">👆 Manual</span>
-               <span style="font-size:9px;color:var(--text3);">Admin input</span>
-             </div>`
-          : `<span style="color:var(--text3);font-size:12px;">—</span>`;
+        : `<span style="color:var(--text3);font-size:12px;">—</span>`;
 
       // ── Aksi admin
       const aksiBtn = !r.claimed
@@ -1082,7 +1136,7 @@ const TIMELINE = [
 
       return `<tr>
         <td style="text-align:center;">
-          <span style="font-family:monospace;font-size:11px;color:var(--text3);font-weight:700;">#${String(r.idStok).padStart(3,'0')}</span>
+          <span style="font-family:monospace;font-size:11px;color:var(--text3);font-weight:700;">#${String(r.id_Stok).padStart(3,'0')}</span>
         </td>
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -1704,8 +1758,11 @@ const TIMELINE = [
     if (empty) empty.style.display = 'none';
 
     tbody.innerHTML = list.map(p => {
-      const mudhohi = getAllMudhohi().find(m => normNkk(m.nkk) === normNkk(p.nkk));
-      const claimed = mudhohi && claimedSet.has(mudhohiKey(mudhohi));
+      const backend = getBackendDistribusiRow(p.nkk);
+
+      const claimed = backend
+    ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai'
+    : false;
       return `<tr>
         <td style="color:var(--text3);font-size:11px;">${p._idx + 1}</td>
         <td><code style="font-size:11px;color:var(--blue);">${p.nkk}</code></td>

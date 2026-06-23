@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Faacades\Storage;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -22,7 +22,7 @@ class AdminController extends Controller
 				'd.dowload_qr',
 				'd.st_pengambilan',
 				'd.mtd_pengambilan',
-				'd.updated_at',
+				'd.login',
 				'w.nama_kk',
 				'w.id_penerima',
 				'q.jam_pengambilan',
@@ -46,7 +46,8 @@ class AdminController extends Controller
 				'dowload_qr' => $row->dowload_qr,
 				'st_pengambilan' => $row->st_pengambilan,
 				'mtd_pengambilan' => $row->mtd_pengambilan,
-				'updated_at' => $row->updated_at,
+				'login' => $row->login,
+'updated_at' => null,
 				'jam_pengambilan' => $row->jam_pengambilan,
 			];
 		}
@@ -84,8 +85,8 @@ class AdminController extends Controller
 		}
 
 		$updateData = [
-			'st_pengambilan' => 'selesai',
-			'mtd_pengambilan' => 'manual_admin',
+    		'st_pengambilan'  => 'selesai',
+    		'mtd_pengambilan' => $request->input('metode') === 'QR' ? 'QR' : 'Manual',
 		];
 
 		if (Schema::hasColumn('distribusi', 'updated_at')) {
@@ -103,17 +104,18 @@ class AdminController extends Controller
 			}
 		}
 
-		return response()->json([
-			'success' => true,
-			'message' => 'Status distribusi diperbarui menjadi manual_admin.',
-			'data' => [
-				'id_stok' => $idStok,
-				'warga_no_kk' => $data['warga_no_kk'],
-				'st_pengambilan' => 'selesai',
-				'mtd_pengambilan' => 'manual_admin',
-				'updated_at' => $now->toDateTimeString(),
-			],
-		]);
+		$metode = $request->input('metode') === 'QR' ? 'QR' : 'Manual';
+return response()->json([
+    'success' => true,
+    'message' => 'Status distribusi diperbarui.',
+    'data' => [
+        'id_stok' => $idStok,
+        'warga_no_kk' => $data['warga_no_kk'],
+        'st_pengambilan' => 'selesai',
+        'mtd_pengambilan' => $metode, // ← pakai variabel
+        'updated_at' => $now->toDateTimeString(),
+    ],
+]);
 	}
 
     public function clearAllPenerima(): JsonResponse
@@ -126,8 +128,8 @@ class AdminController extends Controller
         DB::table('warga')->delete();
 
         // Reset auto increment di SQLite (opsional)
-        DB::statement('DELETE FROM sqlite_sequence WHERE name="warga"');
-        DB::statement('DELETE FROM sqlite_sequence WHERE name="distribusi"');
+        DB::statement('ALTER TABLE warga AUTO_INCREMENT = 1');
+        DB::statement('ALTER TABLE distribusi AUTO_INCREMENT = 1');
 
         return response()->json([
             'success' => true,
@@ -144,7 +146,7 @@ class AdminController extends Controller
 	public function deleteTempImport(Request $request): JsonResponse
 	{
 		$data = $request->validate([
-			'temp_file' => ['required', 'string', 'max:255'],a
+			'temp_file' => ['required', 'string', 'max:255'],
 		]);
 
 		$tempFile = basename(str_replace(['\\', '..'], ['/', ''], $data['temp_file']));
@@ -188,5 +190,60 @@ class AdminController extends Controller
 			],
 		]);
 	}
+
+	public function importWarga(Request $request): JsonResponse
+{
+    $request->validate([
+        'file' => ['required', 'file', 'mimes:csv,txt'],
+    ]);
+
+    $file = $request->file('file');
+    $rows = array_map('str_getcsv', file($file->getRealPath()));
+    $header = array_shift($rows); // baris pertama = header
+
+    DB::transaction(function () use ($rows) {
+        foreach ($rows as $row) {
+            if (count($row) < 3) continue;
+
+            // Sesuaikan index kolom dengan format CSV Anda
+            $noKk    = trim($row[0]);
+            $namaKk  = trim($row[1]);
+            $alamat  = trim($row[2] ?? '');
+
+            // 1. Insert ke tabel warga
+            $idPenerima = DB::table('warga')->insertGetId([
+                'no_kk'   => $noKk,
+                'nama_kk' => $namaKk,
+                'alamat'  => $alamat,
+            ]);
+
+            // 2. Insert QR
+            $idQr = DB::table('QR')->insertGetId([
+                'no_antrian'     => $idPenerima,
+                'loc_pengambilan' => 'Lokasi Pengambilan',
+                'dur_sesi'       => 15,
+            ]);
+
+            // Update warga dengan QR_id_qr dan id_penerima
+            DB::table('warga')->where('no_kk', $noKk)->update([
+                'QR_id_qr'    => $idQr,
+                'id_penerima' => $idPenerima,
+            ]);
+
+            // 3. ← KUNCI: Insert ke distribusi sekaligus
+            DB::table('distribusi')->insert([
+                'warga_no_kk'    => $noKk,
+                'QR_id_qr'       => $idQr,
+                'st_pengambilan' => 'pending',
+                'mtd_pengambilan' => null,
+                'login'          => 'belum_login',
+                'dowload_qr'     => 'belum',
+                'status_login'   => 'Belum Login',
+            ]);
+        }
+    });
+
+    return response()->json(['success' => true, 'message' => 'Import berhasil.']);
+}
 }
         

@@ -54,7 +54,8 @@ async function fetchTrackingFromServer() {
     if (!res.ok) return;
     const data = await res.json();
     if (!data.success || !Array.isArray(data.steps)) return;
-    // Update TIMELINE dari server
+    // Update TIMEL
+    // INE dari server
     data.steps.forEach((s, i) => {
       if (TIMELINE[i]) {
         TIMELINE[i].status = s.status || 'pending';
@@ -71,7 +72,7 @@ async function fetchTrackingFromServer() {
 }
 
 // Polling setiap 10 detik
-setInterval(fetchTrackingFromServer, 10000);
+setInterval(fetchTrackingFromServer, 30000);
 // Load sekali saat halaman dibuka
 fetchTrackingFromServer();
 
@@ -416,7 +417,8 @@ function startLiveClock() {
   setInterval(tick, 1000);
 }
 // ══════════════════════════════════════════
-// DETAIL PAGE
+// DETAIL
+//  PAGE
 // ══════════════════════════════════════════
 let detailFromPage = 'pg-dashboard';
 
@@ -566,7 +568,8 @@ function submitLogin() {
   }
 
   // Update status login ke backend
-  fetch('/warga/login', {
+ // ✅ GANTI JADI INI
+fetch('/warga/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -574,8 +577,8 @@ function submitLogin() {
     },
     body: JSON.stringify({ nkk, nama })
   }).catch(e => console.warn('Gagal update status login:', e));
-
   if (auth.penerima) {
+    
     sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
   }
 
@@ -904,7 +907,7 @@ setInterval(() => {
   if (document.getElementById('pg-qr')?.classList.contains('active')) {
     pollStatusPengambilan();
   }
-}, 5000);
+}, 30000);
 
 
 // Auto-show after 400ms on page load

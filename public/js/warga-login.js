@@ -37,7 +37,7 @@ function savePenerima(list) {
     localStorage.setItem(STORAGE_CONFIRMED_WARGA, JSON.stringify(list));
     syncLoginIndex(list);
 
-    fetch('/simpan-penerima', {
+   fetch('/simpan-penerima', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

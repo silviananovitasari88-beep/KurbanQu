@@ -6,7 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WargaQrController;
 use App\Models\Warga;
 
-// Route untuk Halaman Depan / Dashboard Warga (yang kemarin)
+// Route untuk Halaman Depan / Dashboard Warga 
 Route::get('/', function () {
     return view('kurban.home');
 });

@@ -325,11 +325,11 @@ SVG;
     }  // ← penutup renderPngWithImagick
 
     public function login(Request $request)
-
-    $data = $request->validate([
-        'nkk'  => ['required', 'string'],
-        'nama' => ['required', 'string'],
-    ]);
+    {
+        $data = $request->validate([
+            'nkk'  => ['required', 'string'],
+            'nama' => ['required', 'string'],
+        ]);
 
     $nkk  = preg_replace('/\D+/', '', $data['nkk']);
     $nama = strtolower(preg_replace('/\s+/', ' ', trim($data['nama'])));

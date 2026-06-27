@@ -1289,19 +1289,67 @@ const TIMELINE = [
   // REKAP
   // ═══════════════════════════════════════════
   function renderRekap() {
-    const allM = getAllMudhohi();
-    const total = allM.length;
-    const diambil = claimedSet.size;
-    const pct = total ? Math.round(diambil / total * 100) : 0;
-    const sapi = MUDHOHI.filter(m => getHewanById(m.hewan_id_hewan)?.jenis === 'sapi').length;
-    const kambing = HEWAN.filter(h => h.jenis === 'kambing').length;
-    const domba = HEWAN.filter(h => h.jenis === 'domba').length;
-    const circ = 2 * Math.PI * 48;
-    const off  = circ - (pct / 100) * circ;
-  
+    // ── Progress distribusi dari DB ──────────────────────────────────────────
+    const totalPenerima = backendDistribusiLoaded
+      ? Object.keys(backendDistribusiByKk).length
+      : loadPenerima().length;
+
+    const diambilDB = backendDistribusiLoaded
+      ? Object.values(backendDistribusiByKk).filter(b =>
+          ['selesai','sudah'].includes(String(b.st_pengambilan||'').toLowerCase())).length
+      : 0;
+
+    const belumDB  = totalPenerima - diambilDB;
+    const pct      = totalPenerima ? Math.round(diambilDB / totalPenerima * 100) : 0;
+    const circ     = 2 * Math.PI * 48;
+    const off      = circ - (pct / 100) * circ;
+
+    // ── Data hewan per tahun dari HEWAN localStorage ─────────────────────────
+    const tahunSet = new Set();
+    HEWAN.forEach(h => { if (h.tahun) tahunSet.add(h.tahun); });
+    const tahunList = [...tahunSet].sort().slice(-3); // 3 tahun terakhir
+    if (!tahunList.length) {
+      // Jika belum ada field tahun, pakai tahun sekarang
+      tahunList.push(new Date().getFullYear());
+    }
+
+    const hewanStats = tahunList.map(th => {
+      const hewanTahun = HEWAN.filter(h => !h.tahun || String(h.tahun) === String(th));
+      return {
+        tahun: th,
+        sapi:   hewanTahun.filter(h => h.jenis === 'sapi').length,
+        kambing:hewanTahun.filter(h => h.jenis === 'kambing').length,
+        domba:  hewanTahun.filter(h => h.jenis === 'domba').length,
+        total:  hewanTahun.length,
+      };
+    });
+
+    // ── Data penerima per tahun dari localStorage ─────────────────────────────
+    const allPenerimaRaw = loadPenerima();
+    const penerimaTahunSet = new Set();
+    allPenerimaRaw.forEach(p => { if (p.tahun) penerimaTahunSet.add(p.tahun); });
+    const penerimaTahunList = [...penerimaTahunSet].sort().slice(-3);
+    const hasPenerimaTahun  = penerimaTahunList.length > 0;
+
+    const penerButton = `<button onclick="showTambahDataTahunan()" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Input Data Tahunan</button>`;
+  }
+    // ── Bar chart SVG helper ──────────────────────────────────────────────────
+    function barChart(data, labels, colors, maxVal) {
+      const W = 260, H = 120, barW = 28, gap = 16;
+      const scale = maxVal ? (H - 20) / maxVal : 1;
+      return data.map((v, i) => {
+        const x = i * (barW + gap) + 10;
+        const bH = Math.max(4, v * scale);
+        const y  = H - bH - 16;
+        return `<rect x="${x}" y="${y}" width="${barW}" height="${bH}" rx="4" fill="${colors[i % colors.length]}"/>
+<text x="${x + barW/2}" y="${H - 2}" text-anchor="middle" font-size="9" fill="var(--text3)">${labels[i]}</text>
+<text x="${x + barW/2}" y="${y - 3}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${v}</text>`;
+      }).join('');
+    }
+
     document.getElementById('rekap-content').innerHTML = `
+      <!-- a. Progress Distribusi (dari DB) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
-        <!-- Ring card -->
         <div class="card">
           <div class="card-header"><div class="card-title">📊 Progress Distribusi</div></div>
           <div class="card-body" style="display:flex;align-items:center;gap:24px;">
@@ -1309,7 +1357,8 @@ const TIMELINE = [
               <svg width="120" height="120" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg4)" stroke-width="10"/>
                 <circle cx="60" cy="60" r="48" fill="none" stroke="var(--gold)" stroke-width="10"
-                  stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .8s;"/>
+                  stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"
+                  style="transition:stroke-dashoffset .8s;transform:rotate(-90deg);transform-origin:60px 60px;"/>
               </svg>
               <div class="rekap-ring-label">
                 <div class="rekap-ring-num">${pct}%</div>
@@ -1317,55 +1366,144 @@ const TIMELINE = [
               </div>
             </div>
             <div style="flex:1;">
-              <div style="margin-bottom:12px;"><div style="font-size:28px;font-weight:800;color:var(--green);">${diambil}</div><div style="font-size:12px;color:var(--text3);">Sudah diambil</div></div>
-              <div><div style="font-size:28px;font-weight:800;color:var(--amber);">${total - diambil}</div><div style="font-size:12px;color:var(--text3);">Belum diambil</div></div>
+              <div style="margin-bottom:14px;">
+                <div style="font-size:32px;font-weight:800;color:var(--green);">${diambilDB}</div>
+                <div style="font-size:12px;color:var(--text3);">Sudah diambil</div>
+              </div>
+              <div>
+                <div style="font-size:32px;font-weight:800;color:var(--amber);">${belumDB}</div>
+                <div style="font-size:12px;color:var(--text3);">Belum diambil</div>
+              </div>
+              <div style="margin-top:10px;font-size:11px;color:var(--text3);">dari <strong>${totalPenerima}</strong> total penerima</div>
             </div>
           </div>
         </div>
-  
-        <!-- Hewan breakdown -->
+
+        <!-- Status Proses -->
         <div class="card">
-          <div class="card-header"><div class="card-title">🐾 Breakdown Hewan</div></div>
+          <div class="card-header"><div class="card-title">📍 Status Proses Kurban</div></div>
           <div class="card-body">
-            ${[['🐄 Sapi', HEWAN.filter(x=>x.jenis==='sapi').length, sapi, '#c8922a'],['🐐 Kambing', HEWAN.filter(x=>x.jenis==='kambing').length, kambing, '#e8b84b'],['🐑 Domba', HEWAN.filter(x=>x.jenis==='domba').length, domba, '#a09cf8']].map(([n,hewan,mh,col]) => `
-              <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-                <div style="font-size:22px;">${n.split(' ')[0]}</div>
-                <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${n}</div><div style="font-size:11px;color:var(--text3);">${hewan} ekor · ${mh} penerima</div></div>
-                <div style="font-size:20px;font-weight:800;color:${col};">${mh}</div>
-              </div>`).join('')}
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+              ${TIMELINE.map(t => `
+                <div style="text-align:center;background:${t.status==='done'?'rgba(200,146,42,0.1)':t.status==='active'?'rgba(232,184,75,0.07)':'var(--bg3)'};border:1px solid ${t.status==='done'?'rgba(200,146,42,0.2)':t.status==='active'?'rgba(232,184,75,0.15)':'var(--border)'};border-radius:10px;padding:10px 4px;">
+                  <div style="font-size:18px;margin-bottom:4px;">${t.status==='done'?'✅':t.icon}</div>
+                  <div style="font-size:10px;font-weight:700;color:${t.status==='pending'?'var(--text3)':'var(--text)'};">${t.label}</div>
+                  <div style="font-size:9px;font-weight:700;margin-top:3px;color:${t.status==='done'?'var(--gold2)':t.status==='active'?'var(--amber)':'var(--text3)'};">${t.time}</div>
+                </div>`).join('')}
+            </div>
           </div>
         </div>
       </div>
-  
-      <!-- Status proses -->
+
+      <!-- b. Grafik Hewan Tahunan -->
       <div class="card" style="margin-bottom:18px;">
-        <div class="card-header"><div class="card-title">📍 Status Proses Kurban</div></div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="card-title">📈 Data Hewan Kurban Tahunan</div>
+          ${penerButton}
+        </div>
         <div class="card-body">
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
-            ${TIMELINE.map(t => `
-              <div style="text-align:center;background:${t.status==='done'?'rgba(200,146,42,0.1)':t.status==='active'?'rgba(232,184,75,0.07)':'var(--bg3)'};border:1px solid ${t.status==='done'?'rgba(200,146,42,0.2)':t.status==='active'?'rgba(232,184,75,0.15)':'var(--border)'};border-radius:12px;padding:14px;">
-                <div style="font-size:22px;margin-bottom:6px;">${t.status==='done'?'✅':t.icon}</div>
-                <div style="font-size:12px;font-weight:700;color:${t.status==='pending'?'var(--text3)':'var(--text)'};">${t.label}</div>
-                <div style="font-size:10px;font-weight:700;margin-top:5px;color:${t.status==='done'?'var(--gold2)':t.status==='active'?'var(--amber)':'var(--text3)'};">${t.time}</div>
-              </div>`).join('')}
-          </div>
+          ${hewanStats.length === 0 ? '<div class="empty-state"><div class="empty-ico">📊</div>Belum ada data. Klik "+ Input Data Tahunan".</div>' :
+            '<div style="display:flex;gap:24px;align-items:flex-end;overflow-x:auto;padding-bottom:8px;">' +
+            hewanStats.map(stat => {
+              const maxV = Math.max(stat.sapi, stat.kambing, stat.domba, 1);
+              const W=100,H=120,bW=22,gap=8;
+              const scale=(H-20)/maxV;
+              const vals=[stat.sapi,stat.kambing,stat.domba];
+              const cols=['#c8922a','#e8b84b','#a09cf8'];
+              const lbs=['Sapi','Kbg','Domba'];
+              const bars=vals.map((v,i)=>{
+                const x=i*(bW+gap)+8;
+                const bH=Math.max(4,v*scale);
+                const y=H-bH-16;
+                return `<rect x="${x}" y="${y}" width="${bW}" height="${bH}" rx="3" fill="${cols[i]}"/>` +
+                  `<text x="${x+bW/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--text3)">${lbs[i]}</text>` +
+                  `<text x="${x+bW/2}" y="${y-3}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${v}</text>`;
+              }).join('');
+              return `<div style="text-align:center;min-width:100px;">
+                <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:8px;">${stat.tahun}</div>
+                <svg width="100" height="120" viewBox="0 0 100 120">${bars}</svg>
+                <div style="font-size:10px;color:var(--text3);margin-top:4px;">Total: ${stat.total} ekor</div>
+              </div>`;
+            }).join('') + '</div>' +
+            '<div style="display:flex;gap:16px;margin-top:12px;">' +
+            [['🐄','Sapi','#c8922a'],['🐐','Kambing','#e8b84b'],['🐑','Domba','#a09cf8']].map(([em,lb,col])=>
+              `<div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:12px;height:12px;border-radius:2px;background:${col};"></div><span>${em} ${lb}</span></div>`
+            ).join('') + '</div>'
+          }
         </div>
       </div>
-  
-      <!-- Belum diambil -->
+
+      <!-- c. Grafik Penerima Tahunan -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">⏳ Belum Diambil (${total - diambil})</div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="card-title">👥 Data Penerima Pertahun</div>
+          ${penerButton}
         </div>
-        <table class="data-table">
-          <thead><tr><th>Nama</th><th>Hewan</th><th>Bagian</th></tr></thead>
-          <tbody>${allM.filter(m => !claimedSet.has(mudhohiKey(m))).map(m => `
-            <tr><td><strong>${m.nama}</strong></td><td>${m.animalEmoji} ${m.animalLabel}</td><td>${m.bagian||'Penuh'}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty-state"><div class="empty-ico">🎉</div>Semua sudah diambil!</div></td></tr>'}
-          </tbody>
-        </table>
-      </div>`;
+        <div class="card-body">
+          ${!hasPenerimaTahun ?
+            `<div style="display:flex;align-items:center;gap:16px;">
+              <div>
+                <div style="font-size:32px;font-weight:800;color:var(--gold);">${totalPenerima}</div>
+                <div style="font-size:12px;color:var(--text3);">Penerima tahun ini</div>
+              </div>
+              <div style="flex:1;color:var(--text3);font-size:12px;">Data historis belum tersedia. Klik "+ Input Data Tahunan".</div>
+            </div>` :
+            '<div style="display:flex;gap:16px;align-items:flex-end;">' +
+            penerimaTahunList.map(th => {
+              const jml = allPenerimaRaw.filter(p => String(p.tahun) === String(th)).length;
+              return `<div style="text-align:center;min-width:80px;">
+                <div style="font-size:28px;font-weight:800;color:var(--gold);">${jml}</div>
+                <div style="font-size:12px;color:var(--text3);">${th}</div>
+              </div>`;
+            }).join('') + '</div>'
+          }
+        </div>
+      </div>\`;
   }
+
+  function showTambahDataTahunan() {
+    const tahunNow = new Date().getFullYear();
+    const html = <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;" id="modal-tahunan">
+      <div style="background:var(--bg2);border-radius:16px;padding:24px;width:320px;max-width:90vw;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:16px;">📊 Input Data Tahunan</div>
+        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Tahun</label>
+          <input id="inp-tahun" type="number" value="${tahunNow}" min="2000" max="2099"
+            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Jumlah Sapi</label>
+          <input id="inp-sapi" type="number" value="0" min="0"
+            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Jumlah Kambing</label>
+          <input id="inp-kambing" type="number" value="0" min="0"
+            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
+        <div style="margin-bottom:16px;"><label style="font-size:12px;color:var(--text3);">Jumlah Domba</label>
+          <input id="inp-domba" type="number" value="0" min="0"
+            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="document.getElementById('modal-tahunan').remove()"
+            style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;">Batal</button>
+          <button onclick="simpanDataTahunan()"
+            style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;cursor:pointer;">Simpan</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
   
+
+  function simpanDataTahunan() {
+    const tahun   = parseInt(document.getElementById('inp-tahun').value, 10);
+    const sapi    = parseInt(document.getElementById('inp-sapi').value, 10) || 0;
+    const kambing = parseInt(document.getElementById('inp-kambing').value, 10) || 0;
+    const domba   = parseInt(document.getElementById('inp-domba').value, 10) || 0;
+    for (let i=0;i<sapi;i++)    HEWAN.push({id_hewan:nextHewanId++,jenis:'sapi',   label:'Sapi '+tahun,   tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
+    for (let i=0;i<kambing;i++) HEWAN.push({id_hewan:nextHewanId++,jenis:'kambing',label:'Kambing '+tahun,tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
+    for (let i=0;i<domba;i++)   HEWAN.push({id_hewan:nextHewanId++,jenis:'domba',  label:'Domba '+tahun,  tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
+    saveStore(); saveNextHewanId();
+    document.getElementById('modal-tahunan')?.remove();
+    toast(`Data tahun ${tahun} berhasil disimpan`, 'success');
+    renderRekap();
+  }
+  window.showTambahDataTahunan = showTambahDataTahunan;
+  window.simpanDataTahunan     = simpanDataTahunan;
   // ═══════════════════════════════════════════
   // SUBMIT FORMS
   // ═══════════════════════════════════════════
@@ -1638,7 +1776,7 @@ const TIMELINE = [
     }
   }
 
-  function renderPenerimaPage() {
+function renderPenerimaPage() {
     updatePenerimaBadge();
     confirmedPenerima = loadPenerima();
     const chips = document.getElementById('penerima-stat-chips');
@@ -1653,7 +1791,7 @@ const TIMELINE = [
           <span style="font-size:11px;color:var(--text3);">${lbl}</span>
           <strong style="font-size:18px;color:${col};margin-left:8px;">${val}</strong>
         </div>`
-      ).join('');
+          ).join('');
     }
     renderPenerimaTable();
   }
@@ -1670,8 +1808,8 @@ const TIMELINE = [
       return;
     }
 
-    document.getElementById('preview-content').innerHTML = `
-      <table class="data-table" style="min-width:480px;">
+    document.getElementById('preview-content').innerHTML = 
+      `<table class="data-table" style="min-width:480px;">
         <thead><tr><th>#</th><th>No KK</th><th>Nama Kepala Keluarga</th><th>Alamat</th><th>Telp</th></tr></thead>
         <tbody>
           ${rows.slice(0, 25).map((r, i) => `<tr>

@@ -5,6 +5,24 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WargaQrController;
 use App\Models\Warga;
+use App\Http\Controllers\AuthController;
+
+// ---- Auth ----
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('auth.login');
+    Route::post('/auth/login',    [AuthController::class, 'login'])->name('auth.do-login');
+    Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
+});
+
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('auth.logout');
+
+// ---- Admin (protected) ----
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    // Tambahkan route admin lainnya di sini
+});
 
 // Route untuk Halaman Depan / Dashboard Warga 
 Route::get('/', function () {
@@ -26,9 +44,8 @@ Route::post('/admin/api/distribusi/{idStok}/manual', [AdminController::class, 'u
 Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImport']);
 Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
 Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
-
 Route::post('/warga/qr/download', [WargaQrController::class, 'download']);
-
+Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
 Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     // ✅ Validasi input
     $request->validate([

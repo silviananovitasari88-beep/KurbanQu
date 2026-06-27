@@ -242,6 +242,8 @@ const TIMELINE = [
   // ═══════════════════════════════════════════
   // HELPERS
   // ═══════════════════════════════════════════
+  const TAHUN_INI = new Date().getFullYear();
+
   function getAllAnimals() {
     return HEWAN.map(h => {
       const d = hewanDisplay(h);
@@ -254,8 +256,9 @@ const TIMELINE = [
         jenis: h.jenis,
         jenisLabel: d.jenisLabel,
         umur: h.umur,
-        sehat: h.sehat === 'Ya' ? '✓ Sehat' : '✗ Tidak Sehat',
-        syariat: h.st_syariat === 'Sah' ? '✓ Sah' : '✗ Tidak Sah',
+        tahun: h.tahun || null,
+        sehat: h.sehat === 'Ya' ? '\u2713 Sehat' : '\u2717 Tidak Sehat',
+        syariat: h.st_syariat === 'Sah' ? '\u2713 Sah' : '\u2717 Tidak Sah',
         cacat: h.cacat === 'Tidak' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
         berat: h.berat,
         sehatRaw: h.sehat,
@@ -264,6 +267,11 @@ const TIMELINE = [
         mudhohi: mh,
       };
     });
+  }
+
+  // Hanya hewan tahun ini (atau tanpa field tahun) — untuk Dashboard & Data Hewan
+  function getAnimalsThisYear() {
+    return getAllAnimals().filter(a => !a.tahun || String(a.tahun) === String(TAHUN_INI));
   }
 
   function getAllMudhohi() {
@@ -376,7 +384,7 @@ const TIMELINE = [
     const diambil = claimedSet.size;
     const pct = total ? Math.round(diambil / total * 100) : 0;
   
-    document.getElementById('s-hewan').textContent    = getAllAnimals().length;
+    document.getElementById('s-hewan').textContent    = getAnimalsThisYear().length;
     document.getElementById('s-mudhohi').textContent  = total;
     document.getElementById('s-diambil').textContent  = diambil;
     document.getElementById('s-diambil-pct').textContent = pct + '% dari total';
@@ -389,10 +397,11 @@ const TIMELINE = [
     document.getElementById('prog-circle').style.strokeDashoffset = off;
     document.getElementById('prog-pct').textContent = pct + '%';
   
-    // Bar chart
-    const sapi = MUDHOHI.filter(m => getHewanById(m.hewan_id_hewan)?.jenis === 'sapi').length;
-    const kambing = HEWAN.filter(h => h.jenis === 'kambing').length;
-    const domba = HEWAN.filter(h => h.jenis === 'domba').length;
+    // Bar chart — hanya hewan tahun ini
+    const hewanTahunIni = getAnimalsThisYear();
+    const sapi    = hewanTahunIni.filter(a => a.jenis === 'sapi').length;
+    const kambing = hewanTahunIni.filter(a => a.jenis === 'kambing').length;
+    const domba   = hewanTahunIni.filter(a => a.jenis === 'domba').length;
     const bars = [['🐄 Sapi', sapi, '#c8922a'], ['🐐 Kambing', kambing, '#e8b84b'], ['🐑 Domba', domba, '#a09cf8']];
     document.getElementById('bar-chart').innerHTML = bars.map(([lbl, val, col]) => `
       <div class="bar-row">
@@ -403,14 +412,14 @@ const TIMELINE = [
   
     // Animal list (first 3)
     const dashList = document.getElementById('dash-animal-list');
-    dashList.innerHTML = getAllAnimals().slice(0, 3).map(a => {
+    dashList.innerHTML = getAnimalsThisYear().slice(0, 3).map(a => {
       const st = animalStatus(a);
       return `<div class="animal-row" onclick="showDetailHewanFk('${a.id_hewan}')">
         <div class="animal-avatar">${a.emoji}</div>
         <div><div class="animal-name">${a.label}</div><div class="animal-sub">${a.sehat} · ${a.syariat} · ${a.umur}</div></div>
         <span class="status-badge ${st === 'done' ? 'status-done' : st === 'active' ? 'status-active' : 'status-pending'}">${st === 'done' ? 'Selesai' : st === 'active' ? 'Diproses' : 'Pending'}</span>
       </div>`;
-    }).join('') + `<div style="text-align:center;margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="navTo('hewan',document.querySelectorAll('.nav-item')[1])">Lihat semua ${getAllAnimals().length} hewan →</button></div>`;
+    }).join('') + `<div style="text-align:center;margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="navTo('hewan',document.querySelectorAll('.nav-item')[1])">Lihat semua ${getAnimalsThisYear().length} hewan →</button></div>`;
   
     // Tracking
     renderTrackingWidget();
@@ -443,7 +452,7 @@ const TIMELINE = [
   function renderHewanTable() {
     const q = (document.getElementById('hewan-search')?.value || '').toLowerCase();
     let list = [];
-    list = getAllAnimals();
+    list = getAnimalsThisYear(); // Hanya hewan tahun ini — arsip ada di Rekap & Statistik
     if (hewanFilterCurrent !== 'semua') list = list.filter(a => a.jenis === hewanFilterCurrent);
     if (q) list = list.filter(a => a.label.toLowerCase().includes(q) || String(a.id_hewan).includes(q));
   
@@ -1288,76 +1297,101 @@ const TIMELINE = [
   // ═══════════════════════════════════════════
   // REKAP
   // ═══════════════════════════════════════════
+  // ── localStorage key untuk data tahunan penerima ────────────────────────────
+  const STORAGE_PENERIMA_TAHUNAN = 'kurbanqu_penerima_tahunan';
+
+  function loadPenerimaTahunan() {
+    try {
+      const raw = localStorage.getItem(STORAGE_PENERIMA_TAHUNAN);
+      if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return {};
+  }
+
+  function savePenerimaTahunan(data) {
+    localStorage.setItem(STORAGE_PENERIMA_TAHUNAN, JSON.stringify(data));
+  }
+
   function renderRekap() {
-    // ── Progress distribusi dari DB ──────────────────────────────────────────
+    // b. Progress distribusi — dihitung dari jumlah baris di distribusi DB
+    const allDistRows   = Object.values(backendDistribusiByKk || {});
     const totalPenerima = backendDistribusiLoaded
-      ? Object.keys(backendDistribusiByKk).length
+      ? allDistRows.length
       : loadPenerima().length;
 
     const diambilDB = backendDistribusiLoaded
-      ? Object.values(backendDistribusiByKk).filter(b =>
-          ['selesai','sudah'].includes(String(b.st_pengambilan||'').toLowerCase())).length
+      ? allDistRows.filter(b => String(b.st_pengambilan || '').toLowerCase() === 'selesai').length
       : 0;
 
-    const belumDB  = totalPenerima - diambilDB;
-    const pct      = totalPenerima ? Math.round(diambilDB / totalPenerima * 100) : 0;
-    const circ     = 2 * Math.PI * 48;
-    const off      = circ - (pct / 100) * circ;
+    const belumDB = totalPenerima - diambilDB;
+    const pct     = totalPenerima ? Math.round(diambilDB / totalPenerima * 100) : 0;
+    const circ    = 2 * Math.PI * 48;
+    const off     = circ - (pct / 100) * circ;
 
-    // ── Data hewan per tahun dari HEWAN localStorage ─────────────────────────
-    const tahunSet = new Set();
-    HEWAN.forEach(h => { if (h.tahun) tahunSet.add(h.tahun); });
-    const tahunList = [...tahunSet].sort().slice(-3); // 3 tahun terakhir
-    if (!tahunList.length) {
-      // Jika belum ada field tahun, pakai tahun sekarang
-      tahunList.push(new Date().getFullYear());
-    }
+    // a. Data hewan per tahun dari HEWAN localStorage (semua tahun)
+    const tahunHewanSet = new Set();
+    HEWAN.forEach(h => { if (h.tahun) tahunHewanSet.add(String(h.tahun)); });
+    const tahunHewanList = [...tahunHewanSet].sort().slice(-5); // max 5 tahun
 
-    const hewanStats = tahunList.map(th => {
-      const hewanTahun = HEWAN.filter(h => !h.tahun || String(h.tahun) === String(th));
+    const hewanStats = tahunHewanList.map(th => {
+      const list = HEWAN.filter(h => String(h.tahun) === th);
       return {
-        tahun: th,
-        sapi:   hewanTahun.filter(h => h.jenis === 'sapi').length,
-        kambing:hewanTahun.filter(h => h.jenis === 'kambing').length,
-        domba:  hewanTahun.filter(h => h.jenis === 'domba').length,
-        total:  hewanTahun.length,
+        tahun:   th,
+        sapi:    list.filter(h => h.jenis === 'sapi').length,
+        kambing: list.filter(h => h.jenis === 'kambing').length,
+        domba:   list.filter(h => h.jenis === 'domba').length,
+        total:   list.length,
       };
     });
 
-    // ── Data penerima per tahun dari localStorage ─────────────────────────────
-    const allPenerimaRaw = loadPenerima();
-    const penerimaTahunSet = new Set();
-    allPenerimaRaw.forEach(p => { if (p.tahun) penerimaTahunSet.add(p.tahun); });
-    const penerimaTahunList = [...penerimaTahunSet].sort().slice(-3);
-    const hasPenerimaTahun  = penerimaTahunList.length > 0;
+    // c. Data penerima tahunan dari storage terpisah
+    const penerimaTahunan    = loadPenerimaTahunan();
+    const penerimaTahunList  = Object.keys(penerimaTahunan).sort().slice(-5);
+    const hasPenerimaTahunan = penerimaTahunList.length > 0;
 
-    const penerButton = `<button onclick="showTambahDataTahunan()" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Input Data Tahunan</button>`;
-  }
-    // ── Bar chart SVG helper ──────────────────────────────────────────────────
-    function barChart(data, labels, colors, maxVal) {
-      const W = 260, H = 120, barW = 28, gap = 16;
-      const scale = maxVal ? (H - 20) / maxVal : 1;
-      return data.map((v, i) => {
-        const x = i * (barW + gap) + 10;
+    function trendBadge(list, data) {
+      if (list.length < 2) return '';
+      const last = data[list[list.length - 1]];
+      const prev = data[list[list.length - 2]];
+      const diff = last - prev;
+      const color = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text3)';
+      const arrow = diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '\u2192';
+      return `<span style="font-size:11px;font-weight:700;color:${color};margin-left:8px;">${arrow} ${diff > 0 ? '+' : ''}${diff} dari tahun lalu</span>`;
+    }
+
+    const btnTahunan = `<button onclick="showTambahDataTahunan()" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Input Data Tahunan</button>`;
+
+    function penerimaBarSvg(list, data) {
+      const maxV = Math.max(...list.map(t => data[t] || 0), 1);
+      const H = 100, bW = 32, gap = 12;
+      const scale = (H - 22) / maxV;
+      const svgW  = list.length * (bW + gap) + 10;
+      const bars  = list.map((th, i) => {
+        const v  = data[th] || 0;
+        const x  = i * (bW + gap) + 5;
         const bH = Math.max(4, v * scale);
-        const y  = H - bH - 16;
-        return `<rect x="${x}" y="${y}" width="${barW}" height="${bH}" rx="4" fill="${colors[i % colors.length]}"/>
-<text x="${x + barW/2}" y="${H - 2}" text-anchor="middle" font-size="9" fill="var(--text3)">${labels[i]}</text>
-<text x="${x + barW/2}" y="${y - 3}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${v}</text>`;
+        const y  = H - bH - 18;
+        const isLast = i === list.length - 1;
+        return `<rect x="${x}" y="${y}" width="${bW}" height="${bH}" rx="4" fill="${isLast ? 'var(--gold)' : 'rgba(200,146,42,0.35)'}"/>` +
+          `<text x="${x + bW/2}" y="${H - 2}" text-anchor="middle" font-size="8" fill="var(--text3)">${th}</text>` +
+          `<text x="${x + bW/2}" y="${y - 3}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${v}</text>`;
       }).join('');
+      return `<svg width="${svgW}" height="${H}" viewBox="0 0 ${svgW} ${H}">${bars}</svg>`;
     }
 
     document.getElementById('rekap-content').innerHTML = `
-      <!-- a. Progress Distribusi (dari DB) -->
+      <!-- ROW 1: Progress Distribusi + Status Proses -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+
+        <!-- b. Progress Distribusi -->
         <div class="card">
-          <div class="card-header"><div class="card-title">📊 Progress Distribusi</div></div>
+          <div class="card-header"><div class="card-title">\u{1F4CA} Progress Distribusi</div></div>
           <div class="card-body" style="display:flex;align-items:center;gap:24px;">
             <div class="rekap-ring">
               <svg width="120" height="120" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="48" fill="none" stroke="var(--bg4)" stroke-width="10"/>
                 <circle cx="60" cy="60" r="48" fill="none" stroke="var(--gold)" stroke-width="10"
-                  stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"
+                  stroke-linecap="round" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"
                   style="transition:stroke-dashoffset .8s;transform:rotate(-90deg);transform-origin:60px 60px;"/>
               </svg>
               <div class="rekap-ring-label">
@@ -1370,23 +1404,25 @@ const TIMELINE = [
                 <div style="font-size:32px;font-weight:800;color:var(--green);">${diambilDB}</div>
                 <div style="font-size:12px;color:var(--text3);">Sudah diambil</div>
               </div>
-              <div>
+              <div style="margin-bottom:10px;">
                 <div style="font-size:32px;font-weight:800;color:var(--amber);">${belumDB}</div>
                 <div style="font-size:12px;color:var(--text3);">Belum diambil</div>
               </div>
-              <div style="margin-top:10px;font-size:11px;color:var(--text3);">dari <strong>${totalPenerima}</strong> total penerima</div>
+              <div style="font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border);">
+                dari <strong style="color:var(--text);">${totalPenerima}</strong> total penerima terdaftar
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Status Proses -->
+        <!-- Status Proses Kurban -->
         <div class="card">
-          <div class="card-header"><div class="card-title">📍 Status Proses Kurban</div></div>
+          <div class="card-header"><div class="card-title">\u{1F4CD} Status Proses Kurban</div></div>
           <div class="card-body">
             <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
               ${TIMELINE.map(t => `
                 <div style="text-align:center;background:${t.status==='done'?'rgba(200,146,42,0.1)':t.status==='active'?'rgba(232,184,75,0.07)':'var(--bg3)'};border:1px solid ${t.status==='done'?'rgba(200,146,42,0.2)':t.status==='active'?'rgba(232,184,75,0.15)':'var(--border)'};border-radius:10px;padding:10px 4px;">
-                  <div style="font-size:18px;margin-bottom:4px;">${t.status==='done'?'✅':t.icon}</div>
+                  <div style="font-size:18px;margin-bottom:4px;">${t.status==='done'?'\u2705':t.icon}</div>
                   <div style="font-size:10px;font-weight:700;color:${t.status==='pending'?'var(--text3)':'var(--text)'};">${t.label}</div>
                   <div style="font-size:9px;font-weight:700;margin-top:3px;color:${t.status==='done'?'var(--gold2)':t.status==='active'?'var(--amber)':'var(--text3)'};">${t.time}</div>
                 </div>`).join('')}
@@ -1395,115 +1431,263 @@ const TIMELINE = [
         </div>
       </div>
 
-      <!-- b. Grafik Hewan Tahunan -->
+      <!-- a. Grafik Hewan Kurban Tahunan -->
       <div class="card" style="margin-bottom:18px;">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="card-title">📈 Data Hewan Kurban Tahunan</div>
-          ${penerButton}
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div class="card-title">\u{1F404} Data Hewan Kurban Tahunan</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">Hanya tampil di sini — Data Hewan & Dashboard hanya menampilkan tahun ini</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="downloadSemuaDataTahunan()" style="padding:6px 12px;font-size:11px;font-weight:700;border:1px solid var(--text3);background:var(--bg3);color:var(--text2);border-radius:8px;cursor:pointer;">\u2193 Download Semua</button>
+            ${btnTahunan}
+          </div>
         </div>
         <div class="card-body">
-          ${hewanStats.length === 0 ? '<div class="empty-state"><div class="empty-ico">📊</div>Belum ada data. Klik "+ Input Data Tahunan".</div>' :
-            '<div style="display:flex;gap:24px;align-items:flex-end;overflow-x:auto;padding-bottom:8px;">' +
-            hewanStats.map(stat => {
-              const maxV = Math.max(stat.sapi, stat.kambing, stat.domba, 1);
-              const W=100,H=120,bW=22,gap=8;
-              const scale=(H-20)/maxV;
-              const vals=[stat.sapi,stat.kambing,stat.domba];
-              const cols=['#c8922a','#e8b84b','#a09cf8'];
-              const lbs=['Sapi','Kbg','Domba'];
-              const bars=vals.map((v,i)=>{
-                const x=i*(bW+gap)+8;
-                const bH=Math.max(4,v*scale);
-                const y=H-bH-16;
-                return `<rect x="${x}" y="${y}" width="${bW}" height="${bH}" rx="3" fill="${cols[i]}"/>` +
-                  `<text x="${x+bW/2}" y="${H-2}" text-anchor="middle" font-size="8" fill="var(--text3)">${lbs[i]}</text>` +
-                  `<text x="${x+bW/2}" y="${y-3}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${v}</text>`;
-              }).join('');
-              return `<div style="text-align:center;min-width:100px;">
-                <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:8px;">${stat.tahun}</div>
-                <svg width="100" height="120" viewBox="0 0 100 120">${bars}</svg>
-                <div style="font-size:10px;color:var(--text3);margin-top:4px;">Total: ${stat.total} ekor</div>
-              </div>`;
-            }).join('') + '</div>' +
-            '<div style="display:flex;gap:16px;margin-top:12px;">' +
-            [['🐄','Sapi','#c8922a'],['🐐','Kambing','#e8b84b'],['🐑','Domba','#a09cf8']].map(([em,lb,col])=>
-              `<div style="display:flex;align-items:center;gap:6px;font-size:12px;"><div style="width:12px;height:12px;border-radius:2px;background:${col};"></div><span>${em} ${lb}</span></div>`
-            ).join('') + '</div>'
+          ${tahunHewanList.length === 0
+            ? `<div class="empty-state"><div class="empty-ico">\u{1F4CA}</div>Belum ada data hewan tahunan. Klik "+ Input Data Tahunan".</div>`
+            : `<div style="display:flex;gap:28px;align-items:flex-end;overflow-x:auto;padding-bottom:8px;">
+                ${hewanStats.map(stat => {
+                  const maxV = Math.max(stat.sapi, stat.kambing, stat.domba, 1);
+                  const H=110,bW=22,gap=7;
+                  const scale=(H-20)/maxV;
+                  const vals=[stat.sapi,stat.kambing,stat.domba];
+                  const cols=['#c8922a','#e8b84b','#a09cf8'];
+                  const lbs=['Sapi','Kbg','Domba'];
+                  const svgW=vals.length*(bW+gap)+10;
+                  const bars=vals.map((v,i)=>{
+                    const x=i*(bW+gap)+5;
+                    const bH=Math.max(4,v*scale);
+                    const y=H-bH-14;
+                    return `<rect x="${x}" y="${y}" width="${bW}" height="${bH}" rx="3" fill="${cols[i]}"/>`+
+                      `<text x="${x+bW/2}" y="${H-1}" text-anchor="middle" font-size="7" fill="var(--text3)">${lbs[i]}</text>`+
+                      `<text x="${x+bW/2}" y="${y-2}" text-anchor="middle" font-size="8" font-weight="700" fill="var(--text)">${v}</text>`;
+                  }).join('');
+                  return `<div style="text-align:center;flex-shrink:0;min-width:90px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--gold2);margin-bottom:6px;">${stat.tahun}</div>
+                    <svg width="${svgW}" height="${H}" viewBox="0 0 ${svgW} ${H}">${bars}</svg>
+                    <div style="font-size:10px;color:var(--text3);margin-top:3px;">Total: <strong>${stat.total}</strong> ekor</div>
+                    <button onclick="downloadHewanTahunanExcel('${stat.tahun}')" title="Download data ${stat.tahun}"
+                      style="margin-top:5px;padding:3px 8px;font-size:10px;font-weight:600;border:1px solid var(--gold2);background:rgba(200,146,42,0.08);color:var(--gold2);border-radius:5px;cursor:pointer;">\u2193 ${stat.tahun}</button>
+                  </div>`;
+                }).join('')}
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;gap:14px;">
+                  ${[['\u{1F404}','Sapi','#c8922a'],['\u{1F410}','Kambing','#e8b84b'],['\u{1F411}','Domba','#a09cf8']].map(([em,lb,col])=>
+                    `<div style="display:flex;align-items:center;gap:5px;font-size:12px;"><div style="width:10px;height:10px;border-radius:2px;background:${col};flex-shrink:0;"></div><span>${em} ${lb}</span></div>`
+                  ).join('')}
+                </div>
+              </div>`
           }
         </div>
       </div>
 
-      <!-- c. Grafik Penerima Tahunan -->
+      <!-- c. Grafik Penerima Pertahun -->
       <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="card-title">👥 Data Penerima Pertahun</div>
-          ${penerButton}
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <div class="card-title">\u{1F465} Data Penerima Pertahun</div>
+            ${trendBadge(penerimaTahunList, penerimaTahunan)}
+          </div>
+          ${btnTahunan}
         </div>
         <div class="card-body">
-          ${!hasPenerimaTahun ?
-            `<div style="display:flex;align-items:center;gap:16px;">
-              <div>
-                <div style="font-size:32px;font-weight:800;color:var(--gold);">${totalPenerima}</div>
-                <div style="font-size:12px;color:var(--text3);">Penerima tahun ini</div>
-              </div>
-              <div style="flex:1;color:var(--text3);font-size:12px;">Data historis belum tersedia. Klik "+ Input Data Tahunan".</div>
-            </div>` :
-            '<div style="display:flex;gap:16px;align-items:flex-end;">' +
-            penerimaTahunList.map(th => {
-              const jml = allPenerimaRaw.filter(p => String(p.tahun) === String(th)).length;
-              return `<div style="text-align:center;min-width:80px;">
-                <div style="font-size:28px;font-weight:800;color:var(--gold);">${jml}</div>
-                <div style="font-size:12px;color:var(--text3);">${th}</div>
-              </div>`;
-            }).join('') + '</div>'
+          ${!hasPenerimaTahunan
+            ? `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:36px;font-weight:800;color:var(--gold);">${totalPenerima}</div>
+                  <div style="font-size:12px;color:var(--text3);">Penerima tahun ini</div>
+                </div>
+                <div style="color:var(--text3);font-size:12px;line-height:1.7;">
+                  Data historis penerima belum tersedia.<br>
+                  Klik "+ Input Data Tahunan" untuk mengisi.
+                </div>
+              </div>`
+            : `<div style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;">
+                ${penerimaBarSvg(penerimaTahunList, penerimaTahunan)}
+                <div>
+                  ${penerimaTahunList.map((th, i) => {
+                    const jml  = penerimaTahunan[th] || 0;
+                    const prev = i > 0 ? (penerimaTahunan[penerimaTahunList[i-1]] || 0) : null;
+                    const diff = prev !== null ? jml - prev : null;
+                    const arrow = diff === null ? '' : diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '\u2192';
+                    const col   = diff === null ? '' : diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text3)';
+                    const isLast = i === penerimaTahunList.length - 1;
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;${i < penerimaTahunList.length-1 ? 'border-bottom:1px solid var(--border);' : ''}">
+                      <div style="font-size:12px;color:var(--text3);width:36px;">${th}</div>
+                      <div style="font-size:${isLast?'22':'17'}px;font-weight:800;color:${isLast?'var(--gold)':'var(--text)'};">${jml}</div>
+                      <div style="font-size:11px;color:var(--text3);">penerima</div>
+                      ${diff !== null ? `<span style="font-size:11px;font-weight:700;color:${col};">${arrow} ${diff > 0 ? '+' : ''}${diff}</span>` : ''}
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>`
           }
         </div>
-      </div>\`;
+      </div>
+    `;
   }
 
   function showTambahDataTahunan() {
+    document.getElementById('modal-tahunan')?.remove();
     const tahunNow = new Date().getFullYear();
-    const html = <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;" id="modal-tahunan">
-      <div style="background:var(--bg2);border-radius:16px;padding:24px;width:320px;max-width:90vw;">
-        <div style="font-size:16px;font-weight:700;margin-bottom:16px;">📊 Input Data Tahunan</div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Tahun</label>
-          <input id="inp-tahun" type="number" value="${tahunNow}" min="2000" max="2099"
-            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Jumlah Sapi</label>
-          <input id="inp-sapi" type="number" value="0" min="0"
-            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text3);">Jumlah Kambing</label>
-          <input id="inp-kambing" type="number" value="0" min="0"
-            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
-        <div style="margin-bottom:16px;"><label style="font-size:12px;color:var(--text3);">Jumlah Domba</label>
-          <input id="inp-domba" type="number" value="0" min="0"
-            style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;"></div>
+    const penData  = loadPenerimaTahunan();
+    const html = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;" id="modal-tahunan">
+      <div style="background:var(--bg2);border-radius:16px;padding:24px;width:360px;max-width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">\u{1F4CA} Input Data Tahunan</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:18px;">Isi data hewan dan penerima per tahun untuk grafik statistik di Rekap.</div>
+
+        <label style="font-size:12px;color:var(--text3);font-weight:600;">Tahun</label>
+        <input id="inp-tahun" type="number" value="${tahunNow}" min="2000" max="2099"
+          style="width:100%;margin-top:4px;margin-bottom:14px;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;font-size:14px;">
+
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">\u{1F404} Jumlah Hewan Kurban</div>
+
+        <label style="font-size:12px;color:var(--text3);">Sapi</label>
+        <input id="inp-sapi" type="number" value="0" min="0"
+          style="width:100%;margin-top:4px;margin-bottom:10px;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;">
+
+        <label style="font-size:12px;color:var(--text3);">Kambing</label>
+        <input id="inp-kambing" type="number" value="0" min="0"
+          style="width:100%;margin-top:4px;margin-bottom:10px;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;">
+
+        <label style="font-size:12px;color:var(--text3);">Domba</label>
+        <input id="inp-domba" type="number" value="0" min="0"
+          style="width:100%;margin-top:4px;margin-bottom:16px;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;">
+
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">\u{1F465} Jumlah Penerima Kurban</div>
+
+        <label style="font-size:12px;color:var(--text3);">Jumlah Penerima</label>
+        <input id="inp-penerima" type="number" value="${penData[tahunNow] || 0}" min="0"
+          style="width:100%;margin-top:4px;margin-bottom:20px;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);box-sizing:border-box;">
+
         <div style="display:flex;gap:10px;">
           <button onclick="document.getElementById('modal-tahunan').remove()"
-            style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;">Batal</button>
+            style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px;">Batal</button>
           <button onclick="simpanDataTahunan()"
-            style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;cursor:pointer;">Simpan</button>
+            style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;cursor:pointer;font-size:13px;">Simpan</button>
         </div>
       </div>
     </div>`;
     document.body.insertAdjacentHTML('beforeend', html);
-  
+    document.getElementById('inp-tahun').addEventListener('input', function() {
+      const t  = this.value;
+      const pd = loadPenerimaTahunan();
+      document.getElementById('inp-penerima').value = pd[t] || 0;
+    });
+  }
 
   function simpanDataTahunan() {
-    const tahun   = parseInt(document.getElementById('inp-tahun').value, 10);
-    const sapi    = parseInt(document.getElementById('inp-sapi').value, 10) || 0;
-    const kambing = parseInt(document.getElementById('inp-kambing').value, 10) || 0;
-    const domba   = parseInt(document.getElementById('inp-domba').value, 10) || 0;
-    for (let i=0;i<sapi;i++)    HEWAN.push({id_hewan:nextHewanId++,jenis:'sapi',   label:'Sapi '+tahun,   tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
-    for (let i=0;i<kambing;i++) HEWAN.push({id_hewan:nextHewanId++,jenis:'kambing',label:'Kambing '+tahun,tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
-    for (let i=0;i<domba;i++)   HEWAN.push({id_hewan:nextHewanId++,jenis:'domba',  label:'Domba '+tahun,  tahun,umur:'—',sehat:'Ya',cacat:'Tidak',st_syariat:'Sah',berat:'—'});
-    saveStore(); saveNextHewanId();
+    const tahun    = parseInt(document.getElementById('inp-tahun').value, 10);
+    const sapi     = parseInt(document.getElementById('inp-sapi').value, 10)     || 0;
+    const kambing  = parseInt(document.getElementById('inp-kambing').value, 10)  || 0;
+    const domba    = parseInt(document.getElementById('inp-domba').value, 10)    || 0;
+    const penerima = parseInt(document.getElementById('inp-penerima').value, 10) || 0;
+
+    if (!tahun || tahun < 2000) { toast('Tahun tidak valid', 'error'); return; }
+
+    // Hapus hewan lama untuk tahun ini, lalu isi ulang
+    HEWAN = HEWAN.filter(h => String(h.tahun) !== String(tahun));
+    for (let i = 0; i < sapi;    i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'sapi',    label: 'Sapi ' + tahun,    tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
+    for (let i = 0; i < kambing; i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'kambing', label: 'Kambing ' + tahun, tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
+    for (let i = 0; i < domba;   i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'domba',   label: 'Domba ' + tahun,   tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
+    saveStore();
+    saveNextHewanId();
+
+    const penData = loadPenerimaTahunan();
+    penData[String(tahun)] = penerima;
+    savePenerimaTahunan(penData);
+
     document.getElementById('modal-tahunan')?.remove();
     toast(`Data tahun ${tahun} berhasil disimpan`, 'success');
     renderRekap();
   }
-  window.showTambahDataTahunan = showTambahDataTahunan;
-  window.simpanDataTahunan     = simpanDataTahunan;
+
+  // ── Download Excel data hewan per tahun ────────────────────────────────────
+  function downloadHewanTahunanExcel(tahun) {
+    tahun = String(tahun);
+    const hewanTahun  = HEWAN.filter(h => String(h.tahun) === tahun);
+    const penData     = loadPenerimaTahunan();
+    const jmlPenerima = penData[tahun] || 0;
+
+    const rows = [
+      ['KurbanQu - Data Tahunan ' + tahun],
+      [],
+      ['=== DATA HEWAN KURBAN ' + tahun + ' ==='],
+      ['ID Hewan', 'Label', 'Jenis', 'Jumlah Ekor', 'Umur', 'Berat', 'Kondisi', 'Status Syariat'],
+    ];
+
+    // Summary per jenis
+    ['sapi','kambing','domba'].forEach(jenis => {
+      const list = hewanTahun.filter(h => h.jenis === jenis);
+      if (list.length) {
+        rows.push(['', jenis.charAt(0).toUpperCase()+jenis.slice(1), jenis, list.length, '-', '-', 'Sehat', 'Sah']);
+      }
+    });
+
+    rows.push([]);
+    rows.push(['Ringkasan Hewan ' + tahun]);
+    rows.push(['Jenis', 'Jumlah']);
+    rows.push(['Sapi',    hewanTahun.filter(h => h.jenis === 'sapi').length]);
+    rows.push(['Kambing', hewanTahun.filter(h => h.jenis === 'kambing').length]);
+    rows.push(['Domba',   hewanTahun.filter(h => h.jenis === 'domba').length]);
+    rows.push(['TOTAL',   hewanTahun.length]);
+    rows.push([]);
+    rows.push(['=== DATA PENERIMA ' + tahun + ' ===']);
+    rows.push(['Jumlah Penerima', jmlPenerima]);
+
+    const csv  = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const bom  = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'kurbanqu_' + tahun + '.csv';
+    a.click();
+    toast('Data tahun ' + tahun + ' diunduh', 'success');
+  }
+
+  // ── Download ringkasan semua tahun ──────────────────────────────────────────
+  function downloadSemuaDataTahunan() {
+    const tahunSet = new Set(HEWAN.filter(h => h.tahun).map(h => String(h.tahun)));
+    const penData  = loadPenerimaTahunan();
+    Object.keys(penData).forEach(t => tahunSet.add(t));
+    const tahunList = [...tahunSet].sort();
+
+    if (!tahunList.length) { toast('Belum ada data tahunan', 'info'); return; }
+
+    const rows = [
+      ['KurbanQu - Rekapitulasi Data Tahunan'],
+      ['Dibuat: ' + new Date().toLocaleDateString('id-ID')],
+      [],
+      ['Tahun', 'Total Hewan', 'Sapi', 'Kambing', 'Domba', 'Total Penerima'],
+    ];
+    tahunList.forEach(th => {
+      const list = HEWAN.filter(h => String(h.tahun) === th);
+      rows.push([
+        th,
+        list.length,
+        list.filter(h => h.jenis === 'sapi').length,
+        list.filter(h => h.jenis === 'kambing').length,
+        list.filter(h => h.jenis === 'domba').length,
+        penData[th] || 0,
+      ]);
+    });
+
+    const csv  = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const bom  = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'kurbanqu_rekap_tahunan.csv';
+    a.click();
+    toast('Rekap semua tahun diunduh', 'success');
+  }
+
+  window.showTambahDataTahunan    = showTambahDataTahunan;
+  window.simpanDataTahunan        = simpanDataTahunan;
+  window.downloadHewanTahunanExcel = downloadHewanTahunanExcel;
+  window.downloadSemuaDataTahunan  = downloadSemuaDataTahunan;
   // ═══════════════════════════════════════════
   // SUBMIT FORMS
   // ═══════════════════════════════════════════
@@ -1516,6 +1700,7 @@ const TIMELINE = [
       id_hewan,
       jenis,
       label,
+      tahun: TAHUN_INI, // tag hewan dengan tahun saat ditambahkan
       umur: document.getElementById('h-umur').value.trim() || '—',
       sehat: document.getElementById('h-sehat').value || 'Ya',
       cacat: document.getElementById('h-cacat').value || 'Tidak',

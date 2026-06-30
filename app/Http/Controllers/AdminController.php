@@ -245,5 +245,95 @@ return response()->json([
 
     return response()->json(['success' => true, 'message' => 'Import berhasil.']);
 }
+
+	// ═══════════════════════════════════════════
+    // HEWAN
+    // ═══════════════════════════════════════════
+    public function getHewan(): JsonResponse
+    {
+        $hewan = DB::table('hewan')->orderBy('id_hewan')->get();
+        return response()->json(['success' => true, 'data' => $hewan]);
+    }
+
+    public function storeHewan(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'jenis'      => ['required', 'in:Sapi,Domba,Kambing'],
+            'sehat'      => ['required', 'in:Sehat,Tidak Sehat'],
+            'cacat'      => ['required', 'in:Cacat,Tidak Cacat'],
+            'umur'       => ['nullable', 'string', 'max:50'],
+            'berat'      => ['nullable', 'string', 'max:50'],
+            'st_syariat' => ['required', 'boolean'],
+        ]);
+
+        $id = DB::table('hewan')->insertGetId([
+            'jenis'                => $data['jenis'],
+            'sehat'                => $data['sehat'],
+            'cacat'                => $data['cacat'],
+            'umur'                 => $data['umur'] ?? null,
+            'berat'                => $data['berat'] ?? null,
+            'st_syariat'           => $data['st_syariat'],
+            'admin_id_admin'       => auth()->id(),
+            'tracking_id_tracking' => 1,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Hewan berhasil ditambahkan',
+            'data' => ['id_hewan' => $id],
+        ]);
+    }
+
+    public function deleteHewan(int $idHewan): JsonResponse
+    {
+        DB::table('mudhohi')->where('hewan_id_hewan', $idHewan)->delete();
+        DB::table('hewan')->where('id_hewan', $idHewan)->delete();
+
+        return response()->json(['success' => true, 'message' => 'Hewan berhasil dihapus']);
+    }
+
+    // ═══════════════════════════════════════════
+    // MUDHOHI
+    // ════════════════════════════════════════
+
+	public function getMudhohi(): JsonResponse
+    {
+        $mudhohi = DB::table('mudhohi')->orderBy('id_mudhohi')->get();
+        return response()->json(['success' => true, 'data' => $mudhohi]);
+    }
+
+    public function storeMudhohi(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'nama_mudhohi'   => ['required', 'string', 'max:45'],
+            'nama_ayah'      => ['nullable', 'string', 'max:45'],
+            'alamat'         => ['nullable', 'string', 'max:100'],
+            'notelp_mudhohi' => ['nullable', 'numeric'],
+            'req_bagian'     => ['nullable', 'string', 'max:45'],
+            'hewan_id_hewan' => ['required', 'integer', 'exists:hewan,id_hewan'],
+        ]);
+
+        $id = DB::table('mudhohi')->insertGetId([
+            'nama_mudhohi'   => $data['nama_mudhohi'],
+            'nama_ayah'      => $data['nama_ayah'] ?? null,
+            'alamat'         => $data['alamat'] ?? null,
+            'notelp_mudhohi' => $data['notelp_mudhohi'] ?? null,
+            'req_bagian'     => $data['req_bagian'] ?? null,
+            'admin_id_admin' => auth()->id(),
+            'hewan_id_hewan' => $data['hewan_id_hewan'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mudhohi berhasil ditambahkan',
+            'data' => ['id_mudhohi' => $id],
+        ]);
+    }
+
+    public function deleteMudhohi(int $idMudhohi): JsonResponse
+    {
+        DB::table('mudhohi')->where('id_mudhohi', $idMudhohi)->delete();
+        return response()->json(['success' => true, 'message' => 'Mudhohi berhasil dihapus']);
+    }
 }
         

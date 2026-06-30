@@ -21,6 +21,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // ---- Admin (protected) ----
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    Route::get('/', fn() => view('admin.dashboard'));
     // Tambahkan route admin lainnya di sini
 });
 
@@ -33,10 +34,7 @@ Route::get('/', function () {
 Route::post('/warga/download-qr', [WargaQrController::class, 'download'])
     ->name('warga.download-qr');
 
-// Route untuk Halaman Dashboard Utama Admin Kurban
-Route::get('/admin', function () {
-    return view('admin.dashboard');
-});                                         
+                                      
 //  return view('admin.dashboard');
 
 Route::get('/admin/api/distribusi/snapshot', [AdminController::class, 'distribusiSnapshot']);
@@ -247,11 +245,68 @@ Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
     ]);
 });
 
+// ── GET: User polling status tracking ──────────────────────────────────────
 Route::get('/api/tracking', function () {
+    $steps = DB::table('tracking_steps')->orderBy('urutan')->get();
+
+    if ($steps->isEmpty()) {
+        // Default 5 tahap jika belum ada data
+        $default = [
+            ['urutan'=>1,'label'=>'Penyembelihan','status'=>'pending','time'=>null],
+            ['urutan'=>2,'label'=>'Pengulitan',   'status'=>'pending','time'=>null],
+            ['urutan'=>3,'label'=>'Pencacahan',   'status'=>'pending','time'=>null],
+            ['urutan'=>4,'label'=>'Penimbangan',  'status'=>'pending','time'=>null],
+            ['urutan'=>5,'label'=>'Siap Diambil', 'status'=>'pending','time'=>null],
+        ];
+        return response()->json([
+            'success' => true,
+            'steps' => array_map(fn($s) => [
+                'status' => $s['status'],
+                'time'   => $s['time'] ?? '—',
+            ], $default),
+        ]);
+    }
+
     return response()->json([
         'success' => true,
-        'steps' => []
+        'steps' => $steps->map(fn($s) => [
+            'status' => $s->status,
+            'time'   => $s->time ?? '—',
+        ])->values(),
     ]);
+});
+
+// ── POST: Admin update status tracking ─────────────────────────────────────
+Route::post('/admin/api/tracking/{urutan}', function (\Illuminate\Http\Request $request, $urutan) {
+    $data = $request->validate([
+        'status' => 'required|in:pending,active,done',
+    ]);
+
+    $exists = DB::table('tracking_steps')->where('urutan', $urutan)->exists();
+    $labels = ['Penyembelihan','Pengulitan','Pencacahan','Penimbangan','Siap Diambil'];
+    $now = now()->format('H:i') . ' WIB';
+
+    if ($exists) {
+        DB::table('tracking_steps')->where('urutan', $urutan)->update([
+            'status' => $data['status'],
+            'time'   => $data['status'] !== 'pending' ? $now : null,
+        ]);
+    } else {
+        DB::table('tracking_steps')->insert([
+            'urutan' => $urutan,
+            'label'  => $labels[$urutan - 1] ?? "Tahap $urutan",
+            'status' => $data['status'],
+            'time'   => $data['status'] !== 'pending' ? $now : null,
+        ]);
+    }
+
+    return response()->json(['success' => true]);
+});
+
+// ── POST: Admin reset semua tracking ───────────────────────────────────────
+Route::post('/admin/api/tracking/reset', function () {
+    DB::table('tracking_steps')->update(['status' => 'pending', 'time' => null]);
+    return response()->json(['success' => true]);
 });
 
 Route::post('/admin/api/distribusi/{idStok}/batalkan', function(\Illuminate\Http\Request $request, $idStok) {
@@ -264,3 +319,13 @@ Route::post('/admin/api/distribusi/{idStok}/batalkan', function(\Illuminate\Http
 
     return response()->json(['success' => true]);
 });
+
+// ── Hewan ────────────────────────────────────────────────────────────────
+Route::get('/admin/api/hewan', [AdminController::class, 'getHewan']);
+Route::post('/admin/api/hewan', [AdminController::class, 'storeHewan']);
+Route::delete('/admin/api/hewan/{idHewan}', [AdminController::class, 'deleteHewan']);
+
+// ── Mudhohi ──────────────────────────────────────────────────────────────
+Route::get('/admin/api/mudhohi', [AdminController::class, 'getMudhohi']);
+Route::post('/admin/api/mudhohi', [AdminController::class, 'storeMudhohi']);
+Route::delete('/admin/api/mudhohi/{idMudhohi}', [AdminController::class, 'deleteMudhohi']);

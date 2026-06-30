@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.admin' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);
+        $middleware->redirectGuestsTo('/login');
+
         
     })
     ->withSchedule(function (Schedule $schedule) {

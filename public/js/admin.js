@@ -38,6 +38,48 @@ const TIMELINE = [
     return [];
   }
 
+  async function loadHewanFromServer() {
+  try {
+    const res = await fetch('/admin/api/hewan', { headers: { Accept: 'application/json' } });
+    const payload = await res.json();
+    if (payload.success) {
+      HEWAN = payload.data.map(h => ({
+        id_hewan: h.id_hewan,
+        jenis: h.jenis,
+        label: `${h.jenis} #${h.id_hewan}`,
+        umur: h.umur,
+        sehat: h.sehat,
+        cacat: h.cacat,
+        cacat_ket: h.cacat === 'Cacat' ? 'Ada cacat' : '',
+        st_syariat: h.st_syariat ? 'Sah' : 'Tidak Sah',
+        berat: '—',
+      }));
+    }
+  } catch (e) { console.warn('Gagal load hewan dari server', e); }
+}
+
+async function loadMudhohiFromServer() {
+  try {
+    const res = await fetch('/admin/api/mudhohi', { headers: { Accept: 'application/json' } });
+    const payload = await res.json();
+    if (payload.success) {
+      MUDHOHI = payload.data.map((m, idx) => ({
+        id_mudhohi: m.id_mudhohi,
+        hewan_id_hewan: m.hewan_id_hewan,
+        i: (m.nama_mudhohi || '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
+        nama: m.nama_mudhohi,
+        nama_ayah: m.nama_ayah || '',
+        alamat: m.alamat || '',
+        notelp: m.notelp_mudhohi || '',
+        nkk: '',
+        req: m.req_bagian || '',
+        bagian: m.req_bagian || 'Kurban penuh',
+        warna: ['brown','green','amber','purple'][idx % 4],
+      }));
+    }
+  } catch (e) { console.warn('Gagal load mudhohi dari server', e); }
+}
+
   let HEWAN = loadHewan();
   let MUDHOHI = loadMudhohiList();
   let nextMudhohiId = 1;
@@ -477,21 +519,26 @@ const TIMELINE = [
     }).join('');
   }
   
-  function deleteHewan(idHewan) {
-    const idx = HEWAN.findIndex(h => String(h.id_hewan) === String(idHewan));
-    if (idx < 0) return;
-    const hid = HEWAN[idx].id_hewan;
-    const name = HEWAN[idx].label;
-    const linked = MUDHOHI.filter(m => m.hewan_id_hewan === hid).length;
-    if (linked && !confirm(`Hewan ini memiliki ${linked} mudhohi. Hapus tetap?`)) return;
-    HEWAN.splice(idx, 1);
-    MUDHOHI = MUDHOHI.filter(m => m.hewan_id_hewan !== hid);
-    saveStore();
+  async function deleteHewan(idHewan) {
+  if (!confirm('Yakin hapus hewan ini? Mudhohi terkait juga akan terhapus.')) return;
+  try {
+    const res = await fetch(`/admin/api/hewan/${idHewan}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.success) throw new Error(payload.message || 'Gagal menghapus');
+
+    await loadHewanFromServer();
+    await loadMudhohiFromServer();
     renderHewanTable();
     renderDashboard();
     if (currentPage === 'mudhohi') renderMudhohiTable();
-    toast(name + ' dihapus', 'info');
+    toast('Hewan dihapus', 'info');
+  } catch (error) {
+    toast(error.message || 'Gagal menghapus hewan', 'error');
   }
+}
 
   function showDetailHewanFk(idHewan) {
     const h = getHewanById(idHewan);
@@ -627,13 +674,11 @@ const TIMELINE = [
 
     // ── Simpan ke DB agar warga bisa lihat realtime ──────────────────────
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    fetch('/admin/api/tracking', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-      body: JSON.stringify({
-        steps: TIMELINE.map(t => ({ label: t.label, status: t.status, time: t.time }))
-      })
-    }).catch(e => console.warn('Gagal simpan tracking:', e));
+  fetch(`/admin/api/tracking/${idx + 1}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+  body: JSON.stringify({ status: status })
+  }).catch(e => console.warn('Gagal simpan tracking:', e));
   }
   
   function updateBadgeTracking() {
@@ -1691,61 +1736,86 @@ const TIMELINE = [
   // ═══════════════════════════════════════════
   // SUBMIT FORMS
   // ═══════════════════════════════════════════
-  function submitHewan() {
-    const jenis  = document.getElementById('h-jenis').value;
-    const label  = document.getElementById('h-label').value.trim();
-    if (!jenis || !label) { toast('Jenis & label wajib diisi!', 'error'); return; }
-    const id_hewan = nextHewanId++;
-    HEWAN.push({
-      id_hewan,
-      jenis,
-      label,
-      tahun: TAHUN_INI, // tag hewan dengan tahun saat ditambahkan
-      umur: document.getElementById('h-umur').value.trim() || '—',
-      sehat: document.getElementById('h-sehat').value || 'Ya',
-      cacat: document.getElementById('h-cacat').value || 'Tidak',
-      cacat_ket: document.getElementById('h-cacat-ket').value.trim() || '',
-      st_syariat: document.getElementById('h-syariat').value || 'Sah',
-      berat: document.getElementById('h-berat').value.trim() || '—',
+  async function submitHewan() {
+  const jenisRaw = document.getElementById('h-jenis').value;
+  const jenis = jenisRaw.charAt(0).toUpperCase() + jenisRaw.slice(1);
+  const label  = document.getElementById('h-label').value.trim();
+  const umur   = document.getElementById('h-umur').value.trim();
+  const berat  = document.getElementById('h-berat').value.trim();
+  const sehatRaw = document.getElementById('h-sehat').value;
+  const sehat = sehatRaw === 'Ya' ? 'Sehat' : 'Tidak Sehat';
+  const cacatRaw = document.getElementById('h-cacat').value;
+  const cacat = cacatRaw === 'Ada' ? 'Cacat' : 'Tidak Cacat';
+  const syariat = document.getElementById('h-syariat').value === 'Sah' ? 1 : 0;
+
+  if (!jenis) { toast('Jenis hewan wajib diisi!', 'error'); return; }
+
+  try {
+    const res = await fetch('/admin/api/hewan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+      body: JSON.stringify({
+        jenis: jenis,
+        sehat: sehat,
+        cacat: cacat,
+        umur: umur || null,
+        berat: berat || null,
+        st_syariat: syariat,
+      }),
     });
-    saveStore();
-    saveNextHewanId();
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.success) {
+      throw new Error(payload.message || 'Gagal menambahkan hewan');
+    }
+
+    await loadHewanFromServer();
     closeModal('modal-hewan');
     renderHewanTable();
     renderDashboard();
-    toast(label + ' berhasil ditambahkan', 'success');
+    toast((label || 'Hewan') + ' berhasil ditambahkan', 'success');
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'Gagal menambahkan hewan', 'error');
   }
-  
-  function submitMudhohi() {
-    const nama = document.getElementById('m-nama').value.trim();
-    const jenis = document.getElementById('m-jenis').value;
-    const hewanId = document.getElementById('m-hewan').value;
-    if (!nama || !jenis || !hewanId) { toast('Nama, jenis hewan & FK hewan wajib diisi!', 'error'); return; }
-    const h = getHewanById(hewanId);
-    if (!h || h.jenis !== jenis) { toast('Hewan FK tidak valid untuk jenis yang dipilih', 'error'); return; }
-    const initials = nama.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const warnas = ['brown','green','amber','purple'];
-    const countOnHewan = MUDHOHI.filter(m => m.hewan_id_hewan === h.id_hewan).length;
-    MUDHOHI.push({
-      id_mudhohi: nextMudhohiId++,
-      hewan_id_hewan: h.id_hewan,
-      i: initials,
-      nama,
-      nama_ayah: document.getElementById('m-ayah').value.trim() || '',
-      alamat: document.getElementById('m-alamat').value.trim() || '',
-      notelp: document.getElementById('m-telp').value.trim() || '',
-      nkk: document.getElementById('m-nkk').value.trim() || '',
-      req: document.getElementById('m-req').value.trim() || '',
-      bagian: document.getElementById('m-bagian').value.trim() || 'Kurban penuh',
-      warna: warnas[countOnHewan % 4],
+}
+
+async function submitMudhohi() {
+  const nama = document.getElementById('m-nama').value.trim();
+  const hewanId = document.getElementById('m-hewan').value;
+  if (!nama || !hewanId) { toast('Nama & hewan wajib diisi!', 'error'); return; }
+
+  try {
+    const res = await fetch('/admin/api/mudhohi', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+      body: JSON.stringify({
+        nama_mudhohi: nama,
+        nama_ayah: document.getElementById('m-ayah').value.trim() || null,
+        alamat: document.getElementById('m-alamat').value.trim() || null,
+        notelp_mudhohi: document.getElementById('m-telp').value.trim() || null,
+        req_bagian: document.getElementById('m-bagian').value.trim() || null,
+        hewan_id_hewan: hewanId,
+      }),
     });
-    saveStore();
-    saveNextMudhohiId();
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload.success) throw new Error(payload.message || 'Gagal menambahkan mudhohi');
+
+    await loadMudhohiFromServer();
     closeModal('modal-mudhohi');
     renderMudhohiTable();
     renderDashboard();
     toast(nama + ' berhasil ditambahkan', 'success');
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'Gagal menambahkan mudhohi', 'error');
   }
+}
   
   function logout() {
     if (confirm('Yakin ingin logout?')) {
@@ -2260,6 +2330,8 @@ function renderPenerimaPage() {
   
   // ─── INIT ──────────────────────────────────
   initDataIds();
+  loadHewanFromServer().then(() => { if (currentPage === 'hewan') renderHewanTable(); renderDashboard(); });
+  loadMudhohiFromServer().then(() => { if (currentPage === 'mudhohi') renderMudhohiTable(); });
   updatePenerimaBadge();
   renderPenerimaPage();
   renderDashboard();

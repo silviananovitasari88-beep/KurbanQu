@@ -292,7 +292,7 @@ return response()->json([
         return response()->json(['success' => true, 'message' => 'Hewan berhasil dihapus']);
     }
 
-    // ═══════════════════════════════════════════
+    // ════════════════════════════════════════
     // MUDHOHI
     // ════════════════════════════════════════
 

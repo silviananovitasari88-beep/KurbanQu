@@ -273,8 +273,8 @@ return response()->json([
             'umur'                 => $data['umur'] ?? null,
             'berat'                => $data['berat'] ?? null,
             'st_syariat'           => $data['st_syariat'],
-            'admin_id_admin'       => auth()->id(),
-            'tracking_id_tracking' => 1,
+            'admin_id_admin'       => auth()->id() ?? 1,
+            
         ]);
 
         return response()->json([
@@ -319,7 +319,7 @@ return response()->json([
             'alamat'         => $data['alamat'] ?? null,
             'notelp_mudhohi' => $data['notelp_mudhohi'] ?? null,
             'req_bagian'     => $data['req_bagian'] ?? null,
-            'admin_id_admin' => auth()->id(),
+            'admin_id_admin' => auth()->id() ?? 1,
             'hewan_id_hewan' => $data['hewan_id_hewan'],
         ]);
 

@@ -329,3 +329,6 @@ Route::delete('/admin/api/hewan/{idHewan}', [AdminController::class, 'deleteHewa
 Route::get('/admin/api/mudhohi', [AdminController::class, 'getMudhohi']);
 Route::post('/admin/api/mudhohi', [AdminController::class, 'storeMudhohi']);
 Route::delete('/admin/api/mudhohi/{idMudhohi}', [AdminController::class, 'deleteMudhohi']);
+
+Route::get('/api/hewan', [AdminController::class, 'getHewan']);
+Route::get('/api/mudhohi', [AdminController::class, 'getMudhohi']);

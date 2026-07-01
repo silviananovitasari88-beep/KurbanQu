@@ -156,22 +156,26 @@ let ANIMALS = {
 const STORAGE_HEWAN = 'kurbanqu_hewan';
 const STORAGE_MUDHOHI = 'kurbanqu_mudhohi';
 
-function loadSharedAnimalData() {
+async function loadSharedAnimalData() {
   try {
-    const rawH = localStorage.getItem(STORAGE_HEWAN);
-    const rawM = localStorage.getItem(STORAGE_MUDHOHI);
-    const hewan = rawH === null ? [] : JSON.parse(rawH || '[]');
-    const mudhohi = rawM === null ? [] : JSON.parse(rawM || '[]');
-    if (!Array.isArray(hewan) || !Array.isArray(mudhohi)) return false;
+    const [hewanRes, mudhohiRes] = await Promise.all([
+      fetch('/api/hewan', { headers: { Accept: 'application/json' } }),
+      fetch('/api/mudhohi', { headers: { Accept: 'application/json' } }),
+    ]);
+    const hewanPayload = await hewanRes.json();
+    const mudhohiPayload = await mudhohiRes.json();
+
+    const hewan = hewanPayload.success ? hewanPayload.data : [];
+    const mudhohi = mudhohiPayload.success ? mudhohiPayload.data : [];
 
     const mudhohiByHewan = {};
     mudhohi.forEach(m => {
       const uid = String(m.hewan_id_hewan || '');
       if (!mudhohiByHewan[uid]) mudhohiByHewan[uid] = [];
       mudhohiByHewan[uid].push({
-        i: (m.nama || '??').slice(0, 2).toUpperCase(),
-        nama: m.nama || '—',
-        warna: m.warna || 'brown',
+        i: (m.nama_mudhohi || '??').slice(0, 2).toUpperCase(),
+        nama: m.nama_mudhohi || '—',
+        warna: ['brown','green','amber','purple'][mudhohiByHewan[uid].length % 4],
       });
     });
 

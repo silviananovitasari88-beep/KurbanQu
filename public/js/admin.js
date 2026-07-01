@@ -196,7 +196,7 @@ async function loadMudhohiFromServer() {
       sel.disabled = true;
       return;
     }
-    const list = HEWAN.filter(h => h.jenis === jenis);
+    const list = HEWAN.filter(h => h.jenis.toLowerCase() === jenis.toLowerCase());
     sel.disabled = false;
     sel.innerHTML = '<option value="">-- Pilih Hewan (id_hewan) --</option>' +
       list.map(h => `<option value="${h.id_hewan}">#${h.id_hewan} · ${h.label}</option>`).join('') +

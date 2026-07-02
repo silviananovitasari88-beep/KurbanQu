@@ -77,91 +77,24 @@ setInterval(fetchTrackingFromServer, 30000);
 fetchTrackingFromServer();
 
 
-let ANIMALS = {
-  sapi: [
-    { id:"S01", emoji:"🐄", label:"Sapi Putih No.01", jenis:"Sapi", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±230 kg",
-      alamat:"Kp. Cikaret RT 02/03", notelp:"0812-xxxx-1234", reqBagian:"7 bagian",
-      mudhohi:[
-        {i:"AH",nama:"Ahmad Hidayat",    bagian:"1/7",warna:"brown"},
-        {i:"SR",nama:"Siti Rahmawati",   bagian:"2/7",warna:"green"},
-        {i:"BU",nama:"Budi Utomo",       bagian:"3/7",warna:"amber"},
-        {i:"RN",nama:"Rina Nuraini",     bagian:"4/7",warna:"purple"},
-        {i:"MS",nama:"Maman Suparman",   bagian:"5/7",warna:"brown"},
-        {i:"DF",nama:"Dewi Fitriani",    bagian:"6/7",warna:"green"},
-        {i:"YP",nama:"Yusuf Pratama",    bagian:"7/7",warna:"amber"},
-      ]},
-    { id:"S02", emoji:"🐄", label:"Sapi Hitam No.02", jenis:"Sapi", umur:"4 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±250 kg",
-      alamat:"Jl. Mawar No.7 RT 01/04", notelp:"0821-xxxx-5678", reqBagian:"7 bagian",
-      mudhohi:[
-        {i:"HM",nama:"Hendra Maulana",   bagian:"1/7",warna:"amber"},
-        {i:"NR",nama:"Nurul Rizki",      bagian:"2/7",warna:"purple"},
-        {i:"AS",nama:"Agus Santoso",     bagian:"3/7",warna:"brown"},
-        {i:"LW",nama:"Lilis Wulandari",  bagian:"4/7",warna:"green"},
-        {i:"FZ",nama:"Fajar Zulkifli",   bagian:"5/7",warna:"amber"},
-        {i:"TH",nama:"Tini Hartati",     bagian:"6/7",warna:"brown"},
-        {i:"RP",nama:"Rizal Permana",    bagian:"7/7",warna:"purple"},
-      ]},
-  ],
-  kambing: [
-    { id:"K01", emoji:"🐐", label:"Kambing No.01", jenis:"Kambing Jawa", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±32 kg",
-      alamat:"Kp. Babakan RT 03/05", notelp:"0838-xxxx-0011", reqBagian:"1 bagian",
-      mudhohi:[{i:"DN",nama:"Drs. Haji Nurdian",  warna:"amber"}]},
-    { id:"K02", emoji:"🐐", label:"Kambing No.02", jenis:"Kambing PE", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±35 kg",
-      alamat:"Jl. Kenanga No.3", notelp:"0857-xxxx-2233", reqBagian:"1 bagian",
-      mudhohi:[{i:"FH",nama:"Fitri Handayani",    warna:"brown"}]},
-    { id:"K03", emoji:"🐐", label:"Kambing No.03", jenis:"Kambing Boer", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±40 kg",
-      alamat:"Perum Griya Asri Blok B2", notelp:"0812-xxxx-4455", reqBagian:"1 bagian",
-      mudhohi:[{i:"ZA",nama:"Zainal Abidin",      warna:"green"}]},
-    { id:"K04", emoji:"🐐", label:"Kambing No.04", jenis:"Kambing Jawa", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±30 kg",
-      alamat:"RT 04 RW 02", notelp:"0877-xxxx-6677", reqBagian:"1 bagian",
-      mudhohi:[{i:"ML",nama:"Mulyadi",             warna:"purple"}]},
-    { id:"K05", emoji:"🐐", label:"Kambing No.05", jenis:"Kambing Kacang", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Mata kiri", berat:"±28 kg",
-      alamat:"Kp. Sindangjaya", notelp:"0821-xxxx-8899", reqBagian:"1 bagian",
-      mudhohi:[{i:"IS",nama:"Ibu Sumiati",         warna:"brown"}]},
-    { id:"K06", emoji:"🐐", label:"Kambing No.06", jenis:"Kambing PE", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±38 kg",
-      alamat:"Jl. Merdeka Blok C", notelp:"0856-xxxx-0012", reqBagian:"1 bagian",
-      mudhohi:[{i:"RJ",nama:"Rudi Juanda",         warna:"green"}]},
-    { id:"K07", emoji:"🐐", label:"Kambing No.07", jenis:"Kambing Boer", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±36 kg",
-      alamat:"RT 01/07 Desa Sukamaju", notelp:"0899-xxxx-3344", reqBagian:"1 bagian",
-      mudhohi:[{i:"SA",nama:"Samsul Arifin",       warna:"amber"}]},
-  ],
-  domba: [
-    { id:"D01", emoji:"🐑", label:"Domba No.01", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±28 kg",
-      alamat:"Kp. Cikaret Hilir", notelp:"0813-xxxx-5566", reqBagian:"1 bagian",
-      mudhohi:[{i:"MP",nama:"Muhamad Prayogo",warna:"purple"}]},
-    { id:"D02", emoji:"🐑", label:"Domba No.02", jenis:"Domba Garut", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±30 kg",
-      alamat:"Jl. Anggrek No.5", notelp:"0812-xxxx-7788", reqBagian:"1 bagian",
-      mudhohi:[{i:"IK",nama:"Ibu Komariah",  warna:"brown"}]},
-    { id:"D03", emoji:"🐑", label:"Domba No.03", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±26 kg",
-      alamat:"RT 06/02 Blok Timur", notelp:"0878-xxxx-9900", reqBagian:"1 bagian",
-      mudhohi:[{i:"AB",nama:"Agus Budiman",   warna:"green"}]},
-    { id:"D04", emoji:"🐑", label:"Domba No.04", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±29 kg",
-      alamat:"Perum Bukit Indah No.12", notelp:"0838-xxxx-1122", reqBagian:"1 bagian",
-      mudhohi:[{i:"YL",nama:"Yuli Lestari",   warna:"amber"}]},
-    { id:"D05", emoji:"🐑", label:"Domba No.05", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±25 kg",
-      alamat:"Gang Masjid No.3", notelp:"0857-xxxx-3344", reqBagian:"1 bagian",
-      mudhohi:[{i:"DK",nama:"Dadang Kurnia",  warna:"purple"}]},
-    { id:"D06", emoji:"🐑", label:"Domba No.06", jenis:"Domba Garut", umur:"3 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±32 kg",
-      alamat:"Kp. Warungdowo", notelp:"0812-xxxx-5566", reqBagian:"1 bagian",
-      mudhohi:[{i:"NH",nama:"Nining Hernawati",warna:"brown"}]},
-    { id:"D07", emoji:"🐑", label:"Domba No.07", jenis:"Domba Lokal", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±24 kg",
-      alamat:"RT 03/05 Desa Tanjung", notelp:"0821-xxxx-7788", reqBagian:"1 bagian",
-      mudhohi:[{i:"HF",nama:"Hendra Firmansyah",warna:"green"}]},
-    { id:"D08", emoji:"🐑", label:"Domba No.08", jenis:"Domba Garut", umur:"2 Tahun", sehat:"✓ Sehat", syariat:"✓ Sah", cacat:"Tidak ada", berat:"±27 kg",
-      alamat:"Blok D No.9 Perumahan", notelp:"0877-xxxx-9900", reqBagian:"1 bagian",
-      mudhohi:[{i:"SN",nama:"Siti Nurhasanah",warna:"amber"}]},
-  ],
-};
-
 const STORAGE_HEWAN = 'kurbanqu_hewan';
 const STORAGE_MUDHOHI = 'kurbanqu_mudhohi';
+
+let ANIMALS = { sapi: [], kambing: [], domba: [] };
+let currentFilter = 'kambing';
 
 async function loadSharedAnimalData() {
   try {
     const [hewanRes, mudhohiRes] = await Promise.all([
-      fetch('/api/hewan', { headers: { Accept: 'application/json' } }),
-      fetch('/api/mudhohi', { headers: { Accept: 'application/json' } }),
+      fetch('api/hewan', { headers: { Accept: 'application/json' } }),
+      fetch('api/mudhohi', { headers: { Accept: 'application/json' } }),
     ]);
+    if (!hewanRes.ok || !mudhohiRes.ok) {
+      const statusMsg = `hewan(${hewanRes.status}) mudhohi(${mudhohiRes.status})`;
+      console.error('Failed loading shared animal data:', statusMsg);
+      throw new Error(statusMsg);
+    }
+
     const hewanPayload = await hewanRes.json();
     const mudhohiPayload = await mudhohiRes.json();
 
@@ -176,6 +109,7 @@ async function loadSharedAnimalData() {
         i: (m.nama_mudhohi || '??').slice(0, 2).toUpperCase(),
         nama: m.nama_mudhohi || '—',
         warna: ['brown','green','amber','purple'][mudhohiByHewan[uid].length % 4],
+        bagian: m.req_bagian || '1',
       });
     });
 
@@ -195,24 +129,42 @@ async function loadSharedAnimalData() {
         berat: h.berat || '—',
         alamat: h.alamat || '—',
         notelp: h.notelp || '—',
-        reqBagian: h.req || '1 bagian',
+        reqBagian: h.req_bagian || '1 bagian',
         mudhohi: mudhohiByHewan[String(h.id_hewan || '')] || [],
       });
     });
 
     ANIMALS = grouped;
+
+    document.getElementById('cnt-sapi').textContent    = ANIMALS.sapi.length;
+    document.getElementById('cnt-kambing').textContent = ANIMALS.kambing.length;
+    document.getElementById('cnt-domba').textContent   = ANIMALS.domba.length;
+
+    renderAnimalList(currentFilter);
+    renderMudhohi('Semua');
+
     return true;
   } catch (e) {
+    console.error('Error loading shared animal data', e);
+    document.getElementById('cnt-sapi').textContent    = '0';
+    document.getElementById('cnt-kambing').textContent = '0';
+    document.getElementById('cnt-domba').textContent   = '0';
     return false;
   }
 }
 
 loadSharedAnimalData();
+setInterval(() => {
+  if (document.getElementById('pg-dashboard')?.classList.contains('active')) {
+    loadSharedAnimalData();
+  }
+}, 30000);
 
-// Update counts in chips
-document.getElementById('cnt-sapi').textContent    = ANIMALS.sapi.length;
-document.getElementById('cnt-kambing').textContent = ANIMALS.kambing.length;
-document.getElementById('cnt-domba').textContent   = ANIMALS.domba.length;
+window.addEventListener('focus', () => {
+  if (document.getElementById('pg-dashboard')?.classList.contains('active')) {
+    loadSharedAnimalData();
+  }
+});
 
 // ══════════════════════════════════════════
 // NAVIGATION
@@ -225,7 +177,6 @@ function goto(id) {
 // ══════════════════════════════════════════
 // DASHBOARD — ANIMAL CHIP SELECT
 // ══════════════════════════════════════════
-let currentFilter = 'kambing';
 let panelOpen = true;
 
 function selectAnimalChip(type, el) {
@@ -515,7 +466,7 @@ function showDetail(id, type, fromPage) {
 // ══════════════════════════════════════════
 // LOGIN + VALIDASI
 // ══════════════════════════════════════════
-function submitLogin() {
+async function submitLogin() {
   const nkkEl  = document.getElementById('inp-nkk');
   const namaEl = document.getElementById('inp-nama');
   const errNkk  = document.getElementById('err-nkk');
@@ -541,9 +492,43 @@ function submitLogin() {
   }
   if (!valid) return;
 
-  const auth = typeof validateWargaLogin === 'function'
-    ? validateWargaLogin(nkkEl.value.trim(), namaEl.value.trim())
-    : { ok: true };
+  const nama = namaEl.value.trim();
+  const nkk = normNkk(nkkEl.value.trim());
+
+  let auth = { ok: false, msg: 'Gagal terhubung ke server' };
+
+  try {
+    const response = await fetch('/warga/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      body: JSON.stringify({ nkk, nama })
+    });
+
+    const result = await response.json();
+    if (response.ok && result.success) {
+      auth.ok = true;
+      auth.penerima = result.data || { nkk, nama };
+    } else {
+      auth.msg = result.message || 'Nomor KK atau nama tidak terdaftar';
+    }
+  } catch (error) {
+    console.warn('Gagal login ke server:', error);
+    auth.msg = 'Gagal terhubung ke server. Silakan coba lagi nanti.';
+  }
+
+  if (!auth.ok) {
+    // fallback ke localStorage jika server tidak tersedia atau data belum sinkron
+    if (typeof validateWargaLogin === 'function') {
+      const fallback = validateWargaLogin(nkkEl.value.trim(), namaEl.value.trim());
+      if (fallback.ok) {
+        auth = fallback;
+      }
+    }
+  }
 
   if (!auth.ok) {
     nkkEl.classList.add('error');
@@ -553,14 +538,11 @@ function submitLogin() {
     return;
   }
 
-  const nama = namaEl.value.trim();
-  const nkk = normNkk(nkkEl.value.trim());
-
   if (auth.penerima) {
     sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
   }
 
- document.getElementById('qr-nama').textContent = nama;
+  document.getElementById('qr-nama').textContent = nama;
   document.getElementById('qr-nkk').textContent  = nkk;
 
   const qrEl = document.getElementById('qr-kode');
@@ -568,22 +550,7 @@ function submitLogin() {
     const qrPayload = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
     qrEl.textContent = qrPayload;
     // Render QR Code asli ke canvas
-    renderQrCanvas(qrPayload, auth.penerima.id_penerima);
-  }
-
-  // Update status login ke backend
- // ✅ GANTI JADI INI
-fetch('/warga/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-    },
-    body: JSON.stringify({ nkk, nama })
-  }).catch(e => console.warn('Gagal update status login:', e));
-  if (auth.penerima) {
-    
-    sessionStorage.setItem('kurbanqu_current_warga', JSON.stringify(auth.penerima));
+    renderQrCanvas(qrPayload, auth.penerima.id_penerima, auth.penerima.queue);
   }
 
   goto('pg-qr');
@@ -635,6 +602,15 @@ function renderMudhohi(filter) {
   const showDomba   = filter === 'Semua' || filter === 'domba';
   let html = '';
 
+  const firstMudhohi = (item) => {
+    return item.mudhohi && item.mudhohi.length > 0 ? item.mudhohi[0] : {
+      i: '--',
+      nama: 'Belum ada mudhohi',
+      warna: 'brown',
+      bagian: '-',
+    };
+  };
+
   if (showSapi) {
     html += `<div class="sec-lbl">🐄 Sapi Patungan</div>`;
     ANIMALS.sapi.forEach(item => {
@@ -645,28 +621,32 @@ function renderMudhohi(filter) {
           <div style="margin-left:auto;font-size:14px;color:#c8b89a;">›</div>
         </div>`).join('');
       const hint = item.mudhohi.length > 4 ? `<div class="scroll-hint">↕ Geser untuk lihat semua</div>` : '';
+      const countLabel = item.mudhohi.length ? `${item.mudhohi.length} org` : 'Belum ada peserta';
       html += `<div class="group-card">
         <div class="group-hdr">
           <div class="animal-ico" style="background:#e8f3de;">🐄</div>
-          <div><div class="group-name">${item.label}</div><div class="group-meta">7 orang patungan · ±25 kg/orang</div></div>
-          <div class="grp-count">${item.mudhohi.length} org</div>
+          <div><div class="group-name">${item.label}</div><div class="group-meta">${item.mudhohi.length ? '7 orang patungan · ±25 kg/orang' : 'Belum ada peserta'}</div></div>
+          <div class="grp-count">${countLabel}</div>
         </div>
-        <div class="mudhohi-scroll">${rows}</div>${hint}
+        <div class="mudhohi-scroll">${rows || '<div style="padding:14px;font-size:13px;color:#9a8060;">Belum ada mudhohi untuk hewan ini.</div>'}</div>${hint}
       </div>`;
     });
   }
   if (showKambing) {
     html += `<div class="sec-lbl">🐐 Kambing</div>`;
     ANIMALS.kambing.forEach(item => {
+      const lead = firstMudhohi(item);
+      const meta = item.mudhohi.length ? '1 orang · kurban penuh' : 'Belum ada mudhohi';
+      const count = item.mudhohi.length ? '1 org' : '0 org';
       html += `<div class="group-card">
         <div class="group-hdr">
           <div class="animal-ico" style="background:#faeeda;">🐐</div>
-          <div><div class="group-name">${item.label}</div><div class="group-meta">1 orang · kurban penuh</div></div>
-          <div class="grp-count">1 org</div>
+          <div><div class="group-name">${item.label}</div><div class="group-meta">${meta}</div></div>
+          <div class="grp-count">${count}</div>
         </div>
         <div class="mudhohi-row" onclick="showDetail('${item.id}','kambing','pg-mudhohi')">
-          ${av(item.mudhohi[0].i, item.mudhohi[0].warna)}
-          <div><div class="m-name">${item.mudhohi[0].nama}</div><div class="m-sub">Kurban penuh</div></div>
+          ${av(lead.i, lead.warna)}
+          <div><div class="m-name">${lead.nama}</div><div class="m-sub">${item.mudhohi.length ? 'Kurban penuh' : 'Tunggu mudhohi'}</div></div>
           <div style="margin-left:auto;font-size:14px;color:#c8b89a;">›</div>
         </div>
       </div>`;
@@ -675,15 +655,18 @@ function renderMudhohi(filter) {
   if (showDomba) {
     html += `<div class="sec-lbl">🐑 Domba</div>`;
     ANIMALS.domba.forEach(item => {
+      const lead = firstMudhohi(item);
+      const meta = item.mudhohi.length ? '1 orang · kurban penuh' : 'Belum ada mudhohi';
+      const count = item.mudhohi.length ? '1 org' : '0 org';
       html += `<div class="group-card">
         <div class="group-hdr">
           <div class="animal-ico" style="background:#eeedfe;">🐑</div>
-          <div><div class="group-name">${item.label}</div><div class="group-meta">1 orang · kurban penuh</div></div>
-          <div class="grp-count">1 org</div>
+          <div><div class="group-name">${item.label}</div><div class="group-meta">${meta}</div></div>
+          <div class="grp-count">${count}</div>
         </div>
         <div class="mudhohi-row" onclick="showDetail('${item.id}','domba','pg-mudhohi')">
-          ${av(item.mudhohi[0].i, item.mudhohi[0].warna)}
-          <div><div class="m-name">${item.mudhohi[0].nama}</div><div class="m-sub">Kurban penuh</div></div>
+          ${av(lead.i, lead.warna)}
+          <div><div class="m-name">${lead.nama}</div><div class="m-sub">${item.mudhohi.length ? 'Kurban penuh' : 'Tunggu mudhohi'}</div></div>
           <div style="margin-left:auto;font-size:14px;color:#c8b89a;">›</div>
         </div>
       </div>`;
@@ -746,7 +729,7 @@ function getCurrentWargaLogin() {
 }
 
 // ── Render QR Code asli ke canvas + isi info antrian ────────────────────────
-function renderQrCanvas(qrPayload, idPenerima) {
+function renderQrCanvas(qrPayload, idPenerima, queueNumber) {
   const canvas = document.getElementById('qr-canvas');
   if (!canvas) return;
 
@@ -763,8 +746,8 @@ function renderQrCanvas(qrPayload, idPenerima) {
     });
   }
 
-  // Hitung info antrian dari id_penerima
-  const noAntrian = idPenerima || 1;
+  // Hitung info antrian dari queue login atau id_penerima sebagai fallback
+  const noAntrian = Number(queueNumber) || Number(idPenerima) || 1;
   const durasi    = 15; // menit default
   const baseMin   = 8 * 60; // 08:00
   const estMin    = baseMin + ((noAntrian - 1) * durasi);

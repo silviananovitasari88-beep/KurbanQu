@@ -70,7 +70,6 @@
         <div style="font-size:11px;font-weight:700;color:#7a5230;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">
           📍 Status Proses Kurban
         </div>
-        <div style="font-size:10px;color:#9a8060;">Live update · Jum'at 6 Jun 2025</div>
       </div>
 
       <div class="dash-track-wrap" id="dash-timeline">

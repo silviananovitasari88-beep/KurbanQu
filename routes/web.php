@@ -118,42 +118,48 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
 
                     if (!$distExists) {
                         DB::table('distribusi')->insert([
-                            'warga_no_kk'    => $nkk,
-                            'st_pengambilan' => 'pending',
+                            'warga_no_kk'     => $nkk,
+                            'st_pengambilan'  => 'pending',
                             'mtd_pengambilan' => null,
-                            'login'          => null,
-                            'dowload_qr'     => null,
+                            'login'           => null,
+                            'dowload_qr'      => null,
+                            'QR_id_qr'        => 0,   // placeholder; hapus setelah migration nullable
                         ]);
                     }
 
                     $updated++;
                 } else {
+                    // Hitung id_penerima & kode QR (P00001 dst)
+                    $idPenerima = $nextId++;
+                    $qrCode     = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
 
-                    // Create new record dengan raw SQL untuk avoid Eloquent timestamp issue
-                    $insertData = [
+                    // Insert ke tabel warga dengan kode QR
+                    DB::table('warga')->insert([
                         'no_kk'       => $nkk,
                         'nama_kk'     => $nama,
                         'alamat'      => trim($row['alamat'] ?? ''),
                         'no_telp'     => trim($row['notelp'] ?? ''),
-                        'id_penerima' => $nextId++,
-                    
+                        'id_penerima' => $idPenerima,
+                        'QR_id_qr'    => $qrCode,
+                    ]);
+
+                    // ── Insert ke distribusi ──────────────────────────────────
+                    // QR_id_qr di distribusi adalah int FK ke tabel QR.id_qr
+                    // Kita pakai 0 sebagai placeholder jika kolom masih NOT NULL.
+                    // Setelah migration fix_distribusi_qr_nullable dijalankan,
+                    // kolom ini jadi nullable dan tidak perlu value 0 lagi.
+                    $distribusiRow = [
+                        'warga_no_kk'     => $nkk,
+                        'st_pengambilan'  => 'pending',
+                        'mtd_pengambilan' => null,
+                        'login'           => null,
+                        'dowload_qr'      => null,
+                        'QR_id_qr'        => 0,   // placeholder; hapus setelah migration nullable
                     ];
-                    if (!empty($row['qrCode'])) {
-                        $insertData['QR_id_qr'] = $row['qrCode'];
-                    }
-                    DB::table('warga')->insert($insertData);
-                   // Otomatis buat row distribusi untuk warga baru
-DB::table('distribusi')->insert([
-    'warga_no_kk'    => $nkk,
-    'st_pengambilan' => 'pending',
-    'mtd_pengambilan' => null,
-    'login'          => null,
-    'dowload_qr'     => null,
-]);
+                    DB::table('distribusi')->insert($distribusiRow);
 
-\Log::info('Insert distribusi untuk: ' . $nkk);
-
-$created++;
+                    \Log::info('[KurbanQu] Insert distribusi OK untuk NKK: ' . $nkk);
+                    $created++;
                 }
                 
             } catch (\Exception $e) {
@@ -208,17 +214,37 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
         return response()->json(['success' => false, 'message' => 'Warga tidak ditemukan'], 404);
     }
 
-// Update login/status di distribusi
-    DB::table('distribusi')
+    $now = now();
+    $updated = DB::table('distribusi')
         ->where('warga_no_kk', $nkk)
-       ->update([
-           'login' => 'sudah_login',
-           // admin UI membaca dowload_qr untuk badge "Sudah Login"
-           'dowload_qr' => 'sudah_login',
-       ]);
+        ->update([
+            'login' => 'sudah_login',
+            // admin UI membaca dowload_qr untuk badge "Sudah Login"
+            'dowload_qr' => 'sudah_login',
+            'login_at' => $now,
+        ]);
 
+    if (!$updated) {
+        return response()->json(['success' => false, 'message' => 'Data distribusi tidak ditemukan'], 404);
+    }
 
-    return response()->json(['success' => true]);
+    $queue = DB::table('distribusi')
+        ->whereNotNull('login_at')
+        ->where('login_at', '<', $now)
+        ->count() + 1;
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'nkk' => $warga->no_kk,
+            'nama' => $warga->nama_kk,
+            'alamat' => $warga->alamat ?? '',
+            'notelp' => $warga->no_telp ?? '',
+            'id_penerima' => $warga->id_penerima ?? null,
+            'qrCode' => $warga->QR_id_qr ?? null,
+            'queue' => $queue,
+        ],
+    ]);
 });
 
 // Route: Cek status pengambilan warga (polling dari halaman warga)

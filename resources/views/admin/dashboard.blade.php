@@ -20,7 +20,7 @@
 <!-- ─── SIDEBAR ───────────────────────────────── -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🐄</div>
+   <img src="{{ asset('assets/img/FIN.png') }}" width="55" alt="KurbanQu">
     <div>
       <div class="logo-text">KurbanQu</div>
       <div class="logo-sub">Admin Dashboard</div>

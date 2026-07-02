@@ -115,8 +115,12 @@ async function loadSharedAnimalData() {
 
     const grouped = { sapi: [], kambing: [], domba: [] };
     hewan.forEach(h => {
-      const jenis = String(h.jenis || '').toLowerCase();
-      const key = ['sapi', 'kambing', 'domba'].includes(jenis) ? jenis : 'sapi';
+      const rawJenis = String(h.jenis || '').toLowerCase();
+      let key = 'sapi';
+      if (rawJenis.indexOf('sapi') !== -1) key = 'sapi';
+      else if (rawJenis.indexOf('kambing') !== -1) key = 'kambing';
+      else if (rawJenis.indexOf('domba') !== -1) key = 'domba';
+
       grouped[key].push({
         id: `${key[0].toUpperCase()}${String(h.id_hewan || '').padStart(2, '0')}`,
         emoji: key === 'sapi' ? '🐄' : key === 'kambing' ? '🐐' : '🐑',
@@ -135,11 +139,18 @@ async function loadSharedAnimalData() {
     });
 
     ANIMALS = grouped;
-
-    document.getElementById('cnt-sapi').textContent    = ANIMALS.sapi.length;
-    document.getElementById('cnt-kambing').textContent = ANIMALS.kambing.length;
-    document.getElementById('cnt-domba').textContent   = ANIMALS.domba.length;
-
+    // Debug: expose counts and sample jenis values to console for troubleshooting
+    try {
+      console.debug('Loaded ANIMALS counts', {
+        sapi: grouped.sapi.length,
+        kambing: grouped.kambing.length,
+        domba: grouped.domba.length,
+      });
+      console.debug('Sample hewan types:', hewan.slice(0,12).map(h => ({ id: h.id_hewan, jenis: h.jenis })));
+    } catch (err) { /* ignore */ }
+    
+    // Update chip counts from the loaded data
+    updateAnimalChipCounts();
     renderAnimalList(currentFilter);
     renderMudhohi('Semua');
 
@@ -182,8 +193,9 @@ let panelOpen = true;
 function selectAnimalChip(type, el) {
   document.querySelectorAll('.ac-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  currentFilter = type;
-  renderAnimalList(type);
+  // normalize filter value (keeps 'all' literal, otherwise lowercase)
+  currentFilter = (type === 'all') ? 'all' : String(type).toLowerCase();
+  renderAnimalList(currentFilter);
   // make sure panel is open
   document.getElementById('animal-panel').classList.add('open');
   panelOpen = true;
@@ -191,6 +203,30 @@ function selectAnimalChip(type, el) {
 
 let seeMoreExpanded = false;
 let currentAnimalList = [];
+
+// Update counts shown on the animal chips.
+// If `list` is provided, compute counts from that list (used when a filtered
+// view is displayed). Otherwise use the full ANIMALS grouping.
+function updateAnimalChipCounts(list) {
+  let sapi = 0, kambing = 0, domba = 0;
+  if (Array.isArray(list)) {
+    list.forEach(a => {
+      const jenis = (a.jenis || guessType(a.id) || '').toLowerCase();
+      if (jenis === 'sapi') sapi++;
+      else if (jenis === 'kambing') kambing++;
+      else if (jenis === 'domba') domba++;
+    });
+  } else {
+    sapi = ANIMALS.sapi.length;
+    kambing = ANIMALS.kambing.length;
+    domba = ANIMALS.domba.length;
+  }
+
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setText('cnt-sapi', sapi);
+  setText('cnt-kambing', kambing);
+  setText('cnt-domba', domba);
+}
 
 function renderAnimalList(type) {
   seeMoreExpanded = false;
@@ -201,6 +237,8 @@ function renderAnimalList(type) {
   } else {
     list = ANIMALS[type] || [];
   }
+  // Keep the chip counts in sync with what is currently displayed
+  updateAnimalChipCounts(list);
   currentAnimalList = list;
   if (!list.length) { inner.innerHTML = '<div style="padding:18px;text-align:center;color:#9a8060;font-size:13px;">Tidak ada data</div>'; document.getElementById('see-more-btn').style.display='none'; return; }
 

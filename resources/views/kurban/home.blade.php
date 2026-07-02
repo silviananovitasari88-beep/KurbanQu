@@ -34,7 +34,7 @@
       <div style="position:absolute;width:90px;height:90px;background:#7a5230;border-radius:50%;bottom:-30px;right:60px;opacity:0.18;"></div>
 
       <div class="dash-hdr-logo">
-        <img src="{{ asset('assets/img/logo.jpeg') }}" width="55">
+        <img src="{{ asset('assets/img/FIN.png') }}" width="55">
 
         <span>KurbanQu</span>
       </div>
@@ -126,7 +126,7 @@
       <button class="btn-back" onclick="goto('pg-dashboard')">← Kembali</button>
       <div style="display:flex;align-items:center;gap:13px;position:relative;z-index:1;margin-bottom:18px;">
         <div style="width:46px;height:46px;border-radius:14px;background:#7a5230;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-          <img src="{{ asset('assets/img/logo.jpeg') }}" width="55">
+          <img src="{{ asset('assets/img/FIN.png') }}" width="55">
         </div>
         <div style="font-size:21px;font-weight:800;color:#fff;">KurbanQu</div>
       </div>
@@ -387,7 +387,7 @@
 
 </div>
 
-<script src="{{ asset('js/warga-login.js') }}"></script>
-<script src="{{ asset('js/kurban.js') }}"></script>
+<script src="{{ asset('js/warga-login.js') }}?v={{ filemtime(public_path('js/warga-login.js')) }}"></script>
+<script src="{{ asset('js/kurban.js') }}?v={{ filemtime(public_path('js/kurban.js')) }}"></script>
 </body>
 </html>

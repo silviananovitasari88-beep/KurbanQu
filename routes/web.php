@@ -14,6 +14,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
 });
 
+// Allow access to admin login URL for both guests and authenticated users.
+// This lets the controller handle authenticated users (it redirects to admin dashboard).
+Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login');
+
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('auth.logout');
@@ -43,7 +47,6 @@ Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImpo
 Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
 Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
 Route::post('/warga/qr/download', [WargaQrController::class, 'download']);
-Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
 Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     // ✅ Validasi input
     $request->validate([

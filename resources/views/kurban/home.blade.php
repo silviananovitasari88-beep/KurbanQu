@@ -18,13 +18,13 @@
 <body>
 <div class="app">
   <div class="user-sidebar">
-    <a href="{{ url('/login') }}" class="sidebar-button" title="Login Admin">
+    <a href="{{ route('admin.login') }}" class="sidebar-button" title="Login Admin" onclick="window.location.href='{{ route('admin.login') }}'">
       <span>🔐</span>
       <small class="sidebar-label">Admin</small>
     </a>
   </div>
-   
-       HALAMAN DASHBOARD (PANITIA)
+
+  <!-- HALAMAN DASHBOARD (PANITIA)
   ════════════════════════════════════ -->
   <div id="pg-dashboard" class="page active" style="background:#f5f0e8;">
 

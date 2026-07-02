@@ -96,12 +96,17 @@ class AdminController extends Controller
 		$query->update($updateData);
 
 		if (Schema::hasTable('QR') && Schema::hasColumn('QR', 'jam_pengambilan')) {
-			$qrId = $data['qr_id_qr'] ?? $row->QR_id_qr ?? null;
-			if ($qrId !== null) {
-				DB::table('QR')->where('id_qr', $qrId)->update([
-					'jam_pengambilan' => $now,
-				]);
-			}
+            $qrId = $data['qr_id_qr'] ?? $row->QR_id_qr ?? null;
+            if ($qrId !== null) {
+                // Normalize QR id: frontend may send formatted id like "P00005".
+                $qrIdNorm = preg_replace('/\D/', '', (string) $qrId);
+                if ($qrIdNorm === '') {
+                    $qrIdNorm = $qrId; // fallback to original if no digits
+                }
+                DB::table('QR')->where('id_qr', $qrIdNorm)->update([
+                    'jam_pengambilan' => $now->toDateTimeString(),
+                ]);
+            }
 		}
 
 		$metode = $request->input('metode') === 'QR' ? 'QR' : 'Manual';

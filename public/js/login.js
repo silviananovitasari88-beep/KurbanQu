@@ -50,7 +50,7 @@ const copy = {
   }
 };
 
-let mode = 'register';
+let mode = 'login';
 
 function replay(el) {
   el.style.animation = 'none';
@@ -92,6 +92,7 @@ loginForm.addEventListener('submit', async (e) => {
   try {
     const response = await fetch('/auth/login', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
@@ -160,3 +161,6 @@ document.getElementById('regConfirm').addEventListener('input', () => {
   document.getElementById('confirmError').classList.remove('show');
   document.getElementById('confirmWrap').style.borderColor = '';
 });
+
+// Inisialisasi tampilan halaman ke mode login
+setMode('login');

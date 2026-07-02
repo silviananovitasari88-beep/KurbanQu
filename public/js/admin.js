@@ -45,7 +45,7 @@ const TIMELINE = [
     if (payload.success) {
       HEWAN = payload.data.map(h => ({
         id_hewan: h.id_hewan,
-        jenis: h.jenis,
+        jenis: String(h.jenis || '').toLowerCase(),
         label: `${h.jenis} #${h.id_hewan}`,
         umur: h.umur,
         sehat: h.sehat,
@@ -183,7 +183,8 @@ async function loadMudhohiFromServer() {
 
   function hewanDisplay(h) {
     if (!h) return { emoji: '🐾', jenisLabel: '—', label: '—' };
-    const meta = JENIS_HEWAN[h.jenis] || { emoji: '🐾', label: h.jenis };
+    const key = String(h.jenis || '').toLowerCase();
+    const meta = JENIS_HEWAN[key] || { emoji: '🐾', label: h.jenis };
     return { emoji: meta.emoji, jenisLabel: meta.label, label: h.label };
   }
 
@@ -495,7 +496,9 @@ async function loadMudhohiFromServer() {
     const q = (document.getElementById('hewan-search')?.value || '').toLowerCase();
     let list = [];
     list = getAnimalsThisYear(); // Hanya hewan tahun ini — arsip ada di Rekap & Statistik
-    if (hewanFilterCurrent !== 'semua') list = list.filter(a => a.jenis === hewanFilterCurrent);
+    if (hewanFilterCurrent !== 'semua') {
+      list = list.filter(a => String(a.jenis).toLowerCase() === String(hewanFilterCurrent).toLowerCase());
+    }
     if (q) list = list.filter(a => a.label.toLowerCase().includes(q) || String(a.id_hewan).includes(q));
   
     const tbody = document.getElementById('hewan-table-body');
@@ -1817,10 +1820,29 @@ async function submitMudhohi() {
   }
 }
   
-  function logout() {
-    if (confirm('Yakin ingin logout?')) {
+  async function logout() {
+    if (!confirm('Yakin ingin logout?')) return;
+
+    try {
+      const res = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Logout gagal. Silakan coba lagi.');
+      }
+
       toast('Logout berhasil', 'info');
-      setTimeout(() => { document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f0d0b;color:#a09080;font-family:sans-serif;font-size:16px;">Session berakhir. Silakan refresh halaman.</div>'; }, 800);
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 800);
+    } catch (err) {
+      console.error('Logout error:', err);
+      alert(err.message || 'Logout gagal. Silakan refresh halaman dan coba lagi.');
     }
   }
   
@@ -2348,3 +2370,30 @@ function renderPenerimaPage() {
       renderDistribusiPage();
     }
   }, 10000);
+
+  // ── Sync tracking timeline from server so admin reflects user state
+  async function syncTrackingFromServer() {
+    try {
+      const res = await fetch('/api/tracking', { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => ({}));
+      const steps = payload.steps || [];
+      // map server steps to TIMELINE by index
+      steps.forEach((s, i) => {
+        if (TIMELINE[i]) {
+          const st = String(s.status || '').toLowerCase();
+          TIMELINE[i].status = st === 'done' ? 'done' : st === 'active' ? 'active' : 'pending';
+          TIMELINE[i].time = s.time || TIMELINE[i].time || '—';
+        }
+      });
+      // Re-render where needed
+      renderTrackingWidget();
+      renderTracking();
+      renderDashboard();
+      updateBadgeTracking();
+    } catch (e) { console.warn('Gagal sinkron tracking dari server', e); }
+  }
+
+  // Initial sync and periodic polling every 5s
+  syncTrackingFromServer();
+  setInterval(syncTrackingFromServer, 5000);

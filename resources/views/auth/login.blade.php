@@ -15,6 +15,13 @@
 </head>
 <body>
 
+  <div class="user-sidebar">
+    <a href="{{ route('admin.login') }}" class="sidebar-button" title="Login Admin">
+      <span>🔐</span>
+      <small class="sidebar-label">Admin</small>
+    </a>
+  </div>
+
   <div class="wrapper">
 
     {{-- Brand --}}
@@ -38,7 +45,7 @@
       <p class="subtitle" id="formSubtitle">Daftar terlebih dahulu untuk mengakses sistem KurbanQu.</p>
 
       {{-- Form Login --}}
-      <form id="loginForm" class="form-section hidden" novalidate>
+      <form id="loginForm" class="form-section" novalidate>
 
         <div class="field">
           <label class="sr-only" for="username">Username</label>
@@ -72,7 +79,7 @@
       </form>
 
       {{-- Form Register --}}
-      <form id="registerForm" class="form-section" novalidate>
+      <form id="registerForm" class="form-section hidden" novalidate>
 
         <div class="field">
           <label class="sr-only" for="regUsername">Buat Username</label>

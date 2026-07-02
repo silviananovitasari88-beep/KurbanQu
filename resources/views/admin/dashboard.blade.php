@@ -768,5 +768,39 @@
 </script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
+<!-- Auto-logout when leaving admin dashboard (except when navigating within /admin) -->
+<script>
+  (function(){
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    let skipAutoLogout = false;
+
+    // If a link click targets an /admin URL, skip auto-logout
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('a');
+      if (!a || !a.href) return;
+      try {
+        const u = new URL(a.href, window.location.origin);
+        skipAutoLogout = u.pathname.startsWith('/admin');
+      } catch(err){ skipAutoLogout = false; }
+    }, {capture:true});
+
+    // Send logout request reliably on pagehide/beforeunload when not skipping
+    function sendLogout() {
+      if (skipAutoLogout) return;
+      const url = '/logout';
+      if (navigator.sendBeacon) {
+        const fd = new FormData(); fd.append('_token', token);
+        try { navigator.sendBeacon(url, fd); } catch(e) {}
+        return;
+      }
+      try {
+        fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': token }, keepalive: true });
+      } catch(e) {}
+    }
+
+    window.addEventListener('pagehide', sendLogout);
+    window.addEventListener('beforeunload', sendLogout);
+  })();
+</script>
 </body>
 </html>

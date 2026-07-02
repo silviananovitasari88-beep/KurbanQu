@@ -17,6 +17,12 @@
 </head>
 <body>
 <div class="app">
+  <div class="user-sidebar">
+    <a href="{{ url('/login') }}" class="sidebar-button" title="Login Admin">
+      <span>🔐</span>
+      <small class="sidebar-label">Admin</small>
+    </a>
+  </div>
    
        HALAMAN DASHBOARD (PANITIA)
   ════════════════════════════════════ -->

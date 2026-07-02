@@ -9,57 +9,52 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // ── Hapus FK lama yang nunjuk ke tabel admin ──────────────────
-        Schema::table('hewan', function (Blueprint $table) {
-            $table->dropForeign('fk_hewan_admin');
-        });
-        Schema::table('mudhohi', function (Blueprint $table) {
-            $table->dropForeign('fk_mudhohi_admin1');
-        });
+        if (!Schema::hasTable('hewan')) {
+            Schema::create('hewan', function (Blueprint $table) {
+                $table->increments('id_hewan');
+                $table->enum('jenis', ['Sapi', 'Domba', 'Kambing'])->nullable();
+                $table->enum('sehat', ['Sehat', 'Tidak Sehat'])->nullable();
+                $table->enum('cacat', ['Cacat', 'Tidak Cacat'])->nullable();
+                $table->string('umur', 50)->nullable();
+                $table->string('berat', 50)->nullable();
+                $table->boolean('st_syariat')->nullable();
+                $table->unsignedBigInteger('admin_id_admin');
+                $table->unsignedInteger('tracking_id_tracking')->nullable();
 
-        // ── Pastikan kolom admin_id_admin bisa nampung id user (bigint unsigned) ──
-        Schema::table('hewan', function (Blueprint $table) {
-            $table->unsignedBigInteger('admin_id_admin')->change();
-        });
-        Schema::table('mudhohi', function (Blueprint $table) {
-            $table->unsignedBigInteger('admin_id_admin')->change();
-        });
+                $table->foreign('admin_id_admin')
+                    ->references('id')
+                    ->on('users')
+                    ->cascadeOnDelete();
+            });
+        }
 
-        // ── Tambah FK baru, nunjuk ke tabel users ──────────────────────
-        Schema::table('hewan', function (Blueprint $table) {
-            $table->foreign('admin_id_admin')->references('id')->on('users')->onDelete('cascade');
-        });
-        Schema::table('mudhohi', function (Blueprint $table) {
-            $table->foreign('admin_id_admin')->references('id')->on('users')->onDelete('cascade');
-        });
+        if (!Schema::hasTable('mudhohi')) {
+            Schema::create('mudhohi', function (Blueprint $table) {
+                $table->increments('id_mudhohi');
+                $table->string('nama_mudhohi', 45)->nullable();
+                $table->string('nama_ayah', 45)->nullable();
+                $table->string('alamat', 100)->nullable();
+                $table->string('notelp_mudhohi', 20)->nullable();
+                $table->string('req_bagian', 45)->nullable();
+                $table->unsignedBigInteger('admin_id_admin');
+                $table->unsignedInteger('hewan_id_hewan');
 
-        // ── Hapus tabel admin yang sudah tidak dipakai ─────────────────
-        Schema::dropIfExists('admin');
+                $table->foreign('admin_id_admin')
+                    ->references('id')
+                    ->on('users')
+                    ->cascadeOnDelete();
+
+                $table->foreign('hewan_id_hewan')
+                    ->references('id_hewan')
+                    ->on('hewan')
+                    ->restrictOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        // Buat ulang tabel admin kalau rollback
-        Schema::create('admin', function (Blueprint $table) {
-            $table->id('id_admin');
-            $table->string('nama_adm', 45)->nullable();
-            $table->string('pw_adm', 45)->nullable();
-        });
-
-        Schema::table('hewan', function (Blueprint $table) {
-            $table->dropForeign(['admin_id_admin']);
-        });
-        Schema::table('mudhohi', function (Blueprint $table) {
-            $table->dropForeign(['admin_id_admin']);
-        });
-
-        Schema::table('hewan', function (Blueprint $table) {
-            $table->integer('admin_id_admin')->change();
-            $table->foreign('admin_id_admin')->references('id_admin')->on('admin');
-        });
-        Schema::table('mudhohi', function (Blueprint $table) {
-            $table->integer('admin_id_admin')->change();
-            $table->foreign('admin_id_admin')->references('id_admin')->on('admin');
-        });
+        Schema::dropIfExists('mudhohi');
+        Schema::dropIfExists('hewan');
     }
 };

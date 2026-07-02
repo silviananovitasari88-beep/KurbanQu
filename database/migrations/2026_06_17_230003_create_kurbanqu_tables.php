@@ -11,10 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kurbanqu_tables', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        // Legacy placeholder migration kept for history compatibility.
     }
 
     /**
@@ -22,6 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kurbanqu_tables');
+        // No-op.
     }
 };

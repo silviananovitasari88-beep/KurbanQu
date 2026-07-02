@@ -109,9 +109,7 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         'alamat'      => trim($row['alamat'] ?? ''),
                         'no_telp'     => trim($row['notelp'] ?? ''),
                     ];
-                    if (!empty($row['qrCode'])) {
-                        $updateData['QR_id_qr'] = $row['qrCode'];
-                    }
+                    $updateData['QR_id_qr'] = !empty($row['qrCode']) ? null : null;
                     DB::table('warga')->where('no_kk', $nkk)->update($updateData);
 
                     // Pastikan baris distribusi ada walaupun warga sudah ada
@@ -124,15 +122,15 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                             'warga_no_kk'     => $nkk,
                             'st_pengambilan'  => 'pending',
                             'mtd_pengambilan' => null,
-                            'login'           => null,
+                            'login'           => 'belum_login',
                             'dowload_qr'      => null,
-                            'QR_id_qr'        => 0,   // placeholder; hapus setelah migration nullable
+                            'QR_id_qr'        => null,
                         ]);
                     }
 
                     $updated++;
                 } else {
-                    // Hitung id_penerima & kode QR (P00001 dst)
+                    // Hitung id_penerima & kode QR dari nomor penerima
                     $idPenerima = $nextId++;
                     $qrCode     = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
 
@@ -143,7 +141,7 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         'alamat'      => trim($row['alamat'] ?? ''),
                         'no_telp'     => trim($row['notelp'] ?? ''),
                         'id_penerima' => $idPenerima,
-                        'QR_id_qr'    => $qrCode,
+                        'QR_id_qr'    => null,
                     ]);
 
                     // ── Insert ke distribusi ──────────────────────────────────
@@ -155,9 +153,9 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         'warga_no_kk'     => $nkk,
                         'st_pengambilan'  => 'pending',
                         'mtd_pengambilan' => null,
-                        'login'           => null,
+                        'login'           => 'belum_login',
                         'dowload_qr'      => null,
-                        'QR_id_qr'        => 0,   // placeholder; hapus setelah migration nullable
+                        'QR_id_qr'        => null,
                     ];
                     DB::table('distribusi')->insert($distribusiRow);
 
@@ -218,22 +216,30 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
     }
 
     $now = now();
+    
+    // Update last_login_at & is_online on warga table
+    DB::table('warga')
+        ->where('no_kk', $nkk)
+        ->update([
+            'last_login_at' => $now,
+            'is_online'     => true,
+        ]);
+
     $updated = DB::table('distribusi')
         ->where('warga_no_kk', $nkk)
         ->update([
             'login' => 'sudah_login',
             // admin UI membaca dowload_qr untuk badge "Sudah Login"
             'dowload_qr' => 'sudah_login',
-            'login_at' => $now,
         ]);
 
     if (!$updated) {
         return response()->json(['success' => false, 'message' => 'Data distribusi tidak ditemukan'], 404);
     }
 
-    $queue = DB::table('distribusi')
-        ->whereNotNull('login_at')
-        ->where('login_at', '<', $now)
+    $queue = DB::table('warga')
+        ->whereNotNull('last_login_at')
+        ->where('last_login_at', '<', $now)
         ->count() + 1;
 
     return response()->json([

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class QR extends Model
 {
-    protected $table = 'QR';
+    protected $table = 'qr';
     protected $primaryKey = 'id_qr';
 
     protected $fillable = [

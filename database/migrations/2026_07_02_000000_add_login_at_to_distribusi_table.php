@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('distribusi')) {
+            return;
+        }
+
         Schema::table('distribusi', function (Blueprint $table) {
-            if (!Schema::hasColumn('distribusi', 'login_at')) {
-                $table->timestamp('login_at')->nullable()->after('login');
+            if (!Schema::hasColumn('distribusi', 'status_login')) {
+                $table->string('status_login', 20)->default('Belum Login')->after('login');
             }
         });
     }
@@ -23,9 +27,13 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('distribusi')) {
+            return;
+        }
+
         Schema::table('distribusi', function (Blueprint $table) {
-            if (Schema::hasColumn('distribusi', 'login_at')) {
-                $table->dropColumn('login_at');
+            if (Schema::hasColumn('distribusi', 'status_login')) {
+                $table->dropColumn('status_login');
             }
         });
     }

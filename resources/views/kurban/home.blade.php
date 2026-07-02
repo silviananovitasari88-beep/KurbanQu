@@ -222,7 +222,7 @@
           </div>
         </div>
 
-        <div id="qr-kode" style="font-family:monospace;font-size:15px;font-weight:800;color:#c8922a;letter-spacing:2px;margin-bottom:10px;">P00001</div>
+        <div id="qr-kode" style="font-family:monospace;font-size:15px;font-weight:800;color:#c8922a;letter-spacing:2px;margin-bottom:10px;">—</div>
         <div id="qr-nama" style="font-size:18px;font-weight:800;color:#3d2510;">—</div>
         <div id="qr-nkk"  style="font-size:13px;color:#9a8060;margin-top:4px;font-weight:500;">—</div>
 

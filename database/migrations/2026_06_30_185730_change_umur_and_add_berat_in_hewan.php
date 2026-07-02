@@ -11,9 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('hewan')) {
+            return;
+        }
+
         Schema::table('hewan', function (Blueprint $table) {
-           $table->string('umur', 50)->nullable()->change();
-            $table->string('berat', 50)->nullable()->after('umur');
+            if (!Schema::hasColumn('hewan', 'umur')) {
+                $table->string('umur', 50)->nullable()->after('cacat');
+            }
+
+            if (!Schema::hasColumn('hewan', 'berat')) {
+                $table->string('berat', 50)->nullable()->after('umur');
+            }
         });
     }
 
@@ -22,9 +31,14 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('hewan')) {
+            return;
+        }
+
         Schema::table('hewan', function (Blueprint $table) {
-            $table->dropColumn('berat');
-            $table->enum('umur', ['Terpenuhi', 'Tidak Terpenuhi'])->nullable()->change();
+            if (Schema::hasColumn('hewan', 'berat')) {
+                $table->dropColumn('berat');
+            }
         });
     }
 };

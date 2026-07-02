@@ -64,7 +64,7 @@ if ($warga) {
         // ── 4. Ambil data QR (no antrian, sesi, lokasi, jam) ─────────────────
         $qrData = null;
         if (!empty($warga->QR_id_qr)) {
-            $qrData = DB::table('QR')
+            $qrData = DB::table('qr')
                 ->where('id_qr', $warga->QR_id_qr)
                 ->first();
         }
@@ -75,10 +75,10 @@ if ($warga) {
         if (empty($noAntrian) && !empty($warga->QR_id_qr)) {
             DB::transaction(function () use ($warga, &$noAntrian) {
                 // ambil nilai maksimum saat ini dengan kunci baris untuk mencegah race
-                $row = DB::table('QR')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
+                $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
                 $max = (int) ($row->m ?? 0);
                 $next = $max + 1;
-                DB::table('QR')->where('id_qr', $warga->QR_id_qr)->update(['no_antrian' => $next]);
+                DB::table('qr')->where('id_qr', $warga->QR_id_qr)->update(['no_antrian' => $next]);
                 $noAntrian = $next;
             });
         }

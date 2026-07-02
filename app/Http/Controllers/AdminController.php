@@ -14,7 +14,7 @@ class AdminController extends Controller
 	{
 		$rows = DB::table('distribusi as d')
 			->leftJoin('warga as w', 'w.no_kk', '=', 'd.warga_no_kk')
-			->leftJoin('QR as q', 'q.id_qr', '=', 'd.QR_id_qr')
+            ->leftJoin('qr as q', 'q.id_qr', '=', 'd.QR_id_qr')
 			->select([
 				'd.id_stok',
 				'd.warga_no_kk',
@@ -23,6 +23,7 @@ class AdminController extends Controller
 				'd.st_pengambilan',
 				'd.mtd_pengambilan',
 				'd.login',
+                'd.status_login',
 				'w.nama_kk',
 				'w.id_penerima',
 				'q.jam_pengambilan',
@@ -47,6 +48,7 @@ class AdminController extends Controller
 				'st_pengambilan' => $row->st_pengambilan,
 				'mtd_pengambilan' => $row->mtd_pengambilan,
 				'login' => $row->login,
+'status_login' => $row->status_login,
 'updated_at' => null,
 				'jam_pengambilan' => $row->jam_pengambilan,
 			];
@@ -95,7 +97,7 @@ class AdminController extends Controller
 
 		$query->update($updateData);
 
-		if (Schema::hasTable('QR') && Schema::hasColumn('QR', 'jam_pengambilan')) {
+		if (Schema::hasTable('qr') && Schema::hasColumn('qr', 'jam_pengambilan')) {
             $qrId = $data['qr_id_qr'] ?? $row->QR_id_qr ?? null;
             if ($qrId !== null) {
                 // Normalize QR id: frontend may send formatted id like "P00005".
@@ -103,7 +105,7 @@ class AdminController extends Controller
                 if ($qrIdNorm === '') {
                     $qrIdNorm = $qrId; // fallback to original if no digits
                 }
-                DB::table('QR')->where('id_qr', $qrIdNorm)->update([
+                DB::table('qr')->where('id_qr', $qrIdNorm)->update([
                     'jam_pengambilan' => $now->toDateTimeString(),
                 ]);
             }
@@ -177,7 +179,7 @@ return response()->json([
 		$deleted = [];
 
 		DB::transaction(function () use (&$deleted) {
-			foreach (['distribusi', 'warga', 'QR'] as $table) {
+            foreach (['distribusi', 'warga', 'qr'] as $table) {
 				if (!Schema::hasTable($table)) {
 					continue;
 				}
@@ -222,8 +224,8 @@ return response()->json([
                 'alamat'  => $alamat,
             ]);
 
-            // 2. Insert QR
-            $idQr = DB::table('QR')->insertGetId([
+			// 2. Insert QR
+			$idQr = DB::table('qr')->insertGetId([
                 'no_antrian'     => $idPenerima,
                 'loc_pengambilan' => 'Lokasi Pengambilan',
                 'dur_sesi'       => 15,

@@ -127,6 +127,16 @@
           <p class="error-msg" id="confirmError">Password tidak cocok. Coba lagi.</p>
         </div>
 
+        <div class="field">
+          <label class="sr-only" for="regKode">Kode Spesial</label>
+          <div class="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <input id="regKode" type="password" placeholder="Masukkan kode spesial" required>
+          </div>
+        </div>
+
         <button type="submit" class="submit">Daftar</button>
       </form>
 

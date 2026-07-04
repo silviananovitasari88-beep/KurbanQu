@@ -61,10 +61,15 @@ class AuthController extends Controller
     public function register(Request $request)
 {
     try {
+        $adminCode = env('ADMIN_REGISTER_CODE', 'kodenya');
+
         $request->validate([
             'username'              => 'required|string|max:50|unique:users,username',
             'password'              => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string',
+            'kode_spesial'          => 'required|string|in:' . $adminCode,
+        ], [
+            'kode_spesial.in'       => 'Kode spesial tidak valid.',
         ]);
 
         $user = User::create([

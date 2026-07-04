@@ -121,6 +121,7 @@ registerForm.addEventListener('submit', async (e) => {
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
   const confirm  = document.getElementById('regConfirm').value;
+  const kode     = document.getElementById('regKode').value;
   const errorMsg   = document.getElementById('confirmError');
   const confirmWrap = document.getElementById('confirmWrap');
 
@@ -138,7 +139,7 @@ registerForm.addEventListener('submit', async (e) => {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
       },
-      body: JSON.stringify({ username, password, password_confirmation: confirm })
+      body: JSON.stringify({ username, password, password_confirmation: confirm, kode_spesial: kode })
     });
 
     const data = await response.json();

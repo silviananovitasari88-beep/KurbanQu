@@ -18,7 +18,7 @@
       background: #f5f0e8;
       position: relative;
       overflow: hidden;
-      border-radius: 40px;
+      border-radius: 0;
       box-shadow: 0 32px 80px rgba(0,0,0,0.35);
     }
 
@@ -534,4 +534,19 @@
     .detail-sec {
       font-size: 11px; font-weight: 700; color: #7a5230; text-transform: uppercase;
       letter-spacing: .5px; padding: 14px 20px 6px;
+    }
+
+    /* ════════════════════════════════════
+       RESPONSIVE - FIX CURVED EDGES ON MOBILE
+    ════════════════════════════════════ */
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+      }
+      .app {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0;
+      }
     }

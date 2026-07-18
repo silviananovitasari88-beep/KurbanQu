@@ -166,7 +166,7 @@
   <!-- ════════════════════════════════════
        HALAMAN QR
   ════════════════════════════════════ -->
-  <div id="pg-qr" class="page">
+ <div id="pg-qr" class="page" style="overflow-y:auto;">
     <!-- Dimmed background effect with blur -->
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,#5c3d1e 0%,#3d2510 40%,#2a1a0a 100%);z-index:0;"></div>
     <div style="position:absolute;width:200px;height:200px;background:#e8b84b;border-radius:50%;top:-80px;right:-60px;opacity:0.12;z-index:0;"></div>

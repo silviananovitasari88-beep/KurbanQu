@@ -1193,7 +1193,7 @@ async function loadMudhohiFromServer() {
 
       return `<tr>
         <td style="text-align:center;">
-          <span style="font-family:monospace;font-size:11px;color:var(--text3);font-weight:700;">#${String(r.id_Stok).padStart(3,'0')}</span>
+          <span style="font-family:monospace;font-size:11px;color:var(--text3);font-weight:700;">#${String(r.id_stok).padStart(3,'0')}</span>
         </td>
         <td>
           <div style="display:flex;align-items:center;gap:10px;">

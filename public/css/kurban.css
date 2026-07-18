@@ -2,27 +2,38 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-   body {
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    /* Mobile-first: app fills the viewport edge-to-edge by default.
+       The "frame" look is added back in for desktop in the media query below. */
+    body {
       background: #f5f0e8;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       min-height: 100vh;
-      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      font-family: 'Plus Jakarta Sans', 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
       padding: 0;
+      position: fixed;
+      inset: 0;
+      width: 100%;
     }
 
-.app {
+    .app {
       width: 100%;
-      height: 100vh;
-      height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100%;
       background: #f5f0e8;
       position: relative;
       overflow: hidden;
       border-radius: 0;
       box-shadow: none;
-    }5);
-        }
+    }
 
     .user-sidebar {
       position: absolute;
@@ -66,7 +77,7 @@
     }
 
     /* PAGE SYSTEM */
-    .page { display: none; flex-direction: column; width: 100%; height: 917px; position: absolute; top: 0; left: 0; }
+    .page { display: none; flex-direction: column; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     .page.active { display: flex; }
 
     /* BLOBS */
@@ -82,7 +93,7 @@
     .btn-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #e8d9c0; background: none; border: none; cursor: pointer; margin-bottom: 14px; position: relative; z-index: 1; padding: 0; font-family: inherit; }
 
     /* SCROLL */
-    .scroll-area { flex: 1; overflow-y: auto; }
+    .scroll-area { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
     
     .scroll-area::-webkit-scrollbar { width: 3px; }
     .scroll-area::-webkit-scrollbar-thumb { background: #c8b89a; border-radius: 4px; }
@@ -539,16 +550,44 @@
     }
 
     /* ════════════════════════════════════
-       RESPONSIVE - FIX CURVED EDGES ON MOBILE
+       RESPONSIVE — DESKTOP: bingkai ala HP
+       Layar lebih lebar dari ukuran HP akan
+       menampilkan .app dibatasi lebarnya
+       (max-width: 480px), diposisikan di
+       tengah, dengan background luar yang
+       berbeda sebagai bingkai.
+    ════════════════════════════════════ */
+    @media (min-width: 481px) {
+      body {
+        background: #b5a898; /* bingkai/frame - beda dari background konten (#f5f0e8) */
+        padding: 32px 16px;
+        align-items: flex-start;
+      }
+      .app {
+        width: auto;
+        height: min(917px, 90vh);
+        aspect-ratio: 9 / 19.5; /* proporsi layar HP pada umumnya */
+        max-width: 430px;
+        min-width: 375px;
+        margin: 0 auto;
+        border-radius: 0; /* tanpa lengkungan di background */
+        box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+      }
+    }
+
+    /* ════════════════════════════════════
+       RESPONSIVE — MOBILE: edge-to-edge,
+       tanpa bingkai, tanpa sudut melengkung
     ════════════════════════════════════ */
     @media (max-width: 480px) {
       body {
         padding: 0;
+        background: #f5f0e8;
       }
       .app {
         width: 100%;
-        height: 100vh;
-        height: 100dvh;
+        max-width: none;
         border-radius: 0;
+        box-shadow: none;
       }
     }

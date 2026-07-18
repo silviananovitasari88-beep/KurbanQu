@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KurbanQu</title>
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="stylesheet" href="{{ asset('css/kurban.css') }}" />
+<link rel="stylesheet" href="{{ asset('css/kurban.css') }}?v={{ filemtime(public_path('css/kurban.css')) }}" />    
   <!-- QR Code generator library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>

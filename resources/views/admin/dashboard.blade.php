@@ -8,6 +8,121 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <link rel="stylesheet" href="{{ asset('css/admin.css') }}" />
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- CSS UNTUK FITUR HAPUS -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<style>
+/* Tombol Hapus */
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-done {
+    background: rgba(0, 200, 0, 0.15);
+    color: #28a745;
+}
+
+.status-pending {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ff8c00;
+}
+
+/* QR Badge */
+.qr-badge {
+    display: inline-block;
+    background: rgba(200, 146, 42, 0.15);
+    color: #c8922a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9999;
+    max-width: 400px;
+    display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    animation: slideInRight 0.3s ease;
+}
+
+.toast.success {
+    background: #28a745;
+    color: white;
+}
+
+.toast.error {
+    background: #dc3545;
+    color: white;
+}
+
+.toast.info {
+    background: #17a2b8;
+    color: white;
+}
+
+.toast.warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+</style>
 </head>
 <body>
 
@@ -118,7 +233,6 @@
 
       <!-- Grid -->
       <div class="dash-grid">
-        <!-- Left: Animal list + QR card -->
         <div>
           <div class="card" style="margin-bottom:18px;">
             <div class="card-header">
@@ -128,7 +242,6 @@
             <div class="card-body" id="dash-animal-list" style="padding:12px 16px;"></div>
           </div>
 
-          <!-- QR Distribusi promo card -->
           <div class="card" style="background:linear-gradient(135deg,#2a1f12,#1a1208);border-color:rgba(200,146,42,0.2);">
             <div class="card-body" style="padding:24px;">
               <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">QR DISTRIBUSI</div>
@@ -139,7 +252,6 @@
           </div>
         </div>
 
-        <!-- Right: Live tracking -->
         <div>
           <div class="card" style="height:fit-content;">
             <div class="card-header">
@@ -149,7 +261,6 @@
             <div class="card-body" id="dash-tracking"></div>
           </div>
 
-          <!-- Progress card -->
           <div class="card" style="margin-top:18px;">
             <div class="card-header"><div class="card-title">📊 Progress Distribusi</div></div>
             <div class="card-body">
@@ -185,7 +296,6 @@
         <button class="btn btn-gold" onclick="openModalHewan()">+ Tambah Hewan</button>
       </div>
 
-      <!-- Filter tabs -->
       <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
         <div class="tab-row" style="width:fit-content;">
           <button class="tab-item active" onclick="filterHewan('semua',this)">Semua</button>
@@ -288,12 +398,9 @@
       </div>
 
       <div class="dash-grid">
-        <!-- Scanner kamera -->
         <div>
           <div class="scanner-wrap">
-            <!-- Container untuk video streaming dari camera scanner -->
             <div id="qr-reader" style="width: 100%; max-width: 240px; margin: 0 auto 24px; border-radius: 16px; overflow: hidden; background: transparent; display: none;"></div>
-            <!-- Placeholder scanner saat kamera belum aktif -->
             <div class="scanner-frame" id="scanner-placeholder">
               <div class="sc-box">
                 <div class="sc-corner sc-tl"></div>
@@ -307,7 +414,6 @@
               </div>
             </div>
 
-            <!-- Tombol start/stop scanner -->
             <div style="margin-bottom:15px; display:flex; justify-content:center; gap:10px;">
               <button id="btn-start" class="btn btn-gold" onclick="startScanner()">Mulai Scan</button>
               <button id="btn-stop" class="btn btn-danger d-none" onclick="stopScanner()">Stop</button>
@@ -323,7 +429,6 @@
           </div>
         </div>
 
-        <!-- Result + log -->
         <div>
           <div id="scan-result" style="margin-bottom:18px;"></div>
           <div class="card">
@@ -338,14 +443,11 @@
 
     <!-- ══════════════════════ TABEL DISTRIBUSI PAGE ══ -->
     <div class="page" id="pg-tabel">
-
-      <!-- Page header -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">📋 Tabel Distribusi Penerima</div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px;">
-            Data penerima dari <strong style="color:var(--gold2);">Excel upload</strong> &nbsp;—&nbsp;
-            
+            Data penerima dari <strong style="color:var(--gold2);">Excel upload</strong>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -354,10 +456,8 @@
         </div>
       </div>
 
-      <!-- Summary stat chips -->
       <div id="tabel-chips" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-      <!-- ── PENCARIAN MANUAL (dipindah dari Distribusi QR) ── -->
       <div class="dash-grid" style="margin-bottom:18px;">
         <div class="card">
           <div class="card-header">
@@ -383,7 +483,6 @@
         </div>
       </div>
 
-      <!-- Filter bar -->
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <div class="search-box" style="flex:1;min-width:180px;max-width:280px;">
           <span style="color:var(--text3);">🔍</span>
@@ -407,7 +506,6 @@
         </select>
       </div>
 
-      <!-- Table card -->
       <div class="card" style="overflow:hidden;">
         <div style="overflow-x:auto;">
           <table class="data-table" style="min-width:900px;">
@@ -432,7 +530,6 @@
         </div>
       </div>
 
-      <!-- Legend -->
       <div style="margin-top:14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--text3);">
         <span>🟢 = Otomatis via QR Scan</span>
         <span>🟡 = Manual diklik admin</span>
@@ -441,16 +538,16 @@
       </div>
     </div><!-- /tabel -->
 
-    <!-- ══════════════════════ PENERIMA KURBAN (upload excel → login & QR) ══ -->
+    <!-- ══════════════════════ PENERIMA KURBAN PAGE ══ -->
     <div class="page" id="pg-upload">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">🎫 Penerima Kurban</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px;">Upload Excel → login warga (No KK + Nama) → kode QR</div>
         </div>
         <button class="btn btn-gold" onclick="openModalPenerima()">+ Tambah Manual</button>
       </div>
 
-      <!-- Alur -->
       <div class="flow-steps" style="margin-bottom:20px;">
         <div class="flow-step">
           <div class="flow-step-num">1</div>
@@ -755,7 +852,6 @@
 </div>
 
 <script src="{{ asset('js/warga-login.js') }}"></script>
-<!-- SheetJS (xlsx) untuk mengkonversi .xlsx/.xls di browser -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
   if (typeof window.XLSX === 'undefined') {
@@ -768,13 +864,189 @@
 </script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
-<!-- Auto-logout when leaving admin dashboard (except when navigating within /admin) -->
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- ⭐ JAVASCRIPT UNTUK FITUR HAPUS -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<script>
+/**
+ * Hapus 1 data warga berdasarkan No KK
+ * Data distribusi terkait juga akan ikut terhapus
+ */
+function deleteWarga(noKk, nama) {
+    if (!noKk) {
+        alert('❌ No KK tidak valid');
+        return;
+    }
+
+    if (!confirm(`⚠️ Yakin ingin menghapus data warga?\n\nNama: ${nama || '-'}\nNo KK: ${noKk}\n\n⚠️ Data distribusi terkait juga akan dihapus!`)) {
+        return;
+    }
+
+    showToast('⏳ Menghapus data...', 'info');
+
+    fetch(`/admin/api/warga/${encodeURIComponent(noKk)}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`✅ ${data.message}`, 'success');
+            
+            setTimeout(() => {
+                // Refresh semua tabel
+                if (typeof renderPenerimaTable === 'function') {
+                    renderPenerimaTable();
+                }
+                if (typeof renderTabelDistribusi === 'function') {
+                    renderTabelDistribusi();
+                }
+                if (typeof loadDashboardStats === 'function') {
+                    loadDashboardStats();
+                }
+                if (typeof updatePenerimaStats === 'function') {
+                    updatePenerimaStats();
+                }
+                if (typeof updateBadges === 'function') {
+                    updateBadges();
+                }
+            }, 500);
+        } else {
+            showToast(`❌ ${data.message || 'Gagal menghapus data'}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
+    });
+}
+
+/**
+ * Toast notification
+ */
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (!toast) {
+        alert(message);
+        return;
+    }
+    
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    
+    clearTimeout(toast._hideTimeout);
+    toast._hideTimeout = setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+/**
+ * Render tabel penerima dengan tombol hapus
+ * Override fungsi yang ada di admin.js
+ */
+function renderPenerimaTable() {
+    const search = document.getElementById('penerima-search')?.value?.toLowerCase() || '';
+    const tbody = document.getElementById('imported-table-body');
+    const empty = document.getElementById('penerima-empty');
+    const count = document.getElementById('imported-count');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);">⏳ Memuat data...</td></tr>';
+    
+    fetch('/admin/api/penerima/list', {
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);">❌ ${data.message || 'Gagal memuat data'}</td></tr>`;
+            return;
+        }
+        
+        if (!data.data || data.data.length === 0) {
+            tbody.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            if (count) count.textContent = '0 data';
+            return;
+        }
+        
+        if (empty) empty.style.display = 'none';
+        if (count) count.textContent = `${data.data.length} data`;
+        
+        let filtered = data.data;
+        if (search) {
+            filtered = filtered.filter(item => 
+                (item.no_kk && item.no_kk.includes(search)) ||
+                (item.nama_kk && item.nama_kk.toLowerCase().includes(search))
+            );
+        }
+        
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);">Tidak ada data yang cocok</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        filtered.forEach((item, index) => {
+            const status = item.status || 'BELUM AMBIL';
+            const statusClass = status === 'SUDAH AMBIL' ? 'status-done' : 'status-pending';
+            
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${item.no_kk || '-'}</strong></td>
+                    <td><strong>${item.nama_kk || '-'}</strong></td>
+                    <td>
+                        <span class="qr-badge">${item.qr_code || 'P' + String(item.id_penerima || '').padStart(5, '0')}</span>
+                    </td>
+                    <td>${item.alamat || '-'}</td>
+                    <td>${item.no_telp || '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" 
+                                onclick="deleteWarga('${item.no_kk}', '${item.nama_kk}')"
+                                title="Hapus data warga dan distribusi terkait">
+                            🗑️ Hapus
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red);">❌ Gagal memuat data: ${error.message}</td></tr>`;
+    });
+}
+
+// Jalankan render saat halaman dimuat
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof renderPenerimaTable === 'function') {
+        renderPenerimaTable();
+    }
+});
+</script>
+<!-- ⭐ AKHIR TAMBAHAN JAVASCRIPT -->
+
+<!-- Auto-logout -->
 <script>
   (function(){
     const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
     let skipAutoLogout = false;
 
-    // If a link click targets an /admin URL, skip auto-logout
     document.addEventListener('click', function(e){
       const a = e.target.closest('a');
       if (!a || !a.href) return;
@@ -784,7 +1056,6 @@
       } catch(err){ skipAutoLogout = false; }
     }, {capture:true});
 
-    // Send logout request reliably on pagehide/beforeunload when not skipping
     function sendLogout() {
       if (skipAutoLogout) return;
       const url = '/logout';

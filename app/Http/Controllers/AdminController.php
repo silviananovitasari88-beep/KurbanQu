@@ -7,6 +7,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Warga;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -48,8 +50,8 @@ class AdminController extends Controller
 				'st_pengambilan' => $row->st_pengambilan,
 				'mtd_pengambilan' => $row->mtd_pengambilan,
 				'login' => $row->login,
-'status_login' => $row->status_login,
-'updated_at' => null,
+				'status_login' => $row->status_login,
+				'updated_at' => null,
 				'jam_pengambilan' => $row->jam_pengambilan,
 			];
 		}
@@ -100,10 +102,9 @@ class AdminController extends Controller
 		if (Schema::hasTable('qr') && Schema::hasColumn('qr', 'jam_pengambilan')) {
             $qrId = $data['qr_id_qr'] ?? $row->QR_id_qr ?? null;
             if ($qrId !== null) {
-                // Normalize QR id: frontend may send formatted id like "P00005".
                 $qrIdNorm = preg_replace('/\D/', '', (string) $qrId);
                 if ($qrIdNorm === '') {
-                    $qrIdNorm = $qrId; // fallback to original if no digits
+                    $qrIdNorm = $qrId;
                 }
                 DB::table('qr')->where('id_qr', $qrIdNorm)->update([
                     'jam_pengambilan' => $now->toDateTimeString(),
@@ -112,43 +113,38 @@ class AdminController extends Controller
 		}
 
 		$metode = $request->input('metode') === 'QR' ? 'QR' : 'Manual';
-return response()->json([
-    'success' => true,
-    'message' => 'Status distribusi diperbarui.',
-    'data' => [
-        'id_stok' => $idStok,
-        'warga_no_kk' => $data['warga_no_kk'],
-        'st_pengambilan' => 'selesai',
-        'mtd_pengambilan' => $metode, // ← pakai variabel
-        'updated_at' => $now->toDateTimeString(),
-    ],
-]);
+		return response()->json([
+		    'success' => true,
+		    'message' => 'Status distribusi diperbarui.',
+		    'data' => [
+		        'id_stok' => $idStok,
+		        'warga_no_kk' => $data['warga_no_kk'],
+		        'st_pengambilan' => 'selesai',
+		        'mtd_pengambilan' => $metode,
+		        'updated_at' => $now->toDateTimeString(),
+		    ],
+		]);
 	}
 
     public function clearAllPenerima(): JsonResponse
-{
-    try {
-        // Hapus semua data distribusi dulu (karena ada foreign key ke warga)
-        DB::table('distribusi')->delete();
+	{
+	    try {
+	        DB::table('distribusi')->delete();
+	        DB::table('warga')->delete();
+	        DB::statement('ALTER TABLE warga AUTO_INCREMENT = 1');
+	        DB::statement('ALTER TABLE distribusi AUTO_INCREMENT = 1');
 
-        // Hapus semua data warga (penerima kurban)
-        DB::table('warga')->delete();
-
-        // Reset auto increment di SQLite (opsional)
-        DB::statement('ALTER TABLE warga AUTO_INCREMENT = 1');
-        DB::statement('ALTER TABLE distribusi AUTO_INCREMENT = 1');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Semua data penerima berhasil dihapus.',
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal menghapus data: ' . $e->getMessage(),
-        ], 500);
-    }
-}
+	        return response()->json([
+	            'success' => true,
+	            'message' => 'Semua data penerima berhasil dihapus.',
+	        ]);
+	    } catch (\Exception $e) {
+	        return response()->json([
+	            'success' => false,
+	            'message' => 'Gagal menghapus data: ' . $e->getMessage(),
+	        ], 500);
+	    }
+	}
 
 	public function deleteTempImport(Request $request): JsonResponse
 	{
@@ -199,59 +195,54 @@ return response()->json([
 	}
 
 	public function importWarga(Request $request): JsonResponse
-{
-    $request->validate([
-        'file' => ['required', 'file', 'mimes:csv,txt'],
-    ]);
+	{
+	    $request->validate([
+	        'file' => ['required', 'file', 'mimes:csv,txt'],
+	    ]);
 
-    $file = $request->file('file');
-    $rows = array_map('str_getcsv', file($file->getRealPath()));
-    $header = array_shift($rows); // baris pertama = header
+	    $file = $request->file('file');
+	    $rows = array_map('str_getcsv', file($file->getRealPath()));
+	    $header = array_shift($rows);
 
-    DB::transaction(function () use ($rows) {
-        foreach ($rows as $row) {
-            if (count($row) < 3) continue;
+	    DB::transaction(function () use ($rows) {
+	        foreach ($rows as $row) {
+	            if (count($row) < 3) continue;
 
-            // Sesuaikan index kolom dengan format CSV Anda
-            $noKk    = trim($row[0]);
-            $namaKk  = trim($row[1]);
-            $alamat  = trim($row[2] ?? '');
+	            $noKk    = trim($row[0]);
+	            $namaKk  = trim($row[1]);
+	            $alamat  = trim($row[2] ?? '');
 
-            // 1. Insert ke tabel warga
-            $idPenerima = DB::table('warga')->insertGetId([
-                'no_kk'   => $noKk,
-                'nama_kk' => $namaKk,
-                'alamat'  => $alamat,
-            ]);
+	            $idPenerima = DB::table('warga')->insertGetId([
+	                'no_kk'   => $noKk,
+	                'nama_kk' => $namaKk,
+	                'alamat'  => $alamat,
+	            ]);
 
-			// 2. Insert QR
-			$idQr = DB::table('qr')->insertGetId([
-                'no_antrian'     => $idPenerima,
-                'loc_pengambilan' => 'Lokasi Pengambilan',
-                'dur_sesi'       => 15,
-            ]);
+				$idQr = DB::table('qr')->insertGetId([
+	                'no_antrian'     => $idPenerima,
+	                'loc_pengambilan' => 'Lokasi Pengambilan',
+	                'dur_sesi'       => 15,
+	            ]);
 
-            // Update warga dengan QR_id_qr dan id_penerima
-            DB::table('warga')->where('no_kk', $noKk)->update([
-                'QR_id_qr'    => $idQr,
-                'id_penerima' => $idPenerima,
-            ]);
+	            DB::table('warga')->where('no_kk', $noKk)->update([
+	                'QR_id_qr'    => $idQr,
+	                'id_penerima' => $idPenerima,
+	            ]);
 
-            // 3. ← KUNCI: Insert ke distribusi sekaligus
-            DB::table('distribusi')->insert([
-                'warga_no_kk'    => $noKk,
-                'QR_id_qr'       => $idQr,
-                'st_pengambilan' => 'pending',
-                'mtd_pengambilan' => null,
-                'login'          => 'belum_login',
-                'dowload_qr'     => 'belum',
-                'status_login'   => 'Belum Login',
-            ]);
-        }
-    });
+	            DB::table('distribusi')->insert([
+	                'warga_no_kk'    => $noKk,
+	                'QR_id_qr'       => $idQr,
+	                'st_pengambilan' => 'pending',
+	                'mtd_pengambilan' => null,
+	                'login'          => 'belum_login',
+	                'dowload_qr'     => 'belum',
+	                'status_login'   => 'Belum Login',
+	            ]);
+	        }
+	    });
 
-    return response()->json(['success' => true, 'message' => 'Import berhasil.']);
-}
+	    return response()->json(['success' => true, 'message' => 'Import berhasil.']);
+	}
 
 	// ═══════════════════════════════════════════
     // HEWAN
@@ -342,5 +333,119 @@ return response()->json([
         DB::table('mudhohi')->where('id_mudhohi', $idMudhohi)->delete();
         return response()->json(['success' => true, 'message' => 'Mudhohi berhasil dihapus']);
     }
+
+    // ════════════════════════════════════════
+    // ⭐ DELETE WARGA + DISTRIBUSI (HAPUS KEDUANYA)
+    // ════════════════════════════════════════
+    public function deleteWarga($noKk): JsonResponse
+    {
+        try {
+            Log::info("=== DELETE WARGA + DISTRIBUSI ===");
+            Log::info("No KK: " . $noKk);
+
+            // Cek apakah warga ada
+            $warga = Warga::where('no_kk', $noKk)->first();
+            
+            if (!$warga) {
+                Log::warning("Warga tidak ditemukan: " . $noKk);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data warga dengan No KK ' . $noKk . ' tidak ditemukan'
+                ], 404);
+            }
+
+            $nama = $warga->nama_kk;
+
+            DB::beginTransaction();
+
+            try {
+                // ⭐ 1. HAPUS DATA DISTRIBUSI TERKAIT
+                $deletedDistribusi = DB::table('distribusi')
+                    ->where('warga_no_kk', $noKk)
+                    ->delete();
+                
+                Log::info("Distribusi dihapus: " . $deletedDistribusi . " baris");
+
+                // ⭐ 2. HAPUS DATA WARGA
+                $deletedWarga = Warga::where('no_kk', $noKk)->delete();
+                
+                Log::info("Warga dihapus: " . $deletedWarga . " baris");
+
+                DB::commit();
+
+                Log::info("SUKSES hapus: {$nama} ({$noKk})");
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "✅ Data warga '{$nama}' dan distribusi terkait berhasil dihapus",
+                    'data' => [
+                        'no_kk' => $noKk,
+                        'nama' => $nama,
+                        'deleted_distribusi' => $deletedDistribusi,
+                        'deleted_warga' => $deletedWarga
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error("Error dalam transaction: " . $e->getMessage());
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Gagal hapus warga: " . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Gagal menghapus data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ════════════════════════════════════════
+    // ⭐ GET LIST PENERIMA
+    // ════════════════════════════════════════
+    public function getPenerimaList(): JsonResponse
+    {
+        try {
+            $warga = DB::table('warga')
+                ->select('no_kk', 'nama_kk', 'alamat', 'no_telp', 'id_penerima', 'QR_id_qr')
+                ->orderBy('id_penerima', 'asc')
+                ->get();
+            
+            $result = $warga->map(function($item) {
+                $dist = DB::table('distribusi')
+                    ->where('warga_no_kk', $item->no_kk)
+                    ->first();
+                    
+                $status = 'BELUM AMBIL';
+                if ($dist && ($dist->st_pengambilan === 'diambil' || $dist->st_pengambilan === 'selesai')) {
+                    $status = 'SUDAH AMBIL';
+                }
+                    
+                return [
+                    'no_kk' => $item->no_kk,
+                    'nama_kk' => $item->nama_kk ?? '-',
+                    'alamat' => $item->alamat ?? '-',
+                    'no_telp' => $item->no_telp ?? '-',
+                    'id_penerima' => $item->id_penerima,
+                    'qr_code' => $item->QR_id_qr ?? 'P' . str_pad($item->id_penerima ?? 0, 5, '0', STR_PAD_LEFT),
+                    'status' => $status,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'total' => $result->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("Error getPenerimaList: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
-        

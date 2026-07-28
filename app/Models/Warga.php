@@ -9,9 +9,9 @@ class Warga extends Model
 {
     protected $table = 'warga';
     protected $primaryKey = 'no_kk';
-    public $incrementing = false; // Karena no_kk biasanya bukan auto-increment
-    public $timestamps = false; // ← Disable auto timestamps, kita handle manual
-    // Combined fillable fields (avoid duplicate property declarations)
+    public $incrementing = false;
+    public $timestamps = true; // ⭐ UBAH KE TRUE
+    
     protected $fillable = [
         'username',
         'password',
@@ -22,11 +22,13 @@ class Warga extends Model
         'no_telp',
         'QR_id_qr',
         'id_penerima',
+        'last_login_at',
+        'is_online',
         'created_at',
         'updated_at'
     ];
 
     public function distribusi(): HasMany {
-        return $this->hasMany(Distribusi::class, 'warga_no_kk');
+        return $this->hasMany(Distribusi::class, 'warga_no_kk', 'no_kk');
     }
 }

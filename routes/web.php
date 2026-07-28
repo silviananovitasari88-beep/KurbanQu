@@ -14,8 +14,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
 });
 
-// Allow access to admin login URL for both guests and authenticated users.
-// This lets the controller handle authenticated users (it redirects to admin dashboard).
 Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login');
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -26,29 +24,39 @@ Route::post('/logout', [AuthController::class, 'logout'])
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
     Route::get('/', fn() => view('admin.dashboard'));
-    // Tambahkan route admin lainnya di sini
 });
 
-// Route untuk Halaman Depan / Dashboard Warga 
 Route::get('/', function () {
     return view('kurban.home');
 });
 
-// qr download
 Route::post('/warga/download-qr', [WargaQrController::class, 'download'])
     ->name('warga.download-qr');
 
-                                      
-//  return view('admin.dashboard');
+// ════════════════════════════════════════════════════════════════════
+// ⭐ ROUTE DELETE WARGA + DISTRIBUSI
+// ════════════════════════════════════════════════════════════════════
+Route::delete('/admin/api/warga/{noKk}', [AdminController::class, 'deleteWarga'])
+    ->middleware('auth')
+    ->name('admin.delete-warga');
 
+// ════════════════════════════════════════════════════════════════════
+// ⭐ ROUTE GET LIST PENERIMA
+// ════════════════════════════════════════════════════════════════════
+Route::get('/admin/api/penerima/list', [AdminController::class, 'getPenerimaList'])
+    ->middleware('auth');
+
+// ════════════════════════════════════════════════════════════════════
+// ROUTE YANG SUDAH ADA
+// ════════════════════════════════════════════════════════════════════
 Route::get('/admin/api/distribusi/snapshot', [AdminController::class, 'distribusiSnapshot']);
 Route::post('/admin/api/distribusi/{idStok}/manual', [AdminController::class, 'updateDistribusiManual']);
 Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImport']);
 Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
 Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
 Route::post('/warga/qr/download', [WargaQrController::class, 'download']);
+
 Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
-    // ✅ Validasi input
     $request->validate([
         'penerima' => 'required|array|min:1',
         'penerima.*.nkk' => 'required|string|min:6',
@@ -65,7 +73,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
     try {
         DB::beginTransaction();
         
-        // ✅ Handle replace mode
         if ($mode === 'replace') {
             Warga::truncate();
         }
@@ -76,17 +83,14 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
         $errors = [];
         $nextId = 1;
         
-        // Get max id_penerima
         $maxId = Warga::max('id_penerima') ?? 0;
         $nextId = $maxId + 1;
         
         foreach ($penerima as $idx => $row) {
             try {
-                // ✅ Normalisasi No KK (hanya digit)
                 $nkk = preg_replace('/\D/', '', $row['nkk'] ?? '');
                 $nama = trim($row['nama'] ?? '');
                 
-                // ✅ Validasi
                 if (strlen($nkk) < 10) {
                     $errors[] = "Baris " . ($idx + 1) . ": No KK '{$row['nkk']}' kurang dari 10 digit";
                     $failed++;
@@ -99,11 +103,9 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                     continue;
                 }
                 
-                // ✅ Update atau Create dengan semua kolom - GUNAKAN RAW SQL
                 $exists = DB::table('warga')->where('no_kk', $nkk)->exists();
                 
                 if ($exists) {
-                    // Update existing record
                     $updateData = [
                         'nama_kk'     => $nama,
                         'alamat'      => trim($row['alamat'] ?? ''),
@@ -112,7 +114,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                     $updateData['QR_id_qr'] = !empty($row['qrCode']) ? null : null;
                     DB::table('warga')->where('no_kk', $nkk)->update($updateData);
 
-                    // Pastikan baris distribusi ada walaupun warga sudah ada
                     $distExists = DB::table('distribusi')
                         ->where('warga_no_kk', $nkk)
                         ->exists();
@@ -130,11 +131,9 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
 
                     $updated++;
                 } else {
-                    // Hitung id_penerima & kode QR dari nomor penerima
                     $idPenerima = $nextId++;
                     $qrCode     = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
 
-                    // Insert ke tabel warga dengan kode QR
                     DB::table('warga')->insert([
                         'no_kk'       => $nkk,
                         'nama_kk'     => $nama,
@@ -144,11 +143,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
                         'QR_id_qr'    => null,
                     ]);
 
-                    // ── Insert ke distribusi ──────────────────────────────────
-                    // QR_id_qr di distribusi adalah int FK ke tabel QR.id_qr
-                    // Kita pakai 0 sebagai placeholder jika kolom masih NOT NULL.
-                    // Setelah migration fix_distribusi_qr_nullable dijalankan,
-                    // kolom ini jadi nullable dan tidak perlu value 0 lagi.
                     $distribusiRow = [
                         'warga_no_kk'     => $nkk,
                         'st_pengambilan'  => 'pending',
@@ -171,7 +165,6 @@ Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
         
         DB::commit();
 
-        // ✅ Return detailed response
         return response()->json([
             'success' => true,
             'message' => "✅ {$created} penerima baru, {$updated} diperbarui" . ($failed > 0 ? ", {$failed} gagal" : ''),
@@ -205,7 +198,6 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
     $nkk  = preg_replace('/\D+/', '', $data['nkk']);
     $nama = strtolower(trim(preg_replace('/\s+/', ' ', $data['nama'])));
 
-    // Cek warga ada di DB
     $warga = DB::table('warga')
         ->where('no_kk', $nkk)
         ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
@@ -217,7 +209,6 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
 
     $now = now();
     
-    // Update last_login_at & is_online on warga table
     DB::table('warga')
         ->where('no_kk', $nkk)
         ->update([
@@ -229,7 +220,6 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
         ->where('warga_no_kk', $nkk)
         ->update([
             'login' => 'sudah_login',
-            // admin UI membaca dowload_qr untuk badge "Sudah Login"
             'dowload_qr' => 'sudah_login',
         ]);
 
@@ -256,7 +246,7 @@ Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
     ]);
 });
 
-// Route: Cek status pengambilan warga (polling dari halaman warga)
+// Route: Cek status pengambilan warga
 Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
     $nkk = preg_replace('/\D+/', '', $request->query('nkk', ''));
     if (!$nkk) {
@@ -280,12 +270,11 @@ Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
     ]);
 });
 
-// ── GET: User polling status tracking ──────────────────────────────────────
+// ── Tracking ──────────────────────────────────────────────────────
 Route::get('/api/tracking', function () {
     $steps = DB::table('tracking_steps')->orderBy('urutan')->get();
 
     if ($steps->isEmpty()) {
-        // Default 5 tahap jika belum ada data
         $default = [
             ['urutan'=>1,'label'=>'Penyembelihan','status'=>'pending','time'=>null],
             ['urutan'=>2,'label'=>'Pengulitan',   'status'=>'pending','time'=>null],
@@ -311,7 +300,6 @@ Route::get('/api/tracking', function () {
     ]);
 });
 
-// ── POST: Admin update status tracking ─────────────────────────────────────
 Route::post('/admin/api/tracking/{urutan}', function (\Illuminate\Http\Request $request, $urutan) {
     $data = $request->validate([
         'status' => 'required|in:pending,active,done',
@@ -338,7 +326,6 @@ Route::post('/admin/api/tracking/{urutan}', function (\Illuminate\Http\Request $
     return response()->json(['success' => true]);
 });
 
-// ── POST: Admin reset semua tracking ───────────────────────────────────────
 Route::post('/admin/api/tracking/reset', function () {
     DB::table('tracking_steps')->update(['status' => 'pending', 'time' => null]);
     return response()->json(['success' => true]);

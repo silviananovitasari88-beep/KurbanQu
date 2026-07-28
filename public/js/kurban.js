@@ -54,8 +54,7 @@ async function fetchTrackingFromServer() {
     if (!res.ok) return;
     const data = await res.json();
     if (!data.success || !Array.isArray(data.steps)) return;
-    // Update TIMEL
-    // INE dari server
+    // Update TIMELINE dari server
     data.steps.forEach((s, i) => {
       if (TIMELINE[i]) {
         TIMELINE[i].status = s.status || 'pending';
@@ -71,7 +70,7 @@ async function fetchTrackingFromServer() {
   } catch (e) { /* silent fail */ }
 }
 
-// Polling setiap 10 detik
+// Polling setiap 30 detik
 setInterval(fetchTrackingFromServer, 30000);
 // Load sekali saat halaman dibuka
 fetchTrackingFromServer();
@@ -121,15 +120,20 @@ async function loadSharedAnimalData() {
       else if (rawJenis.indexOf('kambing') !== -1) key = 'kambing';
       else if (rawJenis.indexOf('domba') !== -1) key = 'domba';
 
+      // ✅ PERBAIKAN: gunakan enum yang benar
+      const sehatText = h.sehat === 'Sehat' ? '✓ Sehat' : '✗ Tidak Sehat';
+      const syariatText = h.st_syariat ? '✓ Sah' : '✗ Tidak Sah';
+      const cacatText = h.cacat === 'Tidak Cacat' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat');
+
       grouped[key].push({
         id: `${key[0].toUpperCase()}${String(h.id_hewan || '').padStart(2, '0')}`,
         emoji: key === 'sapi' ? '🐄' : key === 'kambing' ? '🐐' : '🐑',
         label: h.label || `${key.charAt(0).toUpperCase() + key.slice(1)} #${h.id_hewan}`,
         jenis: key,
         umur: h.umur || '—',
-        sehat: h.sehat === 'Ya' ? '✓ Sehat' : '✗ Tidak Sehat',
-        syariat: h.st_syariat === 'Sah' ? '✓ Sah' : '✗ Tidak Sah',
-        cacat: h.cacat === 'Tidak' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
+        sehat: sehatText,
+        syariat: syariatText,
+        cacat: cacatText,
         berat: h.berat || '—',
         alamat: h.alamat || '—',
         notelp: h.notelp || '—',
@@ -410,8 +414,7 @@ function startLiveClock() {
   setInterval(tick, 1000);
 }
 // ══════════════════════════════════════════
-// DETAIL
-//  PAGE
+// DETAIL PAGE
 // ══════════════════════════════════════════
 let detailFromPage = 'pg-dashboard';
 

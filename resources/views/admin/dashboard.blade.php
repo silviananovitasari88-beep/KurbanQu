@@ -742,15 +742,15 @@
       <div class="form-group">
         <label>Sehat? *</label>
         <select id="h-sehat">
-          <option value="Ya">Ya — Sehat</option>
-          <option value="Tidak">Tidak — Tidak Sehat</option>
+          <option value="Sehat">✅ Sehat</option>
+          <option value="Tidak Sehat">❌ Tidak Sehat</option>
         </select>
       </div>
       <div class="form-group">
         <label>Cacat? *</label>
         <select id="h-cacat">
-          <option value="Tidak">Tidak ada cacat</option>
-          <option value="Ada">Ada cacat</option>
+          <option value="Tidak Cacat">✅ Tidak Cacat</option>
+          <option value="Cacat">⚠️ Cacat</option>
         </select>
       </div>
     </div>

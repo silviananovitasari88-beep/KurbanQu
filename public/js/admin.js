@@ -300,9 +300,10 @@ async function loadMudhohiFromServer() {
         jenisLabel: d.jenisLabel,
         umur: h.umur,
         tahun: h.tahun || null,
-        sehat: h.sehat === 'Ya' ? '\u2713 Sehat' : '\u2717 Tidak Sehat',
+        // === PERBAIKAN: gunakan 'Sehat' dan 'Tidak Cacat' ===
+        sehat: h.sehat === 'Sehat' ? '\u2713 Sehat' : '\u2717 Tidak Sehat',
         syariat: h.st_syariat === 'Sah' ? '\u2713 Sah' : '\u2717 Tidak Sah',
-        cacat: h.cacat === 'Tidak' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
+        cacat: h.cacat === 'Tidak Cacat' ? 'Tidak ada' : (h.cacat_ket || 'Ada cacat'),
         berat: h.berat,
         sehatRaw: h.sehat,
         cacatRaw: h.cacat,
@@ -408,7 +409,8 @@ async function loadMudhohiFromServer() {
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
   function openModalHewan() {
     ['h-jenis','h-label','h-umur','h-berat','h-cacat-ket'].forEach(i => { const e=document.getElementById(i); if(e) e.value=''; });
-    const defs = { 'h-sehat':'Ya', 'h-cacat':'Tidak', 'h-syariat':'Sah' };
+    // === PERBAIKAN: default value sesuai enum ===
+    const defs = { 'h-sehat':'Sehat', 'h-cacat':'Tidak Cacat', 'h-syariat':'Sah' };
     Object.entries(defs).forEach(([id, val]) => { const e=document.getElementById(id); if(e) e.value=val; });
     openModal('modal-hewan');
   }
@@ -548,10 +550,11 @@ async function loadMudhohiFromServer() {
     if (!h) return;
     const d = hewanDisplay(h);
     const mh = MUDHOHI.filter(m => m.hewan_id_hewan === h.id_hewan);
-    const sehatBadge = h.sehat === 'Ya'
+    // === PERBAIKAN: gunakan 'Sehat' dan 'Tidak Cacat' ===
+    const sehatBadge = h.sehat === 'Sehat'
       ? '<span class="status-badge status-done">Sehat</span>'
       : '<span class="status-badge status-active">Tidak Sehat</span>';
-    const cacatBadge = h.cacat === 'Tidak'
+    const cacatBadge = h.cacat === 'Tidak Cacat'
       ? '<span class="status-badge status-done">Tanpa Cacat</span>'
       : '<span class="status-badge status-active">Ada Cacat</span>';
     const syariatBadge = h.st_syariat === 'Sah'
@@ -1626,6 +1629,7 @@ async function loadMudhohiFromServer() {
     });
   }
 
+  // === PERBAIKAN: data dummy menggunakan nilai enum yang benar ===
   function simpanDataTahunan() {
     const tahun    = parseInt(document.getElementById('inp-tahun').value, 10);
     const sapi     = parseInt(document.getElementById('inp-sapi').value, 10)     || 0;
@@ -1637,9 +1641,9 @@ async function loadMudhohiFromServer() {
 
     // Hapus hewan lama untuk tahun ini, lalu isi ulang
     HEWAN = HEWAN.filter(h => String(h.tahun) !== String(tahun));
-    for (let i = 0; i < sapi;    i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'sapi',    label: 'Sapi ' + tahun,    tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
-    for (let i = 0; i < kambing; i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'kambing', label: 'Kambing ' + tahun, tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
-    for (let i = 0; i < domba;   i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'domba',   label: 'Domba ' + tahun,   tahun, umur: '\u2014', sehat: 'Ya', cacat: 'Tidak', st_syariat: 'Sah', berat: '\u2014' });
+    for (let i = 0; i < sapi;    i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'sapi',    label: 'Sapi ' + tahun,    tahun, umur: '\u2014', sehat: 'Sehat', cacat: 'Tidak Cacat', st_syariat: 'Sah', berat: '\u2014' });
+    for (let i = 0; i < kambing; i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'kambing', label: 'Kambing ' + tahun, tahun, umur: '\u2014', sehat: 'Sehat', cacat: 'Tidak Cacat', st_syariat: 'Sah', berat: '\u2014' });
+    for (let i = 0; i < domba;   i++) HEWAN.push({ id_hewan: nextHewanId++, jenis: 'domba',   label: 'Domba ' + tahun,   tahun, umur: '\u2014', sehat: 'Sehat', cacat: 'Tidak Cacat', st_syariat: 'Sah', berat: '\u2014' });
     saveStore();
     saveNextHewanId();
 
@@ -1741,15 +1745,18 @@ async function loadMudhohiFromServer() {
   // ═══════════════════════════════════════════
   async function submitHewan() {
   const jenisRaw = document.getElementById('h-jenis').value;
-  const jenis = jenisRaw.charAt(0).toUpperCase() + jenisRaw.slice(1);
-  const label  = document.getElementById('h-label').value.trim();
-  const umur   = document.getElementById('h-umur').value.trim();
-  const berat  = document.getElementById('h-berat').value.trim();
-  const sehatRaw = document.getElementById('h-sehat').value;
-  const sehat = sehatRaw === 'Ya' ? 'Sehat' : 'Tidak Sehat';
-  const cacatRaw = document.getElementById('h-cacat').value;
-  const cacat = cacatRaw === 'Ada' ? 'Cacat' : 'Tidak Cacat';
-  const syariat = document.getElementById('h-syariat').value === 'Sah' ? 1 : 0;
+const jenis = jenisRaw.charAt(0).toUpperCase() + jenisRaw.slice(1); // enum: "Sapi", "Domba", "Kambing"
+
+const label  = document.getElementById('h-label').value.trim();
+const umur   = document.getElementById('h-umur').value.trim();
+const berat  = document.getElementById('h-berat').value.trim();
+
+// ✅ Ambil nilai apa adanya
+const sehat = document.getElementById('h-sehat').value;   // "Sehat" atau "Tidak Sehat"
+const cacat = document.getElementById('h-cacat').value;   // "Cacat" atau "Tidak Cacat"
+
+const syariat = document.getElementById('h-syariat').value === 'Sah' ? 1 : 0; // tetap
+const cacatKet = document.getElementById('h-cacat-ket').value.trim();
 
   if (!jenis) { toast('Jenis hewan wajib diisi!', 'error'); return; }
 

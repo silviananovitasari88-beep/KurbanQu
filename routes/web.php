@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WargaQrController;
-use App\Models\Warga;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PenerimaController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\TrackingController;
 
 // ---- Auth ----
 Route::middleware('guest')->group(function () {
@@ -22,332 +24,49 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 // ---- Admin (protected) ----
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
-    Route::get('/', fn() => view('admin.dashboard'));
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/', [AdminController::class, 'dashboard']); // redirect ke dashboard
 });
 
-Route::get('/', function () {
-    return view('kurban.home');
-});
+// ---- Halaman utama ----
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::post('/warga/download-qr', [WargaQrController::class, 'download'])
-    ->name('warga.download-qr');
+// ---- Warga QR & Login ----
+Route::post('/warga/download-qr', [WargaQrController::class, 'download'])->name('warga.download-qr');
+Route::post('/warga/login', [WargaQrController::class, 'login'])->name('warga.login');
+Route::get('/warga/status', [WargaQrController::class, 'status'])->name('warga.status');
 
-// ════════════════════════════════════════════════════════════════════
-// ⭐ ROUTE DELETE WARGA + DISTRIBUSI
-// ════════════════════════════════════════════════════════════════════
+// ---- API Admin (distribusi, warga, dll) ----
 Route::delete('/admin/api/warga/{noKk}', [AdminController::class, 'deleteWarga'])
     ->middleware('auth')
     ->name('admin.delete-warga');
 
-// ════════════════════════════════════════════════════════════════════
-// ⭐ ROUTE GET LIST PENERIMA
-// ════════════════════════════════════════════════════════════════════
 Route::get('/admin/api/penerima/list', [AdminController::class, 'getPenerimaList'])
     ->middleware('auth');
 
-// ════════════════════════════════════════════════════════════════════
-// ROUTE YANG SUDAH ADA
-// ════════════════════════════════════════════════════════════════════
 Route::get('/admin/api/distribusi/snapshot', [AdminController::class, 'distribusiSnapshot']);
 Route::post('/admin/api/distribusi/{idStok}/manual', [AdminController::class, 'updateDistribusiManual']);
+Route::post('/admin/api/distribusi/{idStok}/batalkan', [AdminController::class, 'batalkanDistribusi'])
+    ->middleware('auth');
+
 Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImport']);
 Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
 Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
-Route::post('/warga/qr/download', [WargaQrController::class, 'download']);
 
-Route::post('/simpan-penerima', function(\Illuminate\Http\Request $request) {
-    $request->validate([
-        'penerima' => 'required|array|min:1',
-        'penerima.*.nkk' => 'required|string|min:6',
-        'penerima.*.nama' => 'required|string|min:2',
-    ], [
-        'penerima.required' => 'Data penerima tidak boleh kosong',
-        'penerima.*.nkk.required' => 'No KK wajib diisi',
-        'penerima.*.nama.required' => 'Nama wajib diisi',
-    ]);
-    
-    $penerima = $request->input('penerima', []);
-    $mode = $request->input('mode', 'append');
-    
-    try {
-        DB::beginTransaction();
-        
-        if ($mode === 'replace') {
-            Warga::truncate();
-        }
-        
-        $created = 0;
-        $updated = 0;
-        $failed = 0;
-        $errors = [];
-        $nextId = 1;
-        
-        $maxId = Warga::max('id_penerima') ?? 0;
-        $nextId = $maxId + 1;
-        
-        foreach ($penerima as $idx => $row) {
-            try {
-                $nkk = preg_replace('/\D/', '', $row['nkk'] ?? '');
-                $nama = trim($row['nama'] ?? '');
-                
-                if (strlen($nkk) < 10) {
-                    $errors[] = "Baris " . ($idx + 1) . ": No KK '{$row['nkk']}' kurang dari 10 digit";
-                    $failed++;
-                    continue;
-                }
-                
-                if (strlen($nama) < 2) {
-                    $errors[] = "Baris " . ($idx + 1) . ": Nama tidak boleh kosong";
-                    $failed++;
-                    continue;
-                }
-                
-                $exists = DB::table('warga')->where('no_kk', $nkk)->exists();
-                
-                if ($exists) {
-                    $updateData = [
-                        'nama_kk'     => $nama,
-                        'alamat'      => trim($row['alamat'] ?? ''),
-                        'no_telp'     => trim($row['notelp'] ?? ''),
-                    ];
-                    $updateData['QR_id_qr'] = !empty($row['qrCode']) ? null : null;
-                    DB::table('warga')->where('no_kk', $nkk)->update($updateData);
+Route::post('/simpan-penerima', [PenerimaController::class, 'simpanPenerima']);
 
-                    $distExists = DB::table('distribusi')
-                        ->where('warga_no_kk', $nkk)
-                        ->exists();
+// ---- Tracking ----
+Route::get('/api/tracking', [TrackingController::class, 'getSteps']);
+Route::post('/admin/api/tracking/{urutan}', [TrackingController::class, 'updateStep'])
+    ->middleware('auth');
+Route::post('/admin/api/tracking/reset', [TrackingController::class, 'reset'])
+    ->middleware('auth');
 
-                    if (!$distExists) {
-                        DB::table('distribusi')->insert([
-                            'warga_no_kk'     => $nkk,
-                            'st_pengambilan'  => 'pending',
-                            'mtd_pengambilan' => null,
-                            'login'           => 'belum_login',
-                            'dowload_qr'      => null,
-                            'QR_id_qr'        => null,
-                        ]);
-                    }
-
-                    $updated++;
-                } else {
-                    $idPenerima = $nextId++;
-                    $qrCode     = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
-
-                    DB::table('warga')->insert([
-                        'no_kk'       => $nkk,
-                        'nama_kk'     => $nama,
-                        'alamat'      => trim($row['alamat'] ?? ''),
-                        'no_telp'     => trim($row['notelp'] ?? ''),
-                        'id_penerima' => $idPenerima,
-                        'QR_id_qr'    => null,
-                    ]);
-
-                    $distribusiRow = [
-                        'warga_no_kk'     => $nkk,
-                        'st_pengambilan'  => 'pending',
-                        'mtd_pengambilan' => null,
-                        'login'           => 'belum_login',
-                        'dowload_qr'      => null,
-                        'QR_id_qr'        => null,
-                    ];
-                    DB::table('distribusi')->insert($distribusiRow);
-
-                    \Log::info('[KurbanQu] Insert distribusi OK untuk NKK: ' . $nkk);
-                    $created++;
-                }
-                
-            } catch (\Exception $e) {
-                $errors[] = "Baris " . ($idx + 1) . ": " . $e->getMessage();
-                $failed++;
-            }
-        }
-        
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => "✅ {$created} penerima baru, {$updated} diperbarui" . ($failed > 0 ? ", {$failed} gagal" : ''),
-            'data' => [
-                'created' => $created,
-                'updated' => $updated,
-                'failed' => $failed,
-                'total' => $created + $updated,
-                'errors' => $errors,
-            ]
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        
-        return response()->json([
-            'success' => false,
-            'message' => '❌ Gagal menyimpan penerima: ' . $e->getMessage(),
-            'data' => null,
-        ], 422);
-    }
-});
-
-// Route: Update status login warga
-Route::post('/warga/login', function (\Illuminate\Http\Request $request) {
-    $data = $request->validate([
-        'nkk'  => 'required|string',
-        'nama' => 'required|string',
-    ]);
-
-    $nkk  = preg_replace('/\D+/', '', $data['nkk']);
-    $nama = strtolower(trim(preg_replace('/\s+/', ' ', $data['nama'])));
-
-    $warga = DB::table('warga')
-        ->where('no_kk', $nkk)
-        ->whereRaw('LOWER(TRIM(nama_kk)) = ?', [$nama])
-        ->first();
-
-    if (!$warga) {
-        return response()->json(['success' => false, 'message' => 'Warga tidak ditemukan'], 404);
-    }
-
-    $now = now();
-    
-    DB::table('warga')
-        ->where('no_kk', $nkk)
-        ->update([
-            'last_login_at' => $now,
-            'is_online'     => true,
-        ]);
-
-    $updated = DB::table('distribusi')
-        ->where('warga_no_kk', $nkk)
-        ->update([
-            'login' => 'sudah_login',
-            'dowload_qr' => 'sudah_login',
-        ]);
-
-    if (!$updated) {
-        return response()->json(['success' => false, 'message' => 'Data distribusi tidak ditemukan'], 404);
-    }
-
-    $queue = DB::table('warga')
-        ->whereNotNull('last_login_at')
-        ->where('last_login_at', '<', $now)
-        ->count() + 1;
-
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'nkk' => $warga->no_kk,
-            'nama' => $warga->nama_kk,
-            'alamat' => $warga->alamat ?? '',
-            'notelp' => $warga->no_telp ?? '',
-            'id_penerima' => $warga->id_penerima ?? null,
-            'qrCode' => $warga->QR_id_qr ?? null,
-            'queue' => $queue,
-        ],
-    ]);
-});
-
-// Route: Cek status pengambilan warga
-Route::get('/warga/status', function (\Illuminate\Http\Request $request) {
-    $nkk = preg_replace('/\D+/', '', $request->query('nkk', ''));
-    if (!$nkk) {
-        return response()->json(['success' => false], 400);
-    }
-
-    $dist = DB::table('distribusi')
-        ->where('warga_no_kk', $nkk)
-        ->first();
-
-    if (!$dist) {
-        return response()->json(['success' => false, 'st_pengambilan' => 'pending']);
-    }
-
-    return response()->json([
-        'success'         => true,
-        'st_pengambilan'  => $dist->st_pengambilan ?? 'pending',
-        'mtd_pengambilan' => $dist->mtd_pengambilan ?? null,
-        'dowload_qr'      => $dist->dowload_qr ?? 'Belum',
-        'updated_at'      => $dist->updated_at ?? null,
-    ]);
-});
-
-// ── Tracking ──────────────────────────────────────────────────────
-Route::get('/api/tracking', function () {
-    $steps = DB::table('tracking_steps')->orderBy('urutan')->get();
-
-    if ($steps->isEmpty()) {
-        $default = [
-            ['urutan'=>1,'label'=>'Penyembelihan','status'=>'pending','time'=>null],
-            ['urutan'=>2,'label'=>'Pengulitan',   'status'=>'pending','time'=>null],
-            ['urutan'=>3,'label'=>'Pencacahan',   'status'=>'pending','time'=>null],
-            ['urutan'=>4,'label'=>'Penimbangan',  'status'=>'pending','time'=>null],
-            ['urutan'=>5,'label'=>'Siap Diambil', 'status'=>'pending','time'=>null],
-        ];
-        return response()->json([
-            'success' => true,
-            'steps' => array_map(fn($s) => [
-                'status' => $s['status'],
-                'time'   => $s['time'] ?? '—',
-            ], $default),
-        ]);
-    }
-
-    return response()->json([
-        'success' => true,
-        'steps' => $steps->map(fn($s) => [
-            'status' => $s->status,
-            'time'   => $s->time ?? '—',
-        ])->values(),
-    ]);
-});
-
-Route::post('/admin/api/tracking/{urutan}', function (\Illuminate\Http\Request $request, $urutan) {
-    $data = $request->validate([
-        'status' => 'required|in:pending,active,done',
-    ]);
-
-    $exists = DB::table('tracking_steps')->where('urutan', $urutan)->exists();
-    $labels = ['Penyembelihan','Pengulitan','Pencacahan','Penimbangan','Siap Diambil'];
-    $now = now()->format('H:i') . ' WIB';
-
-    if ($exists) {
-        DB::table('tracking_steps')->where('urutan', $urutan)->update([
-            'status' => $data['status'],
-            'time'   => $data['status'] !== 'pending' ? $now : null,
-        ]);
-    } else {
-        DB::table('tracking_steps')->insert([
-            'urutan' => $urutan,
-            'label'  => $labels[$urutan - 1] ?? "Tahap $urutan",
-            'status' => $data['status'],
-            'time'   => $data['status'] !== 'pending' ? $now : null,
-        ]);
-    }
-
-    return response()->json(['success' => true]);
-});
-
-Route::post('/admin/api/tracking/reset', function () {
-    DB::table('tracking_steps')->update(['status' => 'pending', 'time' => null]);
-    return response()->json(['success' => true]);
-});
-
-Route::post('/admin/api/distribusi/{idStok}/batalkan', function(\Illuminate\Http\Request $request, $idStok) {
-    DB::table('distribusi')
-        ->where('id_stok', $idStok)
-        ->update([
-            'st_pengambilan'  => 'pending',
-            'mtd_pengambilan' => null,
-        ]);
-
-    return response()->json(['success' => true]);
-});
-
-// ── Hewan ────────────────────────────────────────────────────────────────
+// ---- Hewan & Mudhohi ----
 Route::get('/admin/api/hewan', [AdminController::class, 'getHewan']);
 Route::post('/admin/api/hewan', [AdminController::class, 'storeHewan']);
 Route::delete('/admin/api/hewan/{idHewan}', [AdminController::class, 'deleteHewan']);
 
-// ── Mudhohi ──────────────────────────────────────────────────────────────
 Route::get('/admin/api/mudhohi', [AdminController::class, 'getMudhohi']);
 Route::post('/admin/api/mudhohi', [AdminController::class, 'storeMudhohi']);
 Route::delete('/admin/api/mudhohi/{idMudhohi}', [AdminController::class, 'deleteMudhohi']);

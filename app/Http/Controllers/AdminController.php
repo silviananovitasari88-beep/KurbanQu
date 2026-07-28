@@ -12,6 +12,25 @@ use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
+    // Dashboard admin
+public function dashboard()
+{
+    return view('admin.dashboard');
+}
+
+// Batalkan pengambilan (set status kembali ke pending)
+public function batalkanDistribusi(Request $request, $idStok)
+{
+    DB::table('distribusi')
+        ->where('id_stok', $idStok)
+        ->update([
+            'st_pengambilan'  => 'pending',
+            'mtd_pengambilan' => null,
+        ]);
+
+    return response()->json(['success' => true]);
+}
+
 	public function distribusiSnapshot(): JsonResponse
 	{
 		$rows = DB::table('distribusi as d')

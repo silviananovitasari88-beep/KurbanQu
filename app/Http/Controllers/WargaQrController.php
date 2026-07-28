@@ -391,4 +391,31 @@ SVG;
         ]
     ]);
 }
+
+/**
+ * Cek status pengambilan berdasarkan No KK
+ */
+public function status(Request $request)
+{
+    $nkk = preg_replace('/\D+/', '', $request->query('nkk', ''));
+    if (!$nkk) {
+        return response()->json(['success' => false], 400);
+    }
+
+    $dist = DB::table('distribusi')
+        ->where('warga_no_kk', $nkk)
+        ->first();
+
+    if (!$dist) {
+        return response()->json(['success' => false, 'st_pengambilan' => 'pending']);
+    }
+
+    return response()->json([
+        'success'         => true,
+        'st_pengambilan'  => $dist->st_pengambilan ?? 'pending',
+        'mtd_pengambilan' => $dist->mtd_pengambilan ?? null,
+        'dowload_qr'      => $dist->dowload_qr ?? 'Belum',
+        'updated_at'      => $dist->updated_at ?? null,
+    ]);
+}
 }

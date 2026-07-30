@@ -257,8 +257,8 @@ public function batalkanDistribusi(Request $request, $idStok)
 	            ]);
 
 				$idQr = DB::table('qr')->insertGetId([
-	                'no_antrian'     => $idPenerima,
-	                'loc_pengambilan' => 'Lokasi Pengambilan',
+	                'no_antrian'     => null,
+	                'loc_pengambilan' => 'Masjid Al-Ikhlas',
 	                'dur_sesi'       => 15,
 	            ]);
 

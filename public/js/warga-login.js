@@ -113,19 +113,18 @@ function mergePenerimaRows(rows, mode) {
     if (nkk.length < 6 || nama.length < 1) return;
     const key = nkk + '|' + normNama(nama);
     const existing = map.get(key);
+    // ID lama dipertahankan kalau sudah ada; hanya baris benar-benar baru yang dapat ID baru
     const id = existing?.id_penerima || nextId++;
     map.set(key, normalizePenerimaRow({ ...r, nkk, nama }, id));
   });
 
-  // Force re-indexing so that IDs strictly match the row index 1, 2, 3...
-  const list = [...map.values()].map((p, idx) => {
-    p.id_penerima = idx + 1;
-    p.qrCode = qrCodePenerima(idx + 1);
-    return p;
-  });
+  // ⭐ FIX: JANGAN reindex ulang id_penerima berdasarkan posisi array.
+  // id_penerima harus statis / tidak berubah setiap kali data disimpan atau
+  // diedit — hanya baris baru yang dapat ID baru (lihat nextId++ di atas).
+  const list = [...map.values()];
 
   savePenerima(list);
-  saveNextPenerimaId(list.length + 1);
+  saveNextPenerimaId(nextId);
   return list.length;
 }
 
@@ -159,18 +158,11 @@ function addPenerimaManual(nkk, nama, alamat, notelp) {
 function removePenerimaAt(index) {
   const list = loadPenerima();
   list.splice(index, 1);
-  // Re-index to ensure IDs are always strictly sequential
-  list.forEach((p, idx) => {
-    p.id_penerima = idx + 1;
-    p.qrCode = qrCodePenerima(idx + 1);
-  });
+  // ⭐ FIX: ID penerima yang tersisa TIDAK digeser/direindex lagi.
+  // id_penerima harus tetap statis walaupun ada baris lain yang dihapus.
   savePenerima(list);
-  saveNextPenerimaId(list.length + 1);
 }
 
 function mergeWargaLogin(rows) {
   return mergePenerimaRows(rows, 'append');
 }
-
-
-

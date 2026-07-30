@@ -591,9 +591,25 @@ async function submitLogin() {
     // Prioritaskan qrCode dari server; fallback ke localStorage jika server tidak memberi
     const qrPayload = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
     qrEl.textContent = qrPayload;
-    // Render QR Code: gunakan no_antrian dari server (bukan id_penerima)
+
+    // ⭐ FIX: no_antrian yang VALID hanya datang dari server (/warga/login).
+    // Kalau field ini tidak ada (misal karena fallback localStorage saat
+    // server down), kita tidak boleh diam-diam memakai id_penerima sebagai
+    // pengganti nomor antrian — itu akan menampilkan nomor yang salah tanpa
+    // disadari user.
+    const isServerData = auth.penerima.no_antrian !== undefined && auth.penerima.no_antrian !== null;
     const noAntrian = auth.penerima.no_antrian || auth.penerima.queue || auth.penerima.id_penerima;
     renderQrCanvas(qrPayload, auth.penerima.id_penerima, noAntrian);
+
+    const antrianEl = document.getElementById('qr-antrian');
+    if (antrianEl) {
+      if (isServerData) {
+        antrianEl.title = '';
+      } else {
+        // Tandai bahwa nomor ini sementara/offline, bukan nomor antrian resmi
+        antrianEl.title = 'Nomor sementara — belum tersinkron dengan server, silakan refresh halaman';
+      }
+    }
   }
 
   goto('pg-qr');

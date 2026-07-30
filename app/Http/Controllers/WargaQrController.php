@@ -77,6 +77,15 @@ if ($warga) {
                 ->first();
         }
 
+        // ⭐ FIX: baca dulu no_antrian yang sudah ada (kalau ada) SEBELUM masuk
+        // ke blok if/elseif di bawah. Tanpa baris ini, $noAntrian selalu dianggap
+        // kosong setiap kali method download() dipanggil ulang (misalnya warga
+        // klik "Simpan QR ke Galeri" lebih dari sekali), sehingga sistem generate
+        // nomor antrian BARU tiap kali dan menimpa nomor yang sudah dikunci
+        // sebelumnya. Ini adalah penyebab utama nomor antrian jadi ikut urutan
+        // ID/CSV saat proses download dilakukan berurutan.
+        $noAntrian = $qrData->no_antrian ?? null;
+
         // Jika belum memiliki QR_id_qr (belum pernah akses/login), buat record QR baru
         if (empty($warga->QR_id_qr)) {
             DB::transaction(function () use ($warga, &$noAntrian, &$qrData) {

@@ -591,3 +591,104 @@
         box-shadow: none;
       }
     }
+
+/* ════════════════════════════════════
+   MODAL IZIN NOTIFIKASI
+════════════════════════════════════ */
+.notif-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.notif-modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.notif-modal-card {
+  background: #fff;
+  width: 90%;
+  max-width: 320px;
+  border-radius: 24px;
+  padding: 30px 24px;
+  text-align: center;
+  transform: translateY(20px);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.notif-modal-overlay.show .notif-modal-card {
+  transform: translateY(0);
+}
+
+.notif-modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: bellRing 2s infinite;
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50% { transform: rotate(15deg); }
+  20%, 40% { transform: rotate(-15deg); }
+  60% { transform: rotate(0deg); }
+}
+
+.notif-modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #3d2510;
+  margin-bottom: 12px;
+}
+
+.notif-modal-desc {
+  font-size: 13px;
+  color: #6a5742;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.notif-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ════════════════════════════════════
+   QR OVERLAY & TANGGAL HARI H
+════════════════════════════════════ */
+.qr-overlay-locked {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  z-index: 10;
+  text-align: center;
+  padding: 16px;
+}
+
+.qr-overlay-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.qr-overlay-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3d2510;
+}

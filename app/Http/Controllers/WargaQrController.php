@@ -56,9 +56,17 @@ if ($warga) {
 
 
 
-        // ── 3. Tentukan payload QR — selalu pakai format P00000 ──────────────
-        //    JANGAN pakai QR_id_qr (integer FK), pakai id_penerima
-        $idPenerima = (int) ($warga->id_penerima ?? 0);
+        // ── 3. Guard: warga harus ada ────────────────────────────────────────
+        if (!$warga || empty($warga->id_penerima)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data warga tidak ditemukan atau belum memiliki ID penerima. Hubungi admin.',
+            ], 404);
+        }
+
+        // ── 4. Tentukan payload QR — selalu pakai format P00000 ──────────────
+        //    Gunakan id_penerima dari DB (bukan QR_id_qr yang adalah FK integer)
+        $idPenerima = (int) $warga->id_penerima;
         $qrPayload  = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
 
         // ── 4. Ambil data QR (no antrian, sesi, lokasi, jam) ─────────────────
@@ -69,12 +77,33 @@ if ($warga) {
                 ->first();
         }
 
-        $noAntrian      = $qrData->no_antrian    ?? null;
+        // Jika belum memiliki QR_id_qr (belum pernah akses/login), buat record QR baru
+        if (empty($warga->QR_id_qr)) {
+            DB::transaction(function () use ($warga, &$noAntrian, &$qrData) {
+                // Ambil nomor antrian terakhir
+                $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
+                $max = (int) ($row->m ?? 0);
+                $noAntrian = $max + 1;
 
-        // Jika belum ada no_antrian pada record QR, alokasikan nomor antrian berikutnya
-        if (empty($noAntrian) && !empty($warga->QR_id_qr)) {
+                // Insert ke tabel QR
+                $idQr = DB::table('qr')->insertGetId([
+                    'no_antrian'      => $noAntrian,
+                    'dur_sesi'        => 15,
+                    'loc_pengambilan' => 'Masjid Al-Ikhlas', // Default
+                    'jam_pengambilan' => null,
+                ]);
+
+                // Update Warga
+                DB::table('warga')->where('no_kk', $warga->no_kk)->update(['QR_id_qr' => $idQr]);
+
+                // Update Distribusi
+                DB::table('distribusi')->where('warga_no_kk', $warga->no_kk)->update(['QR_id_qr' => $idQr]);
+
+                $qrData = DB::table('qr')->where('id_qr', $idQr)->first();
+            });
+        } elseif (empty($noAntrian)) {
+            // Kasus edge case: punya QR_id_qr tapi no_antrian kosong
             DB::transaction(function () use ($warga, &$noAntrian) {
-                // ambil nilai maksimum saat ini dengan kunci baris untuk mencegah race
                 $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
                 $max = (int) ($row->m ?? 0);
                 $next = $max + 1;
@@ -83,23 +112,47 @@ if ($warga) {
             });
         }
 
-        // Jika masih belum ada noAntrian (mis. tidak ada QR record), fallback ke id penerima
+        // Jika masih gagal mendapatkan nomor antrian, fallback terakhir
         if (empty($noAntrian)) {
             $noAntrian = $idPenerima;
         }
+
         $durSesi        = $qrData->dur_sesi       ?? 15; // menit, default 15
         $locPengambilan = $qrData->loc_pengambilan ?? 'Lokasi Pengambilan';
         $jamPengambilan = $qrData->jam_pengambilan ?? null;
 
-        // Hitung perkiraan jam jika belum ada
-        // Misal tracking dimulai jam tertentu, tiap orang 15 menit
+        // ── 5. Cek Pengaturan Tanggal Pelaksanaan ──────────────────────────────
+        $tanggalKurban = null;
+        if (\Illuminate\Support\Facades\Storage::disk('local')->exists('settings.json')) {
+            $settings = json_decode(\Illuminate\Support\Facades\Storage::disk('local')->get('settings.json'), true);
+            $tanggalKurban = $settings['tanggal_kurban'] ?? null;
+        }
+
+        // Cek apakah ada progress tracking (any step active/done)
+        $anyTrackingProgress = DB::table('tracking_steps')
+            ->whereIn('status', ['active', 'done'])
+            ->exists();
+
+        $isBeforeHariH = false;
+        if ($tanggalKurban) {
+            $isBeforeHariH = now()->format('Y-m-d') < $tanggalKurban;
+        } else {
+            // Fallback jika belum di-set, gunakan status tracking
+            $isBeforeHariH = !$anyTrackingProgress;
+        }
+
         if (!$jamPengambilan) {
-            // Perkiraan: urutan * durSesi menit dari jam 08:00
-            $baseMinutes    = 8 * 60; // 08:00
-            $estimasiMenit  = $baseMinutes + (($noAntrian - 1) * (int) $durSesi);
-            $jamH           = intdiv($estimasiMenit, 60) % 24;
-            $jamM           = $estimasiMenit % 60;
-            $jamPengambilan = sprintf('%02d:%02d WIB (perkiraan)', $jamH, $jamM);
+            if ($isBeforeHariH) {
+                // Belum hari H — warga login H-1 atau H-2
+                $jamPengambilan = 'Dikonfirmasi Hari H';
+            } else {
+                // Perkiraan: urutan * durSesi menit dari jam 08:00
+                $baseMinutes    = 8 * 60; // 08:00
+                $estimasiMenit  = $baseMinutes + (($noAntrian - 1) * (int) $durSesi);
+                $jamH           = intdiv($estimasiMenit, 60) % 24;
+                $jamM           = $estimasiMenit % 60;
+                $jamPengambilan = sprintf('%02d:%02d WIB (perkiraan)', $jamH, $jamM);
+            }
         } else {
             // Format dari DB
             try {
@@ -381,13 +434,49 @@ SVG;
         ]);
     }
 
+    // Buat / pastikan nomor antrian sudah di-assign (logika sama seperti di download)
+    $qrData = DB::table('qr')->where('id_qr', $warga->QR_id_qr ?? 0)->first();
+    $noAntrian = $qrData->no_antrian ?? null;
+
+    if (empty($warga->QR_id_qr)) {
+        DB::transaction(function () use ($warga, &$noAntrian, &$qrData) {
+            $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
+            $max = (int) ($row->m ?? 0);
+            $noAntrian = $max + 1;
+            $idQr = DB::table('qr')->insertGetId([
+                'no_antrian'      => $noAntrian,
+                'dur_sesi'        => 15,
+                'loc_pengambilan' => 'Masjid Al-Ikhlas',
+                'jam_pengambilan' => null,
+            ]);
+            DB::table('warga')->where('no_kk', $nkk)->update(['QR_id_qr' => $idQr]);
+            DB::table('distribusi')->where('warga_no_kk', $nkk)->update(['QR_id_qr' => $idQr]);
+            $qrData = DB::table('qr')->where('id_qr', $idQr)->first();
+            $warga->QR_id_qr = $idQr;
+        });
+    } elseif (empty($noAntrian)) {
+        DB::transaction(function () use ($warga, &$noAntrian) {
+            $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
+            $max = (int) ($row->m ?? 0);
+            $next = $max + 1;
+            DB::table('qr')->where('id_qr', $warga->QR_id_qr)->update(['no_antrian' => $next]);
+            $noAntrian = $next;
+        });
+    }
+
+    $idPenerima = (int) $warga->id_penerima;
+    $qrPayload  = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
+
     return response()->json([
         'success' => true,
         'message' => 'Login berhasil',
         'data' => [
-            'nama'  => $warga->nama_kk,
-            'nkk'   => $nkk,
-            'login' => 'sudah_login',
+            'nama'         => $warga->nama_kk,
+            'nkk'          => $nkk,
+            'login'        => 'sudah_login',
+            'id_penerima'  => $idPenerima,
+            'qrCode'       => $qrPayload,
+            'no_antrian'   => $noAntrian ?? $idPenerima,
         ]
     ]);
 }

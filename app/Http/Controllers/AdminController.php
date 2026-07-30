@@ -107,9 +107,27 @@ public function batalkanDistribusi(Request $request, $idStok)
 			], 422);
 		}
 
+		$metode = $request->input('metode') === 'QR' ? 'QR' : 'Manual';
+
+		// ── Validasi: QR scan hanya boleh jika tahap "Siap Diambil" sudah selesai ──
+		if ($metode === 'QR') {
+			$siapDiambilStep = DB::table('tracking_steps')
+				->where('urutan', 5)
+				->where('status', 'done')
+				->exists();
+
+			if (!$siapDiambilStep) {
+				return response()->json([
+					'success' => false,
+					'message' => '⏳ QR belum dapat dipindai. Proses penyembelihan kurban belum mencapai tahap "Siap Diambil". Mohon tunggu konfirmasi dari panitia.',
+					'error_code' => 'QR_NOT_READY',
+				], 422);
+			}
+		}
+
 		$updateData = [
     		'st_pengambilan'  => 'selesai',
-    		'mtd_pengambilan' => $request->input('metode') === 'QR' ? 'QR' : 'Manual',
+    		'mtd_pengambilan' => $metode,
 		];
 
 		if (Schema::hasColumn('distribusi', 'updated_at')) {
@@ -131,7 +149,6 @@ public function batalkanDistribusi(Request $request, $idStok)
             }
 		}
 
-		$metode = $request->input('metode') === 'QR' ? 'QR' : 'Manual';
 		return response()->json([
 		    'success' => true,
 		    'message' => 'Status distribusi diperbarui.',
@@ -149,13 +166,15 @@ public function batalkanDistribusi(Request $request, $idStok)
 	{
 	    try {
 	        DB::table('distribusi')->delete();
+	        DB::table('qr')->delete();
 	        DB::table('warga')->delete();
 	        DB::statement('ALTER TABLE warga AUTO_INCREMENT = 1');
 	        DB::statement('ALTER TABLE distribusi AUTO_INCREMENT = 1');
+	        DB::statement('ALTER TABLE qr AUTO_INCREMENT = 1');
 
 	        return response()->json([
 	            'success' => true,
-	            'message' => 'Semua data penerima berhasil dihapus.',
+	            'message' => 'Semua data penerima dan nomor antrian berhasil dihapus.',
 	        ]);
 	    } catch (\Exception $e) {
 	        return response()->json([
@@ -466,5 +485,161 @@ public function batalkanDistribusi(Request $request, $idStok)
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // ════════════════════════════════════════
+    // ⭐ LOOKUP WARGA BERDASARKAN QR CODE (untuk scan kamera)
+    // ════════════════════════════════════════
+    public function scanByQrCode(string $qrCode): JsonResponse
+    {
+        // Normalisasi: trim whitespace & uppercase
+        $qrCode = trim($qrCode);
+        $qrNorm = strtoupper($qrCode);
+
+        // Strategi 1: QR code format 'PXXXXX' — cari id_penerima dari kode
+        $idPenerimaFromCode = null;
+        if (preg_match('/^P0*(\d+)$/i', $qrNorm, $matches)) {
+            $idPenerimaFromCode = (int) $matches[1];
+        }
+
+        // Strategi 2: cari berdasarkan QR_id_qr di tabel warga
+        $wargaQuery = DB::table('warga as w')
+            ->leftJoin('distribusi as d', 'w.no_kk', '=', 'd.warga_no_kk')
+            ->leftJoin('qr as q', 'q.id_qr', '=', 'w.QR_id_qr');
+
+        // Cari dengan beberapa kriteria
+        $warga = null;
+
+        // Coba cocokkan dengan id_penerima dari kode P-format
+        if ($idPenerimaFromCode !== null) {
+            $warga = (clone $wargaQuery)
+                ->where('w.id_penerima', $idPenerimaFromCode)
+                ->select('w.no_kk', 'w.nama_kk', 'w.alamat', 'w.no_telp', 'w.id_penerima', 'w.QR_id_qr',
+                         'd.id_stok', 'd.st_pengambilan', 'd.mtd_pengambilan', 'q.no_antrian')
+                ->first();
+        }
+
+        // Jika belum ditemukan, coba cocokkan QR_id_qr langsung (numerik)
+        if (!$warga) {
+            $qrNumeric = preg_replace('/\D/', '', $qrCode);
+            if ($qrNumeric !== '') {
+                $warga = (clone $wargaQuery)
+                    ->where('w.QR_id_qr', $qrNumeric)
+                    ->select('w.no_kk', 'w.nama_kk', 'w.alamat', 'w.no_telp', 'w.id_penerima', 'w.QR_id_qr',
+                             'd.id_stok', 'd.st_pengambilan', 'd.mtd_pengambilan', 'q.no_antrian')
+                    ->first();
+            }
+        }
+
+        // Jika masih belum, coba cocokkan dengan no_antrian di tabel qr
+        if (!$warga && $idPenerimaFromCode !== null) {
+            $warga = (clone $wargaQuery)
+                ->where('q.no_antrian', $idPenerimaFromCode)
+                ->select('w.no_kk', 'w.nama_kk', 'w.alamat', 'w.no_telp', 'w.id_penerima', 'w.QR_id_qr',
+                         'd.id_stok', 'd.st_pengambilan', 'd.mtd_pengambilan', 'q.no_antrian')
+                ->first();
+        }
+
+        if (!$warga) {
+            return response()->json([
+                'success'   => false,
+                'message'   => "QR tidak dikenali: {$qrCode}",
+                'error_code' => 'QR_NOT_FOUND',
+                'scanned'   => $qrCode,
+            ], 404);
+        }
+
+        $claimed = in_array(strtolower($warga->st_pengambilan ?? ''), ['selesai', 'diambil']);
+        $qrCodeDisplay = $warga->QR_id_qr
+            ? ('P' . str_pad($warga->id_penerima, 5, '0', STR_PAD_LEFT))
+            : $qrCode;
+
+        return response()->json([
+            'success'         => true,
+            'claimed'         => $claimed,
+            'data'            => [
+                'no_kk'          => $warga->no_kk,
+                'nama_kk'        => $warga->nama_kk,
+                'alamat'         => $warga->alamat ?? '-',
+                'no_telp'        => $warga->no_telp ?? '-',
+                'id_penerima'    => $warga->id_penerima,
+                'id_stok'        => $warga->id_stok,
+                'qr_code'        => $qrCodeDisplay,
+                'no_antrian'     => $warga->no_antrian ?? $warga->id_penerima,
+                'st_pengambilan' => $warga->st_pengambilan ?? 'pending',
+            ],
+        ]);
+    }
+
+    // ════════════════════════════════════════
+    // ⭐ VALIDASI QR SCAN — cek apakah siap diambil
+    // ════════════════════════════════════════
+    public function getQrScanValidation(): \Illuminate\Http\JsonResponse
+    {
+        $step5 = DB::table('tracking_steps')
+            ->where('urutan', 5)
+            ->first();
+
+        $allSteps = DB::table('tracking_steps')
+            ->orderBy('urutan')
+            ->get();
+
+        $siapDiambil = $step5 && $step5->status === 'done';
+        $anyActive   = $allSteps->contains(fn($s) => in_array($s->status, ['active', 'done']));
+
+        return response()->json([
+            'success'       => true,
+            'qr_ready'      => $siapDiambil,
+            'any_progress'  => $anyActive,
+            'step5_status'  => $step5->status ?? 'pending',
+            'step5_time'    => $step5->time   ?? null,
+            'steps'         => $allSteps->map(fn($s) => [
+                'urutan' => $s->urutan,
+                'label'  => $s->label  ?? null,
+                'status' => $s->status,
+                'time'   => $s->time   ?? null,
+            ]),
+        ]);
+    }
+
+    // ════════════════════════════════════════
+    // ⭐ SETTINGS — Pengaturan Sistem (Tanggal Kurban, dll)
+    // ════════════════════════════════════════
+    public function getSettings(): \Illuminate\Http\JsonResponse
+    {
+        $defaultSettings = [
+            'tanggal_kurban' => null, // format: YYYY-MM-DD
+        ];
+
+        if (Storage::disk('local')->exists('settings.json')) {
+            $settings = json_decode(Storage::disk('local')->get('settings.json'), true);
+            $defaultSettings = array_merge($defaultSettings, $settings ?: []);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $defaultSettings,
+        ]);
+    }
+
+    public function saveSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'tanggal_kurban' => 'nullable|date_format:Y-m-d',
+        ]);
+
+        $settings = [];
+        if (Storage::disk('local')->exists('settings.json')) {
+            $settings = json_decode(Storage::disk('local')->get('settings.json'), true) ?: [];
+        }
+
+        $settings['tanggal_kurban'] = $data['tanggal_kurban'];
+        Storage::disk('local')->put('settings.json', json_encode($settings, JSON_PRETTY_PRINT));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengaturan berhasil disimpan.',
+            'data'    => $settings,
+        ]);
     }
 }

@@ -72,10 +72,11 @@
 
     <!-- Tracking Timeline -->
     <div class="scroll-area" style="position:relative;" id="dash-scroll">
-      <div style="padding:20px 20px 10px;">
-        <div style="font-size:11px;font-weight:700;color:#7a5230;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">
+      <div style="padding:20px 20px 10px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:11px;font-weight:700;color:#7a5230;text-transform:uppercase;letter-spacing:.5px;">
           📍 Status Proses Kurban
         </div>
+        <div id="warga-tgl-kurban" style="font-size:10px; font-weight:800; background:rgba(232,184,75,0.2); padding:3px 8px; border-radius:12px; color:#c8922a; display:none;"></div>
       </div>
 
       <div class="dash-track-wrap" id="dash-timeline">
@@ -386,6 +387,22 @@
   </div>
 
 
+    <!-- ════════════════════════════════════
+         MODAL IZIN NOTIFIKASI
+    ════════════════════════════════════ -->
+    <div class="notif-modal-overlay" id="notif-modal">
+      <div class="notif-modal-card">
+        <div class="notif-modal-icon">🔔</div>
+        <div class="notif-modal-title">Aktifkan Notifikasi</div>
+        <div class="notif-modal-desc">
+          Kami akan mengirimkan pengingat <b>30 menit sebelum</b> giliran Anda tiba. Jangan sampai kelewatan!
+        </div>
+        <div class="notif-modal-actions">
+          <button class="btn-primary" onclick="requestNotificationPermission()">Izinkan</button>
+          <button class="btn-ghost" onclick="closeNotifModal()">Nanti Saja</button>
+        </div>
+      </div>
+    </div>
 </div>
 
 <script src="{{ asset('js/warga-login.js') }}?v={{ filemtime(public_path('js/warga-login.js')) }}"></script>

@@ -588,14 +588,20 @@ async function submitLogin() {
 
   const qrEl = document.getElementById('qr-kode');
   if (qrEl && auth.penerima) {
+    // Prioritaskan qrCode dari server; fallback ke localStorage jika server tidak memberi
     const qrPayload = auth.penerima.qrCode || ('P' + String(auth.penerima.id_penerima || '').padStart(5, '0'));
     qrEl.textContent = qrPayload;
-    // Render QR Code asli ke canvas
-    renderQrCanvas(qrPayload, auth.penerima.id_penerima, auth.penerima.queue);
+    // Render QR Code: gunakan no_antrian dari server (bukan id_penerima)
+    const noAntrian = auth.penerima.no_antrian || auth.penerima.queue || auth.penerima.id_penerima;
+    renderQrCanvas(qrPayload, auth.penerima.id_penerima, noAntrian);
   }
 
   goto('pg-qr');
   
+  setTimeout(() => {
+      showNotifModal();
+      startNotificationCheck();
+  }, 1000);
 }
 ['inp-nkk','inp-nama'].forEach(id => {
   document.getElementById(id).addEventListener('input', function() {
@@ -794,7 +800,26 @@ function renderQrCanvas(qrPayload, idPenerima, queueNumber) {
   const estMin    = baseMin + ((noAntrian - 1) * durasi);
   const jamH      = Math.floor(estMin / 60) % 24;
   const jamM      = estMin % 60;
-  const jamStr    = String(jamH).padStart(2,'0') + ':' + String(jamM).padStart(2,'0') + ' WIB (perkiraan)';
+  
+  let jamStr = String(jamH).padStart(2,'0') + ':' + String(jamM).padStart(2,'0') + ' WIB (perkiraan)';
+
+  // Ambil setting tanggal pelaksanaan dari sessionStorage
+  const tglKurban = sessionStorage.getItem('kurbanqu_tgl_kurban');
+  const anyProgress = TIMELINE.some(t => t.status === 'active' || t.status === 'done');
+  
+  let isBeforeHariH = false;
+  if (tglKurban) {
+      isBeforeHariH = new Date().toISOString().split('T')[0] < tglKurban;
+  } else {
+      isBeforeHariH = !anyProgress;
+  }
+
+  if (isBeforeHariH) {
+      jamStr = 'Dikonfirmasi Hari H';
+  }
+
+  // Cek apakah siap diambil
+  const siapDiambil = TIMELINE.length > 4 && TIMELINE[4].status === 'done';
 
   // Isi elemen info
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -806,6 +831,25 @@ function renderQrCanvas(qrPayload, idPenerima, queueNumber) {
   // Tampilkan kotak info
   const box = document.getElementById('qr-info-box');
   if (box) box.style.display = 'block';
+
+  // Handle Overlay belum siap
+  const container = canvas.parentElement;
+  let overlay = container.querySelector('.qr-overlay-locked');
+  
+  if (!siapDiambil) {
+      if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.className = 'qr-overlay-locked';
+          overlay.innerHTML = `<div class="qr-overlay-icon">⏳</div><div class="qr-overlay-text">Belum Siap</div>`;
+          container.appendChild(overlay);
+          canvas.style.filter = 'blur(4px)';
+          canvas.style.opacity = '0.5';
+      }
+  } else {
+      if (overlay) overlay.remove();
+      canvas.style.filter = 'none';
+      canvas.style.opacity = '1';
+  }
 }
 
 async function downloadMyQr() {
@@ -955,9 +999,109 @@ renderMudhohi('Semua');
 
 // untuk bukan admin login dengan shortcut Ctrl + Shift + A
 document.addEventListener('keydown', function(e){
-
     if(e.ctrlKey && e.shiftKey && e.key === 'A'){
         window.location.href = '/admin/login';
     }
+});
 
+// ══════════════════════════════════════════
+// PUSH NOTIFICATION & TANGGAL PELAKSANAAN
+// ══════════════════════════════════════════
+function formatDateIndo(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+async function fetchSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.success && data.data.tanggal_kurban) {
+            sessionStorage.setItem('kurbanqu_tgl_kurban', data.data.tanggal_kurban);
+            const wTgl = document.getElementById('warga-tgl-kurban');
+            if (wTgl) {
+                wTgl.textContent = 'Hari H: ' + formatDateIndo(data.data.tanggal_kurban);
+                wTgl.style.display = 'block';
+            }
+        } else {
+            const wTgl = document.getElementById('warga-tgl-kurban');
+            if (wTgl) wTgl.style.display = 'none';
+        }
+    } catch(e) {}
+}
+
+let notificationCheckInterval = null;
+
+function showNotifModal() {
+    // Tampilkan modal jika browser mendukung Notification dan belum di-granted/denied
+    if ('Notification' in window && Notification.permission === 'default') {
+        const modal = document.getElementById('notif-modal');
+        if (modal) modal.classList.add('show');
+    }
+}
+
+function closeNotifModal() {
+    const modal = document.getElementById('notif-modal');
+    if (modal) modal.classList.remove('show');
+}
+
+function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(permission => {
+        closeNotifModal();
+        if (permission === 'granted') {
+            alert('Notifikasi aktif! Kami akan mengingatkan Anda.');
+            startNotificationCheck();
+        }
+    });
+}
+
+function startNotificationCheck() {
+    if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    notificationCheckInterval = setInterval(() => {
+        const warga = getCurrentWargaLogin();
+        if (!warga) return;
+
+        const tglKurban = sessionStorage.getItem('kurbanqu_tgl_kurban');
+        if (!tglKurban) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        if (today !== tglKurban) return; // Hanya trigger notif di hari H
+
+        const noAntrian = Number(warga.queue) || Number(warga.id_penerima) || 1;
+        const durasi    = 15; 
+        const baseMin   = 8 * 60; // 08:00
+        const estMin    = baseMin + ((noAntrian - 1) * durasi);
+        
+        const now = new Date();
+        const currentMin = now.getHours() * 60 + now.getMinutes();
+
+        const diff = estMin - currentMin;
+
+        // Notif 30 menit sebelumnya (trigger saat diff 30 atau 29 menit)
+        if (diff === 30 || diff === 29) {
+            const notifFired = sessionStorage.getItem('kurbanqu_notif_fired');
+            if (!notifFired) {
+                new Notification('Giliran Anda Sebentar Lagi!', {
+                    body: '30 menit menuju giliran Anda (Antrian ' + noAntrian + '). Silakan bersiap menuju lokasi.',
+                    icon: '/assets/img/FIN.png'
+                });
+                sessionStorage.setItem('kurbanqu_notif_fired', 'true');
+            }
+        }
+    }, 60000); // Check every minute
+}
+
+// Fetch settings on load
+fetchSettings().then(() => {
+    const warga = getCurrentWargaLogin();
+    if (warga && document.getElementById('pg-qr')?.classList.contains('active')) {
+        setTimeout(showNotifModal, 1500);
+        startNotificationCheck();
+    }
 });

@@ -172,6 +172,10 @@
     <div class="nav-item" onclick="navTo('rekap',this)">
       <span class="nav-ico">📈</span> Rekap & Statistik
     </div>
+    <div class="nav-section-label" style="margin-top:8px;">Pengaturan</div>
+    <div class="nav-item" onclick="navTo('settings',this)">
+      <span class="nav-ico">⚙️</span> Pengaturan Sistem
+    </div>
   </nav>
 
   <div class="sidebar-footer">
@@ -203,6 +207,18 @@
 
     <!-- ══════════════════════ DASHBOARD PAGE ══ -->
     <div class="page active" id="pg-dashboard">
+
+      <!-- Banner Tanggal Pelaksanaan -->
+      <div class="card" style="margin-bottom:18px; border-left: 4px solid var(--gold);">
+        <div class="card-body" style="padding:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:var(--text3); text-transform:uppercase; font-weight:700;">📅 Tanggal Pelaksanaan Kurban</div>
+            <div id="dash-tgl-kurban" style="font-size:18px; font-weight:800; color:var(--text); margin-top:4px;">Belum Diatur</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="navTo('settings', document.querySelector('.nav-item[onclick*=\'settings\']'))">Ubah / Hapus</button>
+        </div>
+      </div>
+
       <!-- Stats -->
       <div class="stat-grid">
         <div class="stat-card">
@@ -848,6 +864,26 @@
       <button class="modal-close" onclick="closeModal('modal-detail-hewan')">✕</button>
     </div>
     <div id="detail-hewan-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETTINGS PAGE ══ -->
+<div class="page" id="pg-settings">
+  <div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header">
+      <div class="card-title">⚙️ Pengaturan Sistem</div>
+    </div>
+    <div class="card-body">
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Tanggal Pelaksanaan Kurban</label>
+        <p style="font-size: 12px; color: var(--text3); margin-bottom: 12px;">Pilih tanggal hari H penyembelihan. Sistem akan menggunakan ini untuk menghitung mundur H-1, H-2, dsb.</p>
+        <input type="date" id="setting-tanggal-kurban" class="form-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-danger" onclick="document.getElementById('setting-tanggal-kurban').value=''; saveSettings()">Hapus Tanggal</button>
+        <button class="btn btn-gold" onclick="saveSettings()">Simpan Pengaturan</button>
+      </div>
+    </div>
   </div>
 </div>
 

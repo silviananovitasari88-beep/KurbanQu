@@ -117,9 +117,15 @@ function mergePenerimaRows(rows, mode) {
     map.set(key, normalizePenerimaRow({ ...r, nkk, nama }, id));
   });
 
-  const list = [...map.values()];
+  // Force re-indexing so that IDs strictly match the row index 1, 2, 3...
+  const list = [...map.values()].map((p, idx) => {
+    p.id_penerima = idx + 1;
+    p.qrCode = qrCodePenerima(idx + 1);
+    return p;
+  });
+
   savePenerima(list);
-  saveNextPenerimaId(nextId);
+  saveNextPenerimaId(list.length + 1);
   return list.length;
 }
 
@@ -153,7 +159,13 @@ function addPenerimaManual(nkk, nama, alamat, notelp) {
 function removePenerimaAt(index) {
   const list = loadPenerima();
   list.splice(index, 1);
+  // Re-index to ensure IDs are always strictly sequential
+  list.forEach((p, idx) => {
+    p.id_penerima = idx + 1;
+    p.qrCode = qrCodePenerima(idx + 1);
+  });
   savePenerima(list);
+  saveNextPenerimaId(list.length + 1);
 }
 
 function mergeWargaLogin(rows) {

@@ -787,26 +787,158 @@ async function loadMudhohiFromServer() {
   window.startScanner = startScanner;
   window.stopScanner = stopScanner;
 
-  // Scan result ketika QR berhasil di-scan kamera (berdasarkan qrCode penerima)
-  function showScanResultByQR(qrCode) {
-    const penerima = loadPenerima();
-    const p = penerima.find(p => (p.qrCode || '').toUpperCase() === String(qrCode).toUpperCase());
-    if (!p) {
-      document.getElementById('scan-result').innerHTML = `
+  // Scan result ketika QR berhasil di-scan kamera
+  // Cari dulu di server (database), fallback ke localStorage
+  async function showScanResultByQR(qrCode) {
+    const resultEl = document.getElementById('scan-result');
+    if (!resultEl) return;
+
+    // Tampilkan loading state
+    resultEl.innerHTML = `
+      <div style="background:rgba(200,146,42,0.08);border:1px solid rgba(200,146,42,0.3);border-radius:14px;padding:20px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
+        <div style="font-size:14px;color:var(--text2);">Mencari data untuk QR: <code>${qrCode}</code>...</div>
+      </div>`;
+
+    try {
+      // ── Query ke server ──────────────────────────────────────────────
+      const res = await fetch(`/admin/api/scan/${encodeURIComponent(qrCode.trim())}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const payload = await res.json().catch(() => ({}));
+
+      if (res.ok && payload.success) {
+        // Ditemukan di database
+        const d = payload.data;
+        _renderScanFoundUI(resultEl, d, payload.claimed);
+        return;
+      }
+
+      // ── Fallback: cari di localStorage ──────────────────────────────
+      const penerimaLocal = loadPenerima();
+      const p = penerimaLocal.find(p =>
+        (p.qrCode || '').toUpperCase() === String(qrCode).toUpperCase()
+      );
+
+      if (p) {
+        const backend = getBackendDistribusiRow(p.nkk);
+        const claimed = backend
+          ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai'
+          : penerimaClaimedSet.has(String(p.id_penerima));
+        const d = {
+          no_kk: p.nkk,
+          nama_kk: p.nama,
+          alamat: p.alamat || '-',
+          id_penerima: p.id_penerima,
+          id_stok: backend?.id_stok || null,
+          qr_code: p.qrCode,
+          no_antrian: p.id_penerima,
+          st_pengambilan: claimed ? 'selesai' : 'pending',
+        };
+        _renderScanFoundUI(resultEl, d, claimed);
+        return;
+      }
+
+      // ── Tidak ditemukan sama sekali ──────────────────────────────────
+      resultEl.innerHTML = `
         <div style="background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:14px;padding:20px;">
           <div style="display:flex;align-items:center;gap:14px;">
             <div style="font-size:36px;">❌</div>
             <div>
               <div style="font-size:17px;font-weight:700;color:var(--red);">QR Tidak Dikenali</div>
               <div style="font-size:12px;color:var(--text3);margin-top:4px;">Kode: <code>${qrCode}</code> — tidak terdaftar sebagai penerima.</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:6px;">Pastikan warga terdaftar di Daftar Penerima Kurban.</div>
             </div>
           </div>
         </div>`;
       toast('QR tidak dikenali: ' + qrCode, 'error');
-      return;
+
+    } catch (err) {
+      console.error('Gagal lookup QR:', err);
+      resultEl.innerHTML = `
+        <div style="background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:14px;padding:20px;text-align:center;">
+          <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+          <div style="font-size:13px;color:var(--red);">Gagal menghubungi server. Coba lagi.</div>
+        </div>`;
     }
-    showScanResultPenerima(p.id_penerima);
   }
+
+  function _renderScanFoundUI(resultEl, d, claimed) {
+    const nama = d.nama_kk || '-';
+    const nkk  = d.no_kk  || '-';
+    const antrian = d.no_antrian || d.id_penerima || '-';
+    const qr   = d.qr_code || '-';
+    const alamat = d.alamat && d.alamat !== '-' ? d.alamat : null;
+
+    resultEl.innerHTML = `
+      <div style="background:${claimed ? 'rgba(224,85,85,0.08)' : 'rgba(78,203,113,0.08)'};border:1px solid ${claimed ? 'rgba(224,85,85,0.3)' : 'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="width:52px;height:52px;border-radius:50%;background:${claimed ? 'rgba(224,85,85,0.15)' : 'var(--green-bg)'};display:flex;align-items:center;justify-content:center;font-size:24px;">${claimed ? '⚠️' : '✅'}</div>
+          <div style="flex:1;">
+            <div style="font-size:17px;font-weight:700;color:var(--text);">${nama}</div>
+            <div style="font-size:12px;color:var(--text3);">No KK: ${nkk} · Antrian: <strong>#${antrian}</strong></div>
+            <div style="font-size:12px;color:var(--text3);">QR: <strong>${qr}</strong></div>
+            ${alamat ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📍 ${alamat}</div>` : ''}
+          </div>
+          <span class="status-badge ${claimed ? 'status-active' : 'status-done'}" style="margin-left:auto;">${claimed ? '⚠ Sudah Diambil' : '✓ Valid'}</span>
+        </div>
+        ${claimed
+          ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
+          : (d.id_stok
+              ? `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="_confirmScanByServer(${d.id_stok},'${nkk}','${qr}')">✓ Tandai Sudah Mengambil (QR Scan)</button>`
+              : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${d.id_penerima}','QR')">✓ Tandai Sudah Mengambil (QR)</button>`
+            )
+        }
+      </div>`;
+  }
+
+  window._confirmScanByServer = async function(idStok, noKk, qrCode) {
+    try {
+      const btn = document.querySelector('#scan-result .btn-gold');
+      if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
+
+      const res = await fetch(`/admin/api/distribusi/${idStok}/manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({
+          warga_no_kk: String(noKk || '').replace(/\D/g, ''),
+          qr_id_qr: qrCode || '',
+          metode: 'QR',
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+
+      if (!res.ok && payload.error_code === 'QR_NOT_READY') {
+        toast('⏳ Belum siap: ' + payload.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Tandai Sudah Mengambil (QR Scan)'; }
+        return;
+      }
+
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.message || 'Gagal memperbarui distribusi');
+      }
+
+      toast('✅ ' + (payload.data?.nama_kk || noKk) + ' berhasil diverifikasi via QR!', 'success');
+      await refreshDistribusiSnapshot();
+      renderDashboard();
+      updateDistStats();
+      if (currentPage === 'tabel') renderTabelDistribusi();
+
+      // Re-render result panel as claimed
+      const resultEl = document.getElementById('scan-result');
+      if (resultEl) {
+        const d = payload.data || {};
+        _renderScanFoundUI(resultEl, { ...d, no_kk: noKk, qr_code: qrCode, id_stok: idStok }, true);
+      }
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Gagal konfirmasi QR', 'error');
+    }
+  };
 
   function showScanResultPenerima(idPenerima) {
     const penerima = loadPenerima();
@@ -815,21 +947,18 @@ async function loadMudhohiFromServer() {
     const key = String(p.id_penerima);
       const backend = getBackendDistribusiRow(p.nkk);
       const claimed = backend ? String(backend.st_pengambilan || '').toLowerCase() === 'selesai' : penerimaClaimedSet.has(key);
-    document.getElementById('scan-result').innerHTML = `
-      <div style="background:${claimed?'rgba(224,85,85,0.08)':'rgba(78,203,113,0.08)'};border:1px solid ${claimed?'rgba(224,85,85,0.3)':'rgba(78,203,113,0.3)'};border-radius:14px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
-          <div style="width:52px;height:52px;border-radius:50%;background:${claimed?'rgba(224,85,85,0.15)':'var(--green-bg)'};display:flex;align-items:center;justify-content:center;font-size:24px;">${claimed?'⚠️':'✅'}</div>
-          <div>
-            <div style="font-size:17px;font-weight:700;color:var(--text);">${p.nama}</div>
-            <div style="font-size:12px;color:var(--text3);">No KK: ${p.nkk} · QR: <strong>${p.qrCode}</strong></div>
-            ${p.alamat ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">📍 ${p.alamat}</div>` : ''}
-          </div>
-          <span class="status-badge ${claimed?'status-active':'status-done'}" style="margin-left:auto;">${claimed?'⚠ Sudah Diambil':'✓ Valid'}</span>
-        </div>
-        ${claimed
-          ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
-          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${p.id_penerima}','QR')">✓ Tandai Sudah Mengambil (QR)</button>`}
-      </div>`;
+    const d = {
+      no_kk: p.nkk,
+      nama_kk: p.nama,
+      alamat: p.alamat,
+      id_penerima: p.id_penerima,
+      id_stok: backend?.id_stok || null,
+      qr_code: p.qrCode,
+      no_antrian: p.id_penerima,
+      st_pengambilan: claimed ? 'selesai' : 'pending',
+    };
+    const resultEl = document.getElementById('scan-result');
+    if (resultEl) _renderScanFoundUI(resultEl, d, claimed);
   }
 
   // ─── Mark claimed untuk penerima dari Excel ───
@@ -2359,6 +2488,7 @@ function renderPenerimaPage() {
   
   // ─── INIT ──────────────────────────────────
   initDataIds();
+  loadSettings();
   loadHewanFromServer().then(() => { if (currentPage === 'hewan') renderHewanTable(); renderDashboard(); });
   loadMudhohiFromServer().then(() => { if (currentPage === 'mudhohi') renderMudhohiTable(); });
   updatePenerimaBadge();
@@ -2404,3 +2534,64 @@ function renderPenerimaPage() {
   // Initial sync and periodic polling every 5s
   syncTrackingFromServer();
   setInterval(syncTrackingFromServer, 5000);
+
+  // ─── SETTINGS ────────────────────────────────
+  function formatDateIndo(dateStr) {
+      if (!dateStr) return 'Belum Diatur';
+      const d = new Date(dateStr);
+      if (isNaN(d)) return dateStr;
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  async function loadSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.success && data.data.tanggal_kurban) {
+        const input = document.getElementById('setting-tanggal-kurban');
+        if (input) input.value = data.data.tanggal_kurban;
+        
+        const dashTgl = document.getElementById('dash-tgl-kurban');
+        if (dashTgl) dashTgl.textContent = formatDateIndo(data.data.tanggal_kurban);
+      } else {
+        const dashTgl = document.getElementById('dash-tgl-kurban');
+        if (dashTgl) dashTgl.textContent = 'Belum Diatur';
+      }
+    } catch (e) {
+      console.warn('Gagal memuat pengaturan', e);
+    }
+  }
+
+  async function saveSettings() {
+    const tanggal_kurban = document.getElementById('setting-tanggal-kurban').value;
+    try {
+      const btn = document.querySelector('#pg-settings .btn-gold');
+      if (btn) btn.textContent = 'Menyimpan...';
+
+      const res = await fetch('/admin/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ tanggal_kurban })
+      });
+      const data = await res.json();
+
+      if (btn) btn.textContent = 'Simpan Pengaturan';
+
+      if (data.success) {
+        showToast('✅ ' + data.message, 'success');
+        
+        const dashTgl = document.getElementById('dash-tgl-kurban');
+        if (dashTgl) dashTgl.textContent = formatDateIndo(tanggal_kurban);
+      } else {
+        showToast('❌ Gagal menyimpan pengaturan', 'error');
+      }
+    } catch (e) {
+      console.warn('Gagal menyimpan pengaturan', e);
+      showToast('❌ Terjadi kesalahan jaringan', 'error');
+    }
+  }

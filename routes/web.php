@@ -71,5 +71,11 @@ Route::get('/admin/api/mudhohi', [AdminController::class, 'getMudhohi']);
 Route::post('/admin/api/mudhohi', [AdminController::class, 'storeMudhohi']);
 Route::delete('/admin/api/mudhohi/{idMudhohi}', [AdminController::class, 'deleteMudhohi']);
 
+// ---- Settings & Validation ----
+Route::get('/api/settings', [AdminController::class, 'getSettings']);
+Route::post('/admin/api/settings', [AdminController::class, 'saveSettings'])->middleware('auth');
+Route::get('/api/scan-validation', [AdminController::class, 'getQrScanValidation']);
+Route::get('/admin/api/scan/{qrCode}', [AdminController::class, 'scanByQrCode'])->middleware('auth');
+
 Route::get('/api/hewan', [AdminController::class, 'getHewan']);
 Route::get('/api/mudhohi', [AdminController::class, 'getMudhohi']);

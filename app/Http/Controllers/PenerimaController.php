@@ -33,6 +33,11 @@ class PenerimaController extends Controller
             DB::beginTransaction();
 
             if ($mode === 'replace') {
+                // Hapus distribusi dulu (ada FK ke warga)
+                DB::table('distribusi')->delete();
+                // Hapus data QR antrian lama
+                DB::table('qr')->delete();
+                // Hapus data warga
                 Warga::truncate();
             }
 
@@ -40,7 +45,6 @@ class PenerimaController extends Controller
             $updated = 0;
             $failed = 0;
             $errors = [];
-            $nextId = 1;
 
             $maxId = Warga::max('id_penerima') ?? 0;
             $nextId = $maxId + 1;
@@ -71,6 +75,9 @@ class PenerimaController extends Controller
                             'no_telp'     => trim($row['notelp'] ?? ''),
                         ];
                         $updateData['QR_id_qr'] = !empty($row['qrCode']) ? null : null;
+                        if (!empty($row['id_penerima'])) {
+                            $updateData['id_penerima'] = $row['id_penerima'];
+                        }
                         DB::table('warga')->where('no_kk', $nkk)->update($updateData);
 
                         $distExists = DB::table('distribusi')
@@ -90,7 +97,7 @@ class PenerimaController extends Controller
 
                         $updated++;
                     } else {
-                        $idPenerima = $nextId++;
+                        $idPenerima = !empty($row['id_penerima']) ? $row['id_penerima'] : $nextId++;
                         $qrCode     = 'P' . str_pad((string) $idPenerima, 5, '0', STR_PAD_LEFT);
 
                         DB::table('warga')->insert([

@@ -150,17 +150,28 @@ if ($warga) {
             $isBeforeHariH = !$anyTrackingProgress;
         }
 
-        if (!$jamPengambilan) {
+       if (!$jamPengambilan) {
             if ($isBeforeHariH) {
                 // Belum hari H — warga login H-1 atau H-2
                 $jamPengambilan = 'Dikonfirmasi Hari H';
             } else {
-                // Perkiraan: urutan * durSesi menit dari jam 08:00
-                $baseMinutes    = 8 * 60; // 08:00
-                $estimasiMenit  = $baseMinutes + (($noAntrian - 1) * (int) $durSesi);
-                $jamH           = intdiv($estimasiMenit, 60) % 24;
-                $jamM           = $estimasiMenit % 60;
-                $jamPengambilan = sprintf('%02d:%02d WIB (perkiraan)', $jamH, $jamM);
+                // ✅ FIX: Ambil jam REAL saat step "Siap Diambil" (urutan 5) selesai
+                //    Formatnya "HH:MM WIB" dari TrackingController@updateStep,
+                //    diekstrak pakai regex biar aman dari format apapun.
+                $stepSiapDiambil = DB::table('tracking_steps')
+                    ->where('urutan', 5)
+                    ->where('status', 'done')
+                    ->first();
+
+                if ($stepSiapDiambil && $stepSiapDiambil->time && preg_match('/(\d{1,2}):(\d{2})/', $stepSiapDiambil->time, $m)) {
+                    $baseMinutes    = ((int) $m[1]) * 60 + (int) $m[2];
+                    $estimasiMenit  = $baseMinutes + (($noAntrian - 1) * (int) $durSesi);
+                    $jamH           = intdiv($estimasiMenit, 60) % 24;
+                    $jamM           = $estimasiMenit % 60;
+                    $jamPengambilan = sprintf('%02d:%02d WIB (perkiraan)', $jamH, $jamM);
+                } else {
+                    $jamPengambilan = 'Menunggu proses kurban selesai';
+                }
             }
         } else {
             // Format dari DB
@@ -448,7 +459,7 @@ SVG;
     $noAntrian = $qrData->no_antrian ?? null;
 
     if (empty($warga->QR_id_qr)) {
-        DB::transaction(function () use ($warga, &$noAntrian, &$qrData) {
+        DB::transaction(function () use ($warga, &$noAntrian, &$qrData, $nkk) {
             $row = DB::table('qr')->select(DB::raw('MAX(no_antrian) as m'))->lockForUpdate()->first();
             $max = (int) ($row->m ?? 0);
             $noAntrian = $max + 1;

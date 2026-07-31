@@ -809,16 +809,35 @@ function renderQrCanvas(qrPayload, idPenerima, queueNumber) {
     });
   }
 
-  // Hitung info antrian dari queue login atau id_penerima sebagai fallback
-  const noAntrian = Number(queueNumber) || Number(idPenerima) || 1;
-  const durasi    = 15; // menit default
-  const baseMin   = 8 * 60; // 08:00
-  const estMin    = baseMin + ((noAntrian - 1) * durasi);
-  const jamH      = Math.floor(estMin / 60) % 24;
-  const jamM      = estMin % 60;
-  
-  let jamStr = String(jamH).padStart(2,'0') + ':' + String(jamM).padStart(2,'0') + ' WIB (perkiraan)';
 
+// Hitung info antrian dari queue login atau id_penerima sebagai fallback
+const noAntrian = Number(queueNumber) || Number(idPenerima) || 1;
+const durasi    = 15; // menit default
+
+// ✅ FIX: cari step "Siap Diambil" dari TIMELINE (label sesuai yang di-set backend)
+const stepSiapDiambil = TIMELINE.find(t => t.label === 'Siap Diambil');
+
+let jamStr;
+
+// ✅ Ekstrak "HH:MM" dari format "HH:MM WIB" (atau format apapun) pakai regex,
+//    biar tidak gagal parse gara-gara ada tulisan "WIB" nempel di belakang.
+const timeMatch = stepSiapDiambil && stepSiapDiambil.time
+  ? String(stepSiapDiambil.time).match(/(\d{1,2}):(\d{2})/)
+  : null;
+
+if (!stepSiapDiambil || stepSiapDiambil.status !== 'done' || !timeMatch) {
+  // ✅ Belum sampai tahap "Siap Diambil" — jangan kasih jam ngasal
+  jamStr = 'Menunggu proses kurban selesai';
+} else {
+  // ✅ Ambil jam REAL dari step yang sudah 'done', bukan hardcode 08:00
+  const baseH    = Number(timeMatch[1]);
+  const baseM    = Number(timeMatch[2]);
+  const baseMin  = (baseH * 60) + baseM;
+  const estMin   = baseMin + ((noAntrian - 1) * durasi);
+  const jamH     = Math.floor(estMin / 60) % 24;
+  const jamM     = estMin % 60;
+  jamStr = String(jamH).padStart(2,'0') + ':' + String(jamM).padStart(2,'0') + ' WIB (perkiraan)';
+}
   // Ambil setting tanggal pelaksanaan dari sessionStorage
   const tglKurban = sessionStorage.getItem('kurbanqu_tgl_kurban');
   const anyProgress = TIMELINE.some(t => t.status === 'active' || t.status === 'done');

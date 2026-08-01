@@ -47,15 +47,15 @@
           <div class="ac-chip-lbl">Semua</div>
         </div>
         <div class="ac-chip" id="chip-sapi" onclick="selectAnimalChip('sapi',this)">
-          <div class="ac-chip-num" id="cnt-sapi">6</div>
+          <div class="ac-chip-num" id="cnt-sapi">-</div>
           <div class="ac-chip-lbl">Sapi</div>
         </div>
         <div class="ac-chip selected" id="chip-kambing" onclick="selectAnimalChip('kambing',this)">
-          <div class="ac-chip-num" id="cnt-kambing">7</div>
+          <div class="ac-chip-num" id="cnt-kambing">-</div>
           <div class="ac-chip-lbl">Kambing</div>
         </div>
         <div class="ac-chip" id="chip-domba" onclick="selectAnimalChip('domba',this)">
-          <div class="ac-chip-num" id="cnt-domba">8</div>
+          <div class="ac-chip-num" id="cnt-domba">-</div>
           <div class="ac-chip-lbl">Domba</div>
         </div>
       </div>
@@ -167,9 +167,8 @@
   <!-- ════════════════════════════════════
        HALAMAN QR
   ════════════════════════════════════ -->
- <div id="pg-qr" class="page" style="overflow-y:auto;">
+    <div id="pg-qr" class="page" style="overflow-y:auto; background:#3d2510;">
     <!-- Dimmed background effect with blur -->
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,#5c3d1e 0%,#3d2510 40%,#2a1a0a 100%);z-index:0;"></div>
     <div style="position:absolute;width:200px;height:200px;background:#e8b84b;border-radius:50%;top:-80px;right:-60px;opacity:0.12;z-index:0;"></div>
     <div style="position:absolute;width:120px;height:120px;background:#e8b84b;border-radius:50%;bottom:200px;left:-40px;opacity:0.08;z-index:0;"></div>
 
@@ -249,10 +248,10 @@
       <div style="height:60px;flex-shrink:0;"></div>
     </div>
 
-    <div class="scroll-area" style="position:relative;z-index:1;background:#f5f0e8;border-radius:28px 28px 0 0;margin-top:16px;padding-top:8px;">
+    <div class="scroll-area" style="position:relative;z-index:1;background:#3d2510;border-radius:28px 28px 0 0;margin-top:16px;padding-top:8px;">
       <div style="width:36px;height:4px;background:#d4c9b0;border-radius:4px;margin:10px auto 16px;"></div>
       <div style="margin:0 20px 24px;">
-        <div style="background:#faf6ee;border-radius:18px;padding:18px 20px;border:0.5px solid #e0d5c0;">
+        <div style="background:#f5ede0;border-radius:18px;padding:18px 20px;border:0.5px solid #d4bfa0;">
           <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
             <div style="width:38px;height:38px;border-radius:11px;background:#f0e8d8;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">📍</div>
             <div>

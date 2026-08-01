@@ -126,8 +126,18 @@ if ($warga) {
             $noAntrian = $idPenerima;
         }
 
-        $durSesi        = $qrData->dur_sesi       ?? 15; // menit, default 15
-        $locPengambilan = $qrData->loc_pengambilan ?? 'Lokasi Pengambilan';
+       $durSesi        = $qrData->dur_sesi       ?? 15; // menit, default 15
+
+        // ✅ FIX: ambil lokasi dari settings.json (real-time, bisa diubah admin)
+        //    bukan dari qr.loc_pengambilan yang di-hardcode saat insert
+        $locPengambilan = 'Masjid Al-Ikhlas'; // fallback default
+        if (\Illuminate\Support\Facades\Storage::disk('local')->exists('settings.json')) {
+            $settingsData = json_decode(\Illuminate\Support\Facades\Storage::disk('local')->get('settings.json'), true);
+            if (!empty($settingsData['lokasi_pengambilan'])) {
+                $locPengambilan = $settingsData['lokasi_pengambilan'];
+            }
+        }
+
         $jamPengambilan = $qrData->jam_pengambilan ?? null;
 
         // ── 5. Cek Pengaturan Tanggal Pelaksanaan ──────────────────────────────

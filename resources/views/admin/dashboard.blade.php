@@ -868,6 +868,7 @@
 </div>
 
 <!-- ══════════════════════ SETTINGS PAGE ══ -->
+
 <div class="page" id="pg-settings">
   <div class="card" style="max-width: 600px; margin: 0 auto;">
     <div class="card-header">
@@ -879,6 +880,14 @@
         <p style="font-size: 12px; color: var(--text3); margin-bottom: 12px;">Pilih tanggal hari H penyembelihan. Sistem akan menggunakan ini untuk menghitung mundur H-1, H-2, dsb.</p>
         <input type="date" id="setting-tanggal-kurban" class="form-input" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
       </div>
+
+      <!-- ✅ TAMBAHAN BARU — Lokasi Pengambilan -->
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Lokasi Pengambilan Daging</label>
+        <p style="font-size: 12px; color: var(--text3); margin-bottom: 12px;">Nama masjid/lokasi ini akan otomatis muncul di kartu QR yang dilihat warga.</p>
+        <input type="text" id="setting-lokasi-pengambilan" class="form-input" placeholder="Contoh: Masjid Al-Ikhlas" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <button class="btn btn-danger" onclick="document.getElementById('setting-tanggal-kurban').value=''; saveSettings()">Hapus Tanggal</button>
         <button class="btn btn-gold" onclick="saveSettings()">Simpan Pengaturan</button>
@@ -909,6 +918,7 @@
  * Hapus 1 data warga berdasarkan No KK
  * Data distribusi terkait juga akan ikut terhapus
  */
+
 function deleteWarga(noKk, nama) {
     if (!noKk) {
         alert('❌ No KK tidak valid');
@@ -934,6 +944,17 @@ function deleteWarga(noKk, nama) {
     .then(data => {
         if (data.success) {
             showToast(`✅ ${data.message}`, 'success');
+
+            // ✅ FIX BARU: hapus juga dari localStorage, biar Tabel Distribusi
+            //    (yang sumber datanya dari loadPenerima()/localStorage) ikut update.
+            //    Tanpa ini, data yang sudah dihapus dari database tetap muncul
+            //    di Tabel Distribusi karena localStorage-nya tidak pernah disentuh.
+            if (typeof loadPenerima === 'function' && typeof savePenerima === 'function') {
+                const normNoKk = String(noKk).replace(/\D/g, '');
+                const list = loadPenerima();
+                const filtered = list.filter(p => String(p.nkk).replace(/\D/g, '') !== normNoKk);
+                savePenerima(filtered);
+            }
             
             setTimeout(() => {
                 // Refresh semua tabel
@@ -951,6 +972,13 @@ function deleteWarga(noKk, nama) {
                 }
                 if (typeof updateBadges === 'function') {
                     updateBadges();
+                }
+                // ✅ TAMBAHAN: refresh snapshot distribusi dari server juga
+                  if (typeof updatePenerimaBadge === 'function') {
+                    updatePenerimaBadge();
+                }
+                if (typeof refreshDistribusiSnapshot === 'function') {
+                    refreshDistribusiSnapshot();
                 }
             }, 500);
         } else {

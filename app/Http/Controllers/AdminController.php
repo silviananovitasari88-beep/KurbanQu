@@ -603,12 +603,13 @@ public function batalkanDistribusi(Request $request, $idStok)
     }
 
     // ════════════════════════════════════════
-    // ⭐ SETTINGS — Pengaturan Sistem (Tanggal Kurban, dll)
+    // ⭐ SETTINGS — Pengaturan Sistem (Tanggal Kurban, Lokasi, dll)
     // ════════════════════════════════════════
     public function getSettings(): \Illuminate\Http\JsonResponse
     {
         $defaultSettings = [
-            'tanggal_kurban' => null, // format: YYYY-MM-DD
+            'tanggal_kurban'     => null, // format: YYYY-MM-DD
+            'lokasi_pengambilan' => 'Masjid Al-Ikhlas', // ✅ TAMBAHAN BARU
         ];
 
         if (Storage::disk('local')->exists('settings.json')) {
@@ -625,7 +626,8 @@ public function batalkanDistribusi(Request $request, $idStok)
     public function saveSettings(Request $request): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate([
-            'tanggal_kurban' => 'nullable|date_format:Y-m-d',
+            'tanggal_kurban'     => 'nullable|date_format:Y-m-d',
+            'lokasi_pengambilan' => 'nullable|string|max:255', // ✅ TAMBAHAN BARU
         ]);
 
         $settings = [];
@@ -634,6 +636,13 @@ public function batalkanDistribusi(Request $request, $idStok)
         }
 
         $settings['tanggal_kurban'] = $data['tanggal_kurban'];
+
+        // ✅ TAMBAHAN BARU — kalau lokasi dikirim & tidak kosong, simpan.
+        //    Kalau kosong/tidak dikirim, biarkan nilai lama (jangan ditimpa null)
+        if (!empty($data['lokasi_pengambilan'])) {
+            $settings['lokasi_pengambilan'] = $data['lokasi_pengambilan'];
+        }
+
         Storage::disk('local')->put('settings.json', json_encode($settings, JSON_PRETTY_PRINT));
 
         return response()->json([

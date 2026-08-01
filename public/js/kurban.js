@@ -242,9 +242,8 @@ function renderAnimalList(type) {
     list = ANIMALS[type] || [];
   }
   // Keep the chip counts in sync with what is currently displayed
-  updateAnimalChipCounts(list);
   currentAnimalList = list;
-  if (!list.length) { inner.innerHTML = '<div style="padding:18px;text-align:center;color:#9a8060;font-size:13px;">Tidak ada data</div>'; document.getElementById('see-more-btn').style.display='none'; return; }
+  if (!list.length) { inner.innerHTML = '<div style="padding:18px;text-align:center;color:#9a8060;font-size:13px;">⏳ Memuat data...</div>'; document.getElementById('see-more-btn').style.display='none'; return; }
 
   const showList = list.slice(0, 3);
   inner.innerHTML = showList.map(a => renderAlRow(a, type)).join('');
@@ -860,7 +859,20 @@ if (!stepSiapDiambil || stepSiapDiambil.status !== 'done' || !timeMatch) {
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setEl('qr-antrian', noAntrian);
   setEl('qr-durasi',  durasi + ' menit');
-  setEl('qr-lokasi',  'Masjid Al-Ikhlas');
+  setEl('qr-lokasi',  'Memuat...'); // placeholder netral, bukan nilai salah
+    // ✅ FIX: ambil lokasi REAL dari settings (bisa diatur admin), update begitu selesai fetch
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data && data.data.lokasi_pengambilan) {
+          setEl('qr-lokasi', data.data.lokasi_pengambilan);
+        } else {
+          setEl('qr-lokasi', 'Masjid Al-Ikhlas'); // fallback kalau settings kosong
+        }
+      })
+      .catch(() => {
+        setEl('qr-lokasi', 'Masjid Al-Ikhlas'); // fallback kalau fetch gagal
+      });
   setEl('qr-jam',     jamStr);
 
   // Tampilkan kotak info

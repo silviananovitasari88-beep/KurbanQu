@@ -352,6 +352,17 @@ async function loadMudhohiFromServer() {
     const n = new Date();
     return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ' WIB';
   }
+  // ➕ TAMBAHKAN FUNGSI INI DI BAWAH nowTime()
+function nowDateTime() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
   
   // ═══════════════════════════════════════════
   // NAVIGATION
@@ -923,6 +934,19 @@ async function loadMudhohiFromServer() {
       }
 
       toast('✅ ' + (payload.data?.nama_kk || noKk) + ' berhasil diverifikasi via QR!', 'success');
+
+       // ➕ TAMBAHKAN BLOK KODE INI DI SINI
+      const scanTime = nowDateTime(); // Ambil waktu lengkap saat scan QR
+      const penerimaList = loadPenerima();
+      const normNoKk = String(noKk || '').replace(/\D/g, '');
+      const targetP = penerimaList.find(p => String(p.nkk || '').replace(/\D/g, '') === normNoKk);
+      if (targetP) {
+          const idKey = String(targetP.id_penerima);
+          penerimaClaimTime[idKey] = scanTime; // Simpan waktu scan QR ke localStorage
+          savePenerimaDistState(); // Simpan perubahan ke localStorage
+      }
+      // ----------------------------------------
+      
       await refreshDistribusiSnapshot();
       renderDashboard();
       updateDistStats();
@@ -1189,6 +1213,21 @@ async function loadMudhohiFromServer() {
     // ── Gunakan data dari upload Excel (Penerima Kurban) ──
     const allPenerima = loadPenerima();
 
+      // ➕ TAMBAHKAN BLOK KODE INI DI SINI (untuk membersihkan data yatim piatu dari memori)
+    if (typeof backendDistribusiByKk === 'object') {
+        // Buat daftar No KK yang masih valid (ada di allPenerima)
+        const validNkkSet = new Set(allPenerima.map(p => String(p.nkk || '').replace(/\D/g, '')));
+        
+        // Filter backendDistribusiByKk: hanya pertahankan data yang warganya masih ada
+        backendDistribusiByKk = Object.fromEntries(
+            Object.entries(backendDistribusiByKk).filter(([key, value]) => {
+                const normKey = String(key || '').replace(/\D/g, '');
+                return validNkkSet.has(normKey);
+            })
+        );
+    }
+    // ── --------------------------------------------- ──
+
     let list = allPenerima.map((p, idx) => {
       const key        = String(p.id_penerima);
       const backend    = getBackendDistribusiRow(p.nkk);
@@ -1283,21 +1322,22 @@ async function loadMudhohiFromServer() {
          : `<br><span style="font-size:10px;color:var(--green);margin-top:4px;display:inline-block;font-weight:700;">✓ Sudah Login</span>`
 
       // ── st_pengambilan
-      const stBadge = r.claimed
-        ? `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(78,203,113,0.25);border-radius:8px;padding:5px 10px;">
-             <span style="font-size:13px;">${String(r.method || '').toLowerCase() === 'manual_admin' ? '👆' : '📱'}</span>
-             <div>
-               <div style="font-size:11px;font-weight:700;color:var(--green);">Sudah Diambil</div>
-               <div style="font-size:10px;color:var(--text3);">${String(r.method || '').toLowerCase() === 'manual_admin' ? 'Admin klik manual' : 'Otomatis via QR'}</div>
-             </div>
-           </div>`
-        : `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
-             <span style="font-size:13px;">⏳</span>
-             <div>
-               <div style="font-size:11px;font-weight:700;color:var(--text3);">Belum Diambil</div>
-               <div style="font-size:10px;color:var(--text3);">Menunggu pengambilan</div>
-             </div>
-           </div>`;
+     // ── st_pengambilan
+const stBadge = r.claimed
+  ? `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(78,203,113,0.25);border-radius:8px;padding:5px 10px;">
+       <span style="font-size:13px;">${['manual', 'manual_admin'].includes(String(r.method || '').toLowerCase()) ? '👆' : '📱'}</span>
+       <div>
+         <div style="font-size:11px;font-weight:700;color:var(--green);">Sudah Diambil</div>
+         <div style="font-size:10px;color:var(--text3);">${['manual', 'manual_admin'].includes(String(r.method || '').toLowerCase()) ? 'via Manual' : 'Otomatis via QR'}</div>
+       </div>
+     </div>`
+  : `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
+       <span style="font-size:13px;">⏳</span>
+       <div>
+         <div style="font-size:11px;font-weight:700;color:var(--text3);">Belum Diambil</div>
+         <div style="font-size:10px;color:var(--text3);">Menunggu pengambilan</div>
+       </div>
+     </div>`;
 
       // ── mtd_pengambilan
      const mtdBadge = String(r.method || '').toLowerCase() === 'qr'
@@ -2322,7 +2362,7 @@ function renderPenerimaPage() {
         <td style="font-size:12px;color:var(--text3);">${p.alamat || '—'}</td>
         <td style="font-size:12px;color:var(--text3);">${p.notelp || '—'}</td>
         <td><span class="status-badge ${claimed ? 'status-done' : 'status-pending'}">${claimed ? '✓ Sudah ambil' : 'Belum ambil'}</span></td>
-        <td><button class="btn btn-danger btn-sm" onclick="removePenerima(${p._idx})">Hapus</button></td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteWarga('${p.nkk}', '${p.nama}')">Hapus</button></td>
       </tr>`;
     }).join('');
   }
@@ -2544,54 +2584,135 @@ function renderPenerimaPage() {
       return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  async function loadSettings() {
-    try {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      if (data.success && data.data.tanggal_kurban) {
-        const input = document.getElementById('setting-tanggal-kurban');
-        if (input) input.value = data.data.tanggal_kurban;
-        
-        const dashTgl = document.getElementById('dash-tgl-kurban');
-        if (dashTgl) dashTgl.textContent = formatDateIndo(data.data.tanggal_kurban);
-      } else {
-        const dashTgl = document.getElementById('dash-tgl-kurban');
-        if (dashTgl) dashTgl.textContent = 'Belum Diatur';
-      }
-    } catch (e) {
-      console.warn('Gagal memuat pengaturan', e);
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    if (data.success) {
+      const input = document.getElementById('setting-tanggal-kurban');
+      if (input) input.value = data.data.tanggal_kurban || '';
+
+      const dashTgl = document.getElementById('dash-tgl-kurban');
+      if (dashTgl) dashTgl.textContent = data.data.tanggal_kurban ? formatDateIndo(data.data.tanggal_kurban) : 'Belum Diatur';
+
+      // ✅ TAMBAHAN BARU — isi field lokasi dari data settings
+      const lokasiInput = document.getElementById('setting-lokasi-pengambilan');
+      if (lokasiInput) lokasiInput.value = data.data.lokasi_pengambilan || '';
     }
+  } catch (e) {
+    console.warn('Gagal memuat pengaturan', e);
   }
+}
 
-  async function saveSettings() {
-    const tanggal_kurban = document.getElementById('setting-tanggal-kurban').value;
-    try {
-      const btn = document.querySelector('#pg-settings .btn-gold');
-      if (btn) btn.textContent = 'Menyimpan...';
+async function saveSettings() {
+  const tanggal_kurban = document.getElementById('setting-tanggal-kurban').value;
 
-      const res = await fetch('/admin/api/settings', {
-        method: 'POST',
+  // ✅ TAMBAHAN BARU — ambil nilai lokasi juga
+  const lokasi_pengambilan = document.getElementById('setting-lokasi-pengambilan')?.value?.trim() || '';
+
+  try {
+    const btn = document.querySelector('#pg-settings .btn-gold');
+    if (btn) btn.textContent = 'Menyimpan...';
+
+    const res = await fetch('/admin/api/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      // ✅ TAMBAHAN BARU — kirim lokasi_pengambilan bareng tanggal_kurban
+      body: JSON.stringify({ tanggal_kurban, lokasi_pengambilan })
+    });
+    const data = await res.json();
+
+    if (btn) btn.textContent = 'Simpan Pengaturan';
+
+    if (data.success) {
+      showToast('✅ ' + data.message, 'success');
+
+      const dashTgl = document.getElementById('dash-tgl-kurban');
+      if (dashTgl) dashTgl.textContent = tanggal_kurban ? formatDateIndo(tanggal_kurban) : 'Belum Diatur';
+    } else {
+      showToast('❌ Gagal menyimpan pengaturan', 'error');
+    }
+  } catch (e) {
+    console.warn('Gagal menyimpan pengaturan', e);
+    showToast('❌ Terjadi kesalahan jaringan', 'error');
+  }
+}
+
+/**
+ * Hapus data penerima dan distribusi terkait secara permanen
+ */
+function deleteWarga(noKk, nama) {
+    if (!noKk) {
+        showToast('❌ No KK tidak valid', 'error');
+        return;
+    }
+
+    if (!confirm(`⚠️ Yakin ingin menghapus data warga?\n\nNama: ${nama || '-'}\nNo KK: ${noKk}\n\n⚠️ Data distribusi terkait juga akan dihapus!`)) {
+        return;
+    }
+
+    showToast('⏳ Menghapus data...', 'info');
+
+    fetch(`/admin/api/warga/${encodeURIComponent(noKk)}`, {
+        method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ tanggal_kurban })
-      });
-      const data = await res.json();
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(async (data) => {
+        if (data.success) {
+            // ➕ TAMBAHKAN BARIS INI DI SINI: Paksa hapus memori global
+            confirmedPenerima = null; 
+            importedPenerima = [];
 
-      if (btn) btn.textContent = 'Simpan Pengaturan';
+            // 1. Cari penerima berdasarkan No KK di LocalStorage
+            const penerimaList = loadPenerima();
+            const normNoKk = String(noKk).replace(/\D/g, '');
+            
+            // PERBAIKAN 1: Cari dengan normalisasi angka
+            const targetP = penerimaList.find(p => String(p.nkk || '').replace(/\D/g, '') === normNoKk);
+            
+            // PERBAIKAN 2: Hapus paksa data di cache backendDistribusiByKk
+            delete backendDistribusiByKk[normNoKk];
+            delete backendDistribusiByKk[noKk];
+            
+            if (targetP) {
+                const idKey = String(targetP.id_penerima);
+                
+                penerimaClaimedSet.delete(idKey);
+                penerimaDownloadedSet.delete(idKey);
+                delete penerimaClaimMethod[idKey];
+                delete penerimaClaimTime[idKey];
+                savePenerimaDistState();
 
-      if (data.success) {
-        showToast('✅ ' + data.message, 'success');
-        
-        const dashTgl = document.getElementById('dash-tgl-kurban');
-        if (dashTgl) dashTgl.textContent = formatDateIndo(tanggal_kurban);
-      } else {
-        showToast('❌ Gagal menyimpan pengaturan', 'error');
-      }
-    } catch (e) {
-      console.warn('Gagal menyimpan pengaturan', e);
-      showToast('❌ Terjadi kesalahan jaringan', 'error');
-    }
-  }
+                removePenerimaAt(penerimaList.indexOf(targetP));
+            }
+
+            // 4. Refresh ulang data distribusi dari Server ke Frontend state
+            await refreshDistribusiSnapshot();
+
+            // 5. Render ulang semua tabel
+            renderDashboard();
+            updateDistStats();
+            renderPenerimaPage();
+            renderTabelDistribusi();
+            renderQuickScanList();
+            renderTabelDistLog();
+
+            showToast(`✅ ${data.message}`, 'success');
+        } else {
+            showToast(`❌ ${data.message || 'Gagal menghapus data'}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ Terjadi kesalahan: ' + error.message, 'error');
+    });
+}

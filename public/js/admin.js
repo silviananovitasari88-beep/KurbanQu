@@ -248,6 +248,329 @@ async function loadMudhohiFromServer() {
   let backendDistribusiLoaded = false;
   let pendingImportTempFile = '';
 
+  // ═══════════════════════════════════════════
+  // STOK KURBAN — Manajemen & Pemotongan Otomatis
+  // ═══════════════════════════════════════════
+  const STORAGE_STOK = 'kurbanqu_stok';
+
+  let STOK = {
+    stok_tersedia: 0,
+    total_masuk: 0,
+    total_keluar: 0,
+    riwayat: []
+  };
+
+  try {
+    const rawStok = localStorage.getItem(STORAGE_STOK);
+    if (rawStok) {
+      STOK = Object.assign(STOK, JSON.parse(rawStok));
+    }
+  } catch(e) {}
+
+  function saveStokLocal() {
+    try {
+      localStorage.setItem(STORAGE_STOK, JSON.stringify(STOK));
+    } catch(e) {}
+  }
+
+  async function loadStokFromServer() {
+    try {
+      const res = await fetch('/admin/api/stok', {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.success && payload.data) {
+          STOK = payload.data;
+          saveStokLocal();
+          renderStokUI();
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat data stok dari server, menggunakan local state', err);
+      renderStokUI();
+    }
+  }
+
+  function renderStokUI() {
+    const sisa = STOK.stok_tersedia || 0;
+    const masuk = STOK.total_masuk || 0;
+    const keluar = STOK.total_keluar || 0;
+
+    // 0. Dashboard banner utama
+    const elDashStokAngka = document.getElementById('dash-stok-angka');
+    if (elDashStokAngka) elDashStokAngka.textContent = sisa;
+    const elDashStokDetail = document.getElementById('dash-stok-detail');
+    if (elDashStokDetail) elDashStokDetail.textContent = `(Total Masuk: ${masuk} · Sudah Diambil: ${keluar})`;
+
+    // 1. Dashboard stat card
+    const elSStok = document.getElementById('s-stok');
+    if (elSStok) elSStok.textContent = sisa;
+    const elSStokSub = document.getElementById('s-stok-sub');
+    if (elSStokSub) elSStokSub.textContent = `Masuk: ${masuk} · Keluar: ${keluar}`;
+
+    // 2. Topbar pill
+    const elTopbarStok = document.getElementById('topbar-stok-num');
+    if (elTopbarStok) elTopbarStok.textContent = sisa;
+
+    // 3. Sidebar badge
+    const elSidebarBadge = document.getElementById('badge-stok-sidebar');
+    if (elSidebarBadge) elSidebarBadge.textContent = sisa;
+
+    // 4. Distribusi QR scanner page
+    const elDistDisplay = document.getElementById('dist-stok-display');
+    if (elDistDisplay) {
+      elDistDisplay.innerHTML = `${sisa} <span style="font-size:12px;font-weight:500;color:var(--text3);">paket</span>`;
+    }
+
+    // 5. Scanner warning jika stok 0
+    const elWarn = document.getElementById('scanner-stok-warning');
+    if (elWarn) {
+      elWarn.style.display = (sisa <= 0) ? 'flex' : 'none';
+    }
+
+    // 6. Modal summary
+    const elMSisa = document.getElementById('mstok-sisa');
+    if (elMSisa) elMSisa.textContent = sisa;
+    const elMMasuk = document.getElementById('mstok-masuk');
+    if (elMMasuk) elMMasuk.textContent = masuk;
+    const elMKeluar = document.getElementById('mstok-keluar');
+    if (elMKeluar) elMKeluar.textContent = keluar;
+
+    // 7. Modal riwayat list
+    const elRiwayat = document.getElementById('mstok-riwayat-list');
+    if (elRiwayat) {
+      const logs = STOK.riwayat || [];
+      if (!logs.length) {
+        elRiwayat.innerHTML = '<div class="empty-state" style="padding:16px;font-size:12px;"><div class="empty-ico" style="font-size:20px;">📦</div>Belum ada riwayat mutasi stok. Tambahkan stok pertama!</div>';
+      } else {
+        elRiwayat.innerHTML = logs.map(l => {
+          let badgeCol = 'var(--blue)';
+          let badgeBg = 'rgba(91,156,246,0.12)';
+          let sign = '+';
+          let labelTipe = 'Masuk';
+
+          if (l.tipe === 'keluar') {
+            badgeCol = 'var(--amber)';
+            badgeBg = 'rgba(232,184,75,0.12)';
+            sign = '-';
+            labelTipe = 'Keluar';
+          } else if (l.tipe === 'batal') {
+            badgeCol = 'var(--green)';
+            badgeBg = 'rgba(78,203,113,0.12)';
+            sign = '+';
+            labelTipe = 'Batal';
+          } else if (l.tipe === 'penyesuaian') {
+            badgeCol = '#a09cf8';
+            badgeBg = 'rgba(160,156,248,0.12)';
+            sign = '⚙️';
+            labelTipe = 'Koreksi';
+          }
+
+          const ket = l.keterangan || (l.tipe === 'masuk' ? 'Penambahan stok' : 'Pengambilan daging');
+          const waktu = l.created_at ? l.created_at.slice(0, 16) : '—';
+
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;">
+              <span style="background:${badgeBg};color:${badgeCol};padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap;">
+                ${sign} ${l.jumlah} (${labelTipe})
+              </span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${ket}">${ket}</div>
+                <div style="font-size:10px;color:var(--text3);">Sisa setelahnya: <strong style="color:var(--gold);">${l.stok_sesudah}</strong> paket</div>
+              </div>
+              <div style="font-size:10px;color:var(--text3);white-space:nowrap;">${waktu}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  function openModalTambahStok() {
+    const inpJml = document.getElementById('inp-tambah-stok-jml');
+    const inpKet = document.getElementById('inp-tambah-stok-ket');
+    if (inpJml) inpJml.value = '';
+    if (inpKet) inpKet.value = '';
+    const previewEl = document.getElementById('stok-preview-calc');
+    if (previewEl) previewEl.style.display = 'none';
+    const panelKoreksi = document.getElementById('panel-koreksi-stok');
+    if (panelKoreksi) panelKoreksi.style.display = 'none';
+
+    openModal('modal-tambah-stok');
+    loadStokFromServer();
+  }
+  window.openModalTambahStok = openModalTambahStok;
+
+  function setPresetStok(val) {
+    const inp = document.getElementById('inp-tambah-stok-jml');
+    if (inp) {
+      inp.value = val;
+      updateStokKalkulasiPreview();
+    }
+  }
+  window.setPresetStok = setPresetStok;
+
+  function updateStokKalkulasiPreview() {
+    const inp = document.getElementById('inp-tambah-stok-jml');
+    const previewEl = document.getElementById('stok-preview-calc');
+    if (!inp || !previewEl) return;
+
+    const val = parseInt(inp.value, 10);
+    if (!val || val <= 0) {
+      previewEl.style.display = 'none';
+      return;
+    }
+
+    const sisaSekarang = STOK.stok_tersedia || 0;
+    const totalBaru = sisaSekarang + val;
+
+    document.getElementById('calc-sisa-ini').textContent = sisaSekarang;
+    document.getElementById('calc-tambah-ini').textContent = val;
+    document.getElementById('calc-total-baru').textContent = totalBaru;
+    previewEl.style.display = 'block';
+  }
+  window.updateStokKalkulasiPreview = updateStokKalkulasiPreview;
+
+  // ── Number picker step & hold functions ──
+  let _stepHoldTimer = null;
+  let _stepHoldInterval = null;
+
+  function stepStok(delta) {
+    const inp = document.getElementById('inp-tambah-stok-jml');
+    if (!inp) return;
+    const cur = parseInt(inp.value, 10) || 0;
+    const next = Math.max(1, cur + delta);
+    inp.value = next;
+    updateStokKalkulasiPreview();
+  }
+  window.stepStok = stepStok;
+
+  function startStepHold(delta) {
+    stopStepHold();
+    stepStok(delta);
+    _stepHoldTimer = setTimeout(() => {
+      _stepHoldInterval = setInterval(() => stepStok(delta), 80);
+    }, 400);
+  }
+  window.startStepHold = startStepHold;
+
+  function stopStepHold() {
+    if (_stepHoldTimer) { clearTimeout(_stepHoldTimer); _stepHoldTimer = null; }
+    if (_stepHoldInterval) { clearInterval(_stepHoldInterval); _stepHoldInterval = null; }
+  }
+  window.stopStepHold = stopStepHold;
+
+  async function submitTambahStokAction() {
+    const inpJml = document.getElementById('inp-tambah-stok-jml');
+    const inpKet = document.getElementById('inp-tambah-stok-ket');
+    const jml = parseInt(inpJml?.value, 10);
+    const ket = inpKet?.value?.trim() || '';
+
+    if (!jml || jml <= 0) {
+      toast('Masukkan jumlah paket daging minimal 1', 'error');
+      inpJml?.focus();
+      return;
+    }
+
+    try {
+      const res = await fetch('/admin/api/stok/tambah', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({
+          jumlah: jml,
+          keterangan: ket || `Penyembelihan (+${jml} paket)`
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.message || 'Gagal menambahkan stok');
+      }
+
+      STOK = payload.data;
+      saveStokLocal();
+      renderStokUI();
+      if (currentPage === 'tabel') renderTabelDistribusi();
+      renderDashboard();
+
+      toast(payload.message || `Berhasil menambahkan ${jml} paket stok!`, 'success');
+      inpJml.value = '';
+      if (inpKet) inpKet.value = '';
+      const previewEl = document.getElementById('stok-preview-calc');
+      if (previewEl) previewEl.style.display = 'none';
+
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Gagal menambahkan stok', 'error');
+    }
+  }
+  window.submitTambahStokAction = submitTambahStokAction;
+
+  function toggleKoreksiStok() {
+    const p = document.getElementById('panel-koreksi-stok');
+    if (p) {
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      if (p.style.display === 'block') {
+        const inp = document.getElementById('inp-koreksi-stok-val');
+        if (inp) inp.value = STOK.stok_tersedia || 0;
+      }
+    }
+  }
+  window.toggleKoreksiStok = toggleKoreksiStok;
+
+  async function submitKoreksiStokAction() {
+    const inpVal = document.getElementById('inp-koreksi-stok-val');
+    const inpKet = document.getElementById('inp-koreksi-stok-ket');
+    const val = parseInt(inpVal?.value, 10);
+    const ket = inpKet?.value?.trim() || '';
+
+    if (isNaN(val) || val < 0) {
+      toast('Masukkan angka stok yang valid (>= 0)', 'error');
+      return;
+    }
+
+    if (!confirm(`Setel ulang sisa stok menjadi ${val} paket?`)) return;
+
+    try {
+      const res = await fetch('/admin/api/stok/atur', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+        },
+        body: JSON.stringify({
+          stok_tersedia: val,
+          keterangan: ket || 'Penyesuaian stok oleh admin'
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.message || 'Gagal koreksi stok');
+      }
+
+      STOK = payload.data;
+      saveStokLocal();
+      renderStokUI();
+      if (currentPage === 'tabel') renderTabelDistribusi();
+      renderDashboard();
+
+      toast(payload.message || `Stok berhasil disetel ke ${val}`, 'success');
+      document.getElementById('panel-koreksi-stok').style.display = 'none';
+
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Gagal koreksi stok', 'error');
+    }
+  }
+  window.submitKoreksiStokAction = submitKoreksiStokAction;
+
   async function refreshDistribusiSnapshot() {
     try {
       const response = await fetch('/admin/api/distribusi/snapshot', {
@@ -395,7 +718,7 @@ function nowDateTime() {
     if (page === 'hewan')      renderHewanTable();
     if (page === 'mudhohi')    renderMudhohiTable();
     if (page === 'tracking')   renderTracking();
-    if (page === 'distribusi') { renderScanList(); updateDistStats(); }
+    if (page === 'distribusi') { renderScanList(); updateDistStats(); renderStokUI(); }
     if (page === 'upload')     renderPenerimaPage();
     if (page === 'tabel')      { renderTabelDistribusi(); renderQuickScanList(); renderTabelDistLog(); }
     if (page === 'rekap')      renderRekap();
@@ -446,6 +769,7 @@ function nowDateTime() {
     document.getElementById('s-diambil-pct').textContent = pct + '% dari total';
     document.getElementById('s-qr').textContent       = total - diambil;
     document.getElementById('badge-distribusi').textContent = diambil;
+    renderStokUI();
   
     // Progress ring
     const circ = 2 * Math.PI * 48;
@@ -895,15 +1219,24 @@ function nowDateTime() {
         </div>
         ${claimed
           ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
-          : (d.id_stok
-              ? `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="_confirmScanByServer(${d.id_stok},'${nkk}','${qr}')">✓ Tandai Sudah Mengambil (QR Scan)</button>`
-              : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${d.id_penerima}','QR')">✓ Tandai Sudah Mengambil (QR)</button>`
-            )
+          : (STOK.stok_tersedia <= 0)
+            ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ <strong>Stok Daging Kurban Habis (0 paket)!</strong><br>Silakan tambah stok sebelum konfirmasi pengambilan.</div>
+               <button class="btn btn-gold btn-lg" style="width:100%;" onclick="openModalTambahStok()">+ Tambah Stok Daging</button>`
+            : (d.id_stok
+                ? `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="_confirmScanByServer(${d.id_stok},'${nkk}','${qr}')">✓ Tandai Sudah Mengambil (QR Scan)</button>`
+                : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${d.id_penerima}','QR')">✓ Tandai Sudah Mengambil (QR)</button>`
+              )
         }
       </div>`;
   }
 
   window._confirmScanByServer = async function(idStok, noKk, qrCode) {
+    if (STOK.stok_tersedia <= 0) {
+      toast('⚠️ Stok daging kurban habis! Silakan tambah stok terlebih dahulu.', 'error');
+      openModalTambahStok();
+      return;
+    }
+
     try {
       const btn = document.querySelector('#scan-result .btn-gold');
       if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
@@ -929,8 +1262,29 @@ function nowDateTime() {
         return;
       }
 
+      if (!res.ok && payload.error_code === 'STOK_HABIS') {
+        toast(payload.message || '⚠️ Stok daging kurban habis!', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Tandai Sudah Mengambil (QR Scan)'; }
+        if (payload.stok) {
+          STOK = payload.stok;
+          saveStokLocal();
+          renderStokUI();
+        }
+        openModalTambahStok();
+        return;
+      }
+
       if (!res.ok || !payload.success) {
         throw new Error(payload.message || 'Gagal memperbarui distribusi');
+      }
+
+      // Update stok otomatis dari response server
+      if (payload.stok) {
+        STOK = payload.stok;
+        saveStokLocal();
+        renderStokUI();
+      } else {
+        loadStokFromServer();
       }
 
       toast('✅ ' + (payload.data?.nama_kk || noKk) + ' berhasil diverifikasi via QR!', 'success');
@@ -987,6 +1341,12 @@ function nowDateTime() {
 
   // ─── Mark claimed untuk penerima dari Excel ───
   function markPenerimaClaimed(idPenerima, method) {
+    if (STOK.stok_tersedia <= 0) {
+      toast('⚠️ Stok daging kurban habis! Silakan tambah stok terlebih dahulu.', 'error');
+      openModalTambahStok();
+      return;
+    }
+
     const penerima = loadPenerima();
     const p = penerima.find(p => String(p.id_penerima) === String(idPenerima));
     if (!p) return;
@@ -1002,6 +1362,23 @@ function nowDateTime() {
     const backend = getBackendDistribusiRow(p.nkk);
     if (backend && backend.id_stok) {
         markDistribusiDenganMetode(backend.id_stok, p.nkk, p.qrCode, mt);
+    } else {
+        // Jika offline / tanpa backend row, kurangi stok lokal
+        if (STOK.stok_tersedia > 0) {
+            STOK.stok_tersedia = Math.max(0, STOK.stok_tersedia - 1);
+            STOK.total_keluar = (STOK.total_keluar || 0) + 1;
+            STOK.riwayat.unshift({
+                id: Date.now(),
+                tipe: 'keluar',
+                jumlah: 1,
+                stok_sebelum: STOK.stok_tersedia + 1,
+                stok_sesudah: STOK.stok_tersedia,
+                keterangan: `Pengambilan (${mt}) - ${p.nama}`,
+                created_at: nowDateTime()
+            });
+            saveStokLocal();
+            renderStokUI();
+        }
     }
 
     penerimaDistLog.unshift({ nama: p.nama, nkk: p.nkk, time: penerimaClaimTime[key], method: mt });
@@ -1028,6 +1405,12 @@ function nowDateTime() {
                 metode: method, // ← kirim metode
             }),
         });
+        const payload = await response.json().catch(() => ({}));
+        if (payload && payload.stok) {
+            STOK = payload.stok;
+            saveStokLocal();
+            renderStokUI();
+        }
         await refreshDistribusiSnapshot();
         if (currentPage === 'tabel') renderTabelDistribusi();
     } catch (error) {
@@ -1036,6 +1419,12 @@ function nowDateTime() {
 }
 
   async function markDistribusiManual(idStok, noKk, qrCode) {
+    if (STOK.stok_tersedia <= 0) {
+      toast('⚠️ Stok daging kurban habis! Silakan tambah stok terlebih dahulu.', 'error');
+      openModalTambahStok();
+      return;
+    }
+
     try {
       const response = await fetch(`/admin/api/distribusi/${encodeURIComponent(idStok)}/manual`, {
         method: 'POST',
@@ -1052,8 +1441,27 @@ function nowDateTime() {
       });
 
       const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok && payload.error_code === 'STOK_HABIS') {
+        toast(payload.message || '⚠️ Stok daging kurban habis!', 'error');
+        if (payload.stok) {
+          STOK = payload.stok;
+          saveStokLocal();
+          renderStokUI();
+        }
+        openModalTambahStok();
+        return;
+      }
+
       if (!response.ok || !payload.success) {
         throw new Error(payload.message || 'Gagal memperbarui status distribusi');
+      }
+
+      // Update stok otomatis dari response server
+      if (payload.stok) {
+        STOK = payload.stok;
+        saveStokLocal();
+        renderStokUI();
       }
 
       const key = String(noKk || '').replace(/\D/g, '');
@@ -1104,11 +1512,26 @@ function nowDateTime() {
         warga_no_kk: targetP.nkk
     }),
 })
-.then(() => refreshDistribusiSnapshot())
+.then(res => res.json())
+.then(payload => {
+    if (payload && payload.stok) {
+        STOK = payload.stok;
+        saveStokLocal();
+        renderStokUI();
+    }
+    return refreshDistribusiSnapshot();
+})
 .then(() => {
     if (currentPage === 'tabel') renderTabelDistribusi();
+    renderDashboard();
 });
         }
+    } else {
+        // Fallback offline: restore 1 stok
+        STOK.stok_tersedia = (STOK.stok_tersedia || 0) + 1;
+        STOK.total_keluar = Math.max(0, (STOK.total_keluar || 1) - 1);
+        saveStokLocal();
+        renderStokUI();
     }
 
     updateDistStats();
@@ -1276,17 +1699,20 @@ function nowDateTime() {
 
     document.getElementById('tabel-chips').innerHTML = [
       [`🗂 Total`, total, 'var(--text2)', 'var(--bg4)'],
+      [`🥩 Sisa Stok`, (STOK.stok_tersedia || 0) + ' paket', 'var(--gold)', 'rgba(200,146,42,0.15)'],
       [`✅ Diambil`, diambil, 'var(--green)', 'var(--green-bg)'],
       [`⏳ Belum`, total - diambil, 'var(--amber)', 'var(--amber-bg)'],
       [`⬇ QR Download`, dlCount, 'var(--blue)', 'rgba(91,156,246,0.1)'],
       [`📱 Via QR`, qrAuto, 'var(--blue)', 'rgba(91,156,246,0.08)'],
       [`👆 Manual`, manual, 'var(--gold2)', 'var(--gold-dim)'],
-    ].map(([lbl, val, col, bg]) =>
-      `<div style="background:${bg};border:1px solid ${col}22;border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:7px;">
+    ].map(([lbl, val, col, bg]) => {
+      const isStok = lbl.includes('Stok');
+      return `<div style="background:${bg};border:1px solid ${col}33;border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:7px;cursor:${isStok?'pointer':'default'};" ${isStok?'onclick="openModalTambahStok()" title="Klik untuk kelola / tambah stok"':''}>
         <span style="font-size:12px;color:var(--text3);">${lbl}</span>
         <strong style="font-size:14px;color:${col};">${val}</strong>
-      </div>`
-    ).join('');
+        ${isStok ? '<span style="font-size:10px;background:rgba(200,146,42,0.25);padding:1px 6px;border-radius:10px;color:var(--gold);margin-left:2px;">+ Tambah</span>' : ''}
+      </div>`;
+    }).join('');
 
     const tbody = document.getElementById('tabel-distribusi-body');
     const empty = document.getElementById('tabel-empty');
@@ -1494,7 +1920,10 @@ const stBadge = r.claimed
         </div>
         ${claimed
           ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;">Penerima ini <strong>sudah mengambil</strong> daging kurbannya.</div>`
-          : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${p.id_penerima}','Manual');showTabelScanResult('${p.id_penerima}');renderTabelDistribusi();">👆 Tandai Sudah Mengambil</button>`}
+          : (STOK.stok_tersedia <= 0)
+            ? `<div style="font-size:13px;color:var(--red);background:rgba(224,85,85,0.08);padding:10px 14px;border-radius:8px;margin-bottom:10px;">⚠️ <strong>Stok Daging Kurban Habis (0 paket)!</strong><br>Silakan tambah stok sebelum menandai.</div>
+               <button class="btn btn-gold btn-lg" style="width:100%;" onclick="openModalTambahStok()">+ Tambah Stok Daging</button>`
+            : `<button class="btn btn-gold btn-lg" style="width:100%;" onclick="markPenerimaClaimed('${p.id_penerima}','Manual');showTabelScanResult('${p.id_penerima}');renderTabelDistribusi();">👆 Tandai Sudah Mengambil</button>`}
       </div>`;
     renderTabelDistLog();
   }
@@ -2487,6 +2916,7 @@ function renderPenerimaPage() {
       renderTabelDistribusi();
       renderQuickScanList();
       renderTabelDistLog();
+      loadStokFromServer();
       toast('Semua data penerima berhasil dihapus', 'success');
     }).catch(error => {
       console.error(error);
@@ -2529,6 +2959,7 @@ function renderPenerimaPage() {
   // ─── INIT ──────────────────────────────────
   initDataIds();
   loadSettings();
+  loadStokFromServer();
   loadHewanFromServer().then(() => { if (currentPage === 'hewan') renderHewanTable(); renderDashboard(); });
   loadMudhohiFromServer().then(() => { if (currentPage === 'mudhohi') renderMudhohiTable(); });
   updatePenerimaBadge();
@@ -2541,6 +2972,7 @@ function renderPenerimaPage() {
   // ── Auto-refresh snapshot dari DB setiap 10 detik (realtime status download & scan)
   setInterval(async () => {
     await refreshDistribusiSnapshot();
+    await loadStokFromServer();
     // Re-render tabel distribusi jika sedang aktif
     if (document.getElementById('pg-distribusi')?.classList.contains('active') ||
         document.getElementById('pg-tabel-distribusi')?.classList.contains('active')) {
@@ -2705,6 +3137,7 @@ function deleteWarga(noKk, nama) {
             renderTabelDistribusi();
             renderQuickScanList();
             renderTabelDistLog();
+            loadStokFromServer();
 
             showToast(`✅ ${data.message}`, 'success');
         } else {

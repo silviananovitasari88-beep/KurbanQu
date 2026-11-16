@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Warga;
 use Illuminate\Support\Facades\Log;
@@ -18,9 +19,17 @@ public function dashboard()
     return view('admin.dashboard');
 }
 
-// Batalkan pengambilan (set status kembali ke pending)
+// Batalkan pengambilan (set status kembali ke pending dan kembalikan stok +1)
 public function batalkanDistribusi(Request $request, $idStok)
 {
+    $row = DB::table('distribusi')->where('id_stok', $idStok)->first();
+    if ($row && in_array(strtolower($row->st_pengambilan ?? ''), ['selesai', 'diambil'])) {
+        $wargaNama = DB::table('warga')->where('no_kk', $row->warga_no_kk)->value('nama_kk') ?? $row->warga_no_kk;
+        $stokData = $this->tambahStokInternal(1, "Pembatalan distribusi #{$idStok} - {$wargaNama} (KK: {$row->warga_no_kk})", 'batal', $row->warga_no_kk);
+    } else {
+        $stokData = $this->getStokDataInternal();
+    }
+
     DB::table('distribusi')
         ->where('id_stok', $idStok)
         ->update([
@@ -28,7 +37,10 @@ public function batalkanDistribusi(Request $request, $idStok)
             'mtd_pengambilan' => null,
         ]);
 
-    return response()->json(['success' => true]);
+    return response()->json([
+        'success' => true,
+        'stok'    => $stokData,
+    ]);
 }
 
 	public function distribusiSnapshot(): JsonResponse
@@ -125,6 +137,25 @@ public function batalkanDistribusi(Request $request, $idStok)
 			}
 		}
 
+		// ── Validasi & Pemotongan Stok Otomatis ──
+		$isAlreadyClaimed = in_array(strtolower($row->st_pengambilan ?? ''), ['selesai', 'diambil']);
+		if (!$isAlreadyClaimed) {
+			$stokData = $this->getStokDataInternal();
+			if ($stokData['stok_tersedia'] <= 0) {
+				return response()->json([
+					'success' => false,
+					'error_code' => 'STOK_HABIS',
+					'message' => '⚠️ Stok daging kurban saat ini kosong (0 paket)! Silakan tambah stok terlebih dahulu sebelum verifikasi pengambilan.',
+					'stok' => $stokData,
+				], 422);
+			}
+
+			$wargaNama = DB::table('warga')->where('no_kk', $row->warga_no_kk)->value('nama_kk') ?? $row->warga_no_kk;
+			$stokData = $this->kurangiStokInternal(1, "Pengambilan ({$metode}) - {$wargaNama} (KK: {$row->warga_no_kk})", $row->warga_no_kk);
+		} else {
+			$stokData = $this->getStokDataInternal();
+		}
+
 		$updateData = [
     		'st_pengambilan'  => 'selesai',
     		'mtd_pengambilan' => $metode,
@@ -152,6 +183,7 @@ public function batalkanDistribusi(Request $request, $idStok)
 		return response()->json([
 		    'success' => true,
 		    'message' => 'Status distribusi diperbarui.',
+		    'stok' => $stokData,
 		    'data' => [
 		        'id_stok' => $idStok,
 		        'warga_no_kk' => $data['warga_no_kk'],
@@ -649,6 +681,355 @@ public function batalkanDistribusi(Request $request, $idStok)
             'success' => true,
             'message' => 'Pengaturan berhasil disimpan.',
             'data'    => $settings,
+        ]);
+    }
+
+    // ════════════════════════════════════════
+    // ⭐ STOK KURBAN — Manajemen & Pemotongan Otomatis
+    // ════════════════════════════════════════
+
+    private function initStokTables(): void
+    {
+        try {
+            if (!Schema::hasTable('stok_kurban')) {
+                Schema::create('stok_kurban', function (Blueprint $table) {
+                    $table->id();
+                    $table->integer('stok_tersedia')->default(0);
+                    $table->integer('total_masuk')->default(0);
+                    $table->integer('total_keluar')->default(0);
+                    $table->timestamps();
+                });
+
+                DB::table('stok_kurban')->insert([
+                    'id'            => 1,
+                    'stok_tersedia' => 0,
+                    'total_masuk'   => 0,
+                    'total_keluar'  => 0,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+            }
+
+            if (!Schema::hasTable('stok_log')) {
+                Schema::create('stok_log', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('tipe', 30)->default('masuk'); // masuk, keluar, batal, penyesuaian
+                    $table->integer('jumlah');
+                    $table->integer('stok_sebelum');
+                    $table->integer('stok_sesudah');
+                    $table->string('keterangan')->nullable();
+                    $table->string('referensi')->nullable();
+                    $table->timestamps();
+                });
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Gagal inisialisasi tabel stok di database: ' . $e->getMessage());
+        }
+    }
+
+    private function getStokDataInternal(): array
+    {
+        $this->initStokTables();
+
+        try {
+            if (Schema::hasTable('stok_kurban')) {
+                $row = DB::table('stok_kurban')->where('id', 1)->first();
+                if ($row) {
+                    $logs = [];
+                    if (Schema::hasTable('stok_log')) {
+                        $logs = DB::table('stok_log')
+                            ->orderBy('id', 'desc')
+                            ->limit(50)
+                            ->get()
+                            ->map(fn($l) => [
+                                'id'           => $l->id,
+                                'tipe'         => $l->tipe,
+                                'jumlah'       => (int) $l->jumlah,
+                                'stok_sebelum' => (int) $l->stok_sebelum,
+                                'stok_sesudah' => (int) $l->stok_sesudah,
+                                'keterangan'   => $l->keterangan,
+                                'referensi'    => $l->referensi,
+                                'created_at'   => (string) $l->created_at,
+                            ])
+                            ->all();
+                    }
+
+                    $data = [
+                        'stok_tersedia' => (int) $row->stok_tersedia,
+                        'total_masuk'   => (int) $row->total_masuk,
+                        'total_keluar'  => (int) $row->total_keluar,
+                        'riwayat'       => $logs,
+                    ];
+
+                    Storage::disk('local')->put('stok.json', json_encode($data, JSON_PRETTY_PRINT));
+                    return $data;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Gagal query stok DB: ' . $e->getMessage());
+        }
+
+        // Fallback file JSON
+        if (Storage::disk('local')->exists('stok.json')) {
+            $json = json_decode(Storage::disk('local')->get('stok.json'), true);
+            if (is_array($json)) {
+                return array_merge([
+                    'stok_tersedia' => 0,
+                    'total_masuk'   => 0,
+                    'total_keluar'  => 0,
+                    'riwayat'       => [],
+                ], $json);
+            }
+        }
+
+        return [
+            'stok_tersedia' => 0,
+            'total_masuk'   => 0,
+            'total_keluar'  => 0,
+            'riwayat'       => [],
+        ];
+    }
+
+    private function tambahStokInternal(int $jumlah, ?string $keterangan = null, string $tipe = 'masuk', ?string $referensi = null): array
+    {
+        $this->initStokTables();
+        $now = now();
+
+        try {
+            if (Schema::hasTable('stok_kurban')) {
+                $row = DB::table('stok_kurban')->where('id', 1)->first();
+                $sebelum = $row ? (int) $row->stok_tersedia : 0;
+                $masukLama = $row ? (int) $row->total_masuk : 0;
+                $sesudah = $sebelum + $jumlah;
+
+                $update = [
+                    'stok_tersedia' => $sesudah,
+                    'updated_at'    => $now,
+                ];
+                if ($tipe === 'masuk') {
+                    $update['total_masuk'] = $masukLama + $jumlah;
+                }
+
+                if ($row) {
+                    DB::table('stok_kurban')->where('id', 1)->update($update);
+                } else {
+                    $update['id'] = 1;
+                    $update['created_at'] = $now;
+                    $update['total_keluar'] = 0;
+                    DB::table('stok_kurban')->insert($update);
+                }
+
+                if (Schema::hasTable('stok_log')) {
+                    DB::table('stok_log')->insert([
+                        'tipe'         => $tipe,
+                        'jumlah'       => $jumlah,
+                        'stok_sebelum' => $sebelum,
+                        'stok_sesudah' => $sesudah,
+                        'keterangan'   => $keterangan,
+                        'referensi'    => $referensi,
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ]);
+                }
+
+                return $this->getStokDataInternal();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Gagal tambahStokInternal DB: ' . $e->getMessage());
+        }
+
+        // Fallback JSON file
+        $data = $this->getStokDataInternal();
+        $sebelum = (int) $data['stok_tersedia'];
+        $sesudah = $sebelum + $jumlah;
+        $data['stok_tersedia'] = $sesudah;
+        if ($tipe === 'masuk') {
+            $data['total_masuk'] = (int) $data['total_masuk'] + $jumlah;
+        }
+        array_unshift($data['riwayat'], [
+            'id'           => time(),
+            'tipe'         => $tipe,
+            'jumlah'       => $jumlah,
+            'stok_sebelum' => $sebelum,
+            'stok_sesudah' => $sesudah,
+            'keterangan'   => $keterangan,
+            'referensi'    => $referensi,
+            'created_at'   => $now->toDateTimeString(),
+        ]);
+        Storage::disk('local')->put('stok.json', json_encode($data, JSON_PRETTY_PRINT));
+        return $data;
+    }
+
+    private function kurangiStokInternal(int $jumlah = 1, ?string $keterangan = null, ?string $referensi = null): array
+    {
+        $this->initStokTables();
+        $now = now();
+
+        try {
+            if (Schema::hasTable('stok_kurban')) {
+                $row = DB::table('stok_kurban')->where('id', 1)->first();
+                $sebelum = $row ? (int) $row->stok_tersedia : 0;
+                $keluarLama = $row ? (int) $row->total_keluar : 0;
+                $sesudah = max(0, $sebelum - $jumlah);
+
+                $update = [
+                    'stok_tersedia' => $sesudah,
+                    'total_keluar'  => $keluarLama + $jumlah,
+                    'updated_at'    => $now,
+                ];
+
+                if ($row) {
+                    DB::table('stok_kurban')->where('id', 1)->update($update);
+                } else {
+                    $update['id'] = 1;
+                    $update['total_masuk'] = 0;
+                    $update['created_at'] = $now;
+                    DB::table('stok_kurban')->insert($update);
+                }
+
+                if (Schema::hasTable('stok_log')) {
+                    DB::table('stok_log')->insert([
+                        'tipe'         => 'keluar',
+                        'jumlah'       => $jumlah,
+                        'stok_sebelum' => $sebelum,
+                        'stok_sesudah' => $sesudah,
+                        'keterangan'   => $keterangan,
+                        'referensi'    => $referensi,
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ]);
+                }
+
+                return $this->getStokDataInternal();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Gagal kurangiStokInternal DB: ' . $e->getMessage());
+        }
+
+        // Fallback JSON file
+        $data = $this->getStokDataInternal();
+        $sebelum = (int) $data['stok_tersedia'];
+        $sesudah = max(0, $sebelum - $jumlah);
+        $data['stok_tersedia'] = $sesudah;
+        $data['total_keluar'] = (int) $data['total_keluar'] + $jumlah;
+        array_unshift($data['riwayat'], [
+            'id'           => time(),
+            'tipe'         => 'keluar',
+            'jumlah'       => $jumlah,
+            'stok_sebelum' => $sebelum,
+            'stok_sesudah' => $sesudah,
+            'keterangan'   => $keterangan,
+            'referensi'    => $referensi,
+            'created_at'   => $now->toDateTimeString(),
+        ]);
+        Storage::disk('local')->put('stok.json', json_encode($data, JSON_PRETTY_PRINT));
+        return $data;
+    }
+
+    private function aturStokInternal(int $stokTersedia, ?string $keterangan = null): array
+    {
+        $this->initStokTables();
+        $now = now();
+        $stokTersedia = max(0, $stokTersedia);
+
+        try {
+            if (Schema::hasTable('stok_kurban')) {
+                $row = DB::table('stok_kurban')->where('id', 1)->first();
+                $sebelum = $row ? (int) $row->stok_tersedia : 0;
+
+                $update = [
+                    'stok_tersedia' => $stokTersedia,
+                    'updated_at'    => $now,
+                ];
+
+                if ($row) {
+                    DB::table('stok_kurban')->where('id', 1)->update($update);
+                } else {
+                    $update['id'] = 1;
+                    $update['total_masuk'] = $stokTersedia;
+                    $update['total_keluar'] = 0;
+                    $update['created_at'] = $now;
+                    DB::table('stok_kurban')->insert($update);
+                }
+
+                if (Schema::hasTable('stok_log')) {
+                    DB::table('stok_log')->insert([
+                        'tipe'         => 'penyesuaian',
+                        'jumlah'       => abs($stokTersedia - $sebelum),
+                        'stok_sebelum' => $sebelum,
+                        'stok_sesudah' => $stokTersedia,
+                        'keterangan'   => $keterangan ?: 'Koreksi stok oleh admin',
+                        'referensi'    => null,
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ]);
+                }
+
+                return $this->getStokDataInternal();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Gagal aturStokInternal DB: ' . $e->getMessage());
+        }
+
+        $data = $this->getStokDataInternal();
+        $sebelum = (int) $data['stok_tersedia'];
+        $data['stok_tersedia'] = $stokTersedia;
+        array_unshift($data['riwayat'], [
+            'id'           => time(),
+            'tipe'         => 'penyesuaian',
+            'jumlah'       => abs($stokTersedia - $sebelum),
+            'stok_sebelum' => $sebelum,
+            'stok_sesudah' => $stokTersedia,
+            'keterangan'   => $keterangan ?: 'Koreksi stok oleh admin',
+            'referensi'    => null,
+            'created_at'   => $now->toDateTimeString(),
+        ]);
+        Storage::disk('local')->put('stok.json', json_encode($data, JSON_PRETTY_PRINT));
+        return $data;
+    }
+
+    public function getStok(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => $this->getStokDataInternal(),
+        ]);
+    }
+
+    public function tambahStok(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'jumlah'     => ['required', 'integer', 'min:1'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $keterangan = trim($data['keterangan'] ?? '');
+        if ($keterangan === '') {
+            $keterangan = 'Penambahan stok kurban';
+        }
+
+        $updated = $this->tambahStokInternal($data['jumlah'], $keterangan, 'masuk');
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menambahkan {$data['jumlah']} paket stok. Sisa stok sekarang: {$updated['stok_tersedia']} paket.",
+            'data'    => $updated,
+        ]);
+    }
+
+    public function aturStok(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'stok_tersedia' => ['required', 'integer', 'min:0'],
+            'keterangan'    => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $updated = $this->aturStokInternal($data['stok_tersedia'], $data['keterangan'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Stok berhasil disetel menjadi {$data['stok_tersedia']} paket.",
+            'data'    => $updated,
         ]);
     }
 }

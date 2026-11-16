@@ -70,10 +70,106 @@ async function fetchTrackingFromServer() {
   } catch (e) { /* silent fail */ }
 }
 
+// ══ FLIP CLOCK STOK WARGA ══════════════════════════════
+let _wargaStokSebelumnya = -1;
+
+function buatFlipDigit(angka) {
+  return `<div class="flip-digit" data-val="${angka}">
+    <div class="flip-front">${angka}</div>
+    <div class="flip-back">${angka}</div>
+    <div class="fold-top" style="background:linear-gradient(to bottom,#f8f8f8 0%,#f0f0f0 100%);border-radius:7px 7px 0 0;position:absolute;top:0;left:0;right:0;height:50%;overflow:hidden;z-index:2;transform-origin:bottom center;">
+      <div class="fold-top-inner" style="font-size:22px;font-weight:900;font-family:'Syne',sans-serif;color:#2e7d32;width:100%;height:200%;display:flex;align-items:center;justify-content:center;padding-top:0;">${angka}</div>
+    </div>
+    <div class="fold-bottom" style="background:linear-gradient(to bottom,#efefef 0%,#e8e8e8 100%);border-radius:0 0 7px 7px;position:absolute;bottom:0;left:0;right:0;height:50%;overflow:hidden;z-index:2;transform-origin:top center;transform:rotateX(90deg);">
+      <div class="fold-bottom-inner" style="font-size:22px;font-weight:900;font-family:'Syne',sans-serif;color:#2e7d32;width:100%;height:200%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:0;margin-top:-100%;">${angka}</div>
+    </div>
+  </div>`;
+}
+
+function renderFlipClock(nilaiLama, nilaiBaru) {
+  const wrap = document.getElementById('warga-stok-flip-wrap');
+  const label = document.getElementById('warga-stok-label');
+  const card = document.getElementById('warga-stok-card');
+  if (!wrap) return;
+
+  const str = String(Math.max(0, nilaiBaru));
+  const strLama = String(Math.max(0, nilaiLama < 0 ? nilaiBaru : nilaiLama));
+
+  // Pad kiri agar panjang sama
+  const maxLen = Math.max(str.length, strLama.length, 1);
+  const strPad = str.padStart(maxLen, '0');
+  const strLamaPad = strLama.padStart(maxLen, '0');
+
+  // Build HTML digit slots
+  wrap.innerHTML = strPad.split('').map((digit, i) => buatFlipDigit(strLamaPad[i] || '0')).join('');
+
+  // Lalu animasikan digit yang berubah
+  const digits = wrap.querySelectorAll('.flip-digit');
+  digits.forEach((el, i) => {
+    const digitLama = strLamaPad[i] || '0';
+    const digitBaru = strPad[i] || '0';
+
+    el.querySelector('.flip-front').textContent = digitLama;
+    el.querySelector('.flip-back').textContent = digitBaru;
+    const topInner = el.querySelector('.fold-top-inner');
+    const botInner = el.querySelector('.fold-bottom-inner');
+    if (topInner) topInner.textContent = digitLama;
+    if (botInner) botInner.textContent = digitBaru;
+
+    if (digitLama !== digitBaru) {
+      el.classList.add('flipping');
+      setTimeout(() => {
+        el.classList.remove('flipping');
+        el.querySelector('.flip-front').textContent = digitBaru;
+        if (topInner) topInner.textContent = digitBaru;
+        if (botInner) botInner.textContent = digitBaru;
+      }, 400);
+    }
+  });
+
+  // Update warna stok
+  if (nilaiBaru <= 0) {
+    wrap.classList.add('stok-habis');
+    if (label) { label.textContent = 'Stok Habis'; label.style.color = '#c62828'; }
+    if (card) card.style.borderColor = 'rgba(198,40,40,0.25)';
+  } else {
+    wrap.classList.remove('stok-habis');
+    if (label) { label.textContent = 'Paket Siap Ambil'; label.style.color = '#2e7d32'; }
+    if (card) card.style.borderColor = 'rgba(122,82,48,0.15)';
+  }
+}
+
+async function fetchStokFromServer() {
+  try {
+    const res = await fetch('/api/stok', { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.success && data.data) {
+      const sisa = Number(data.data.stok_tersedia) || 0;
+      // Flip clock animation
+      renderFlipClock(_wargaStokSebelumnya, sisa);
+      _wargaStokSebelumnya = sisa;
+      // Tetap update warga-stok-count untuk backward compat
+      const cnt = document.getElementById('warga-stok-count');
+      if (cnt) cnt.textContent = sisa;
+      const desc = document.getElementById('warga-stok-status-desc');
+      if (desc) {
+        desc.textContent = sisa > 0
+          ? 'Siap diambil dengan menunjukkan QR'
+          : 'Sedang dipersiapkan oleh panitia';
+      }
+      const card = document.getElementById('warga-stok-card');
+      if (card) card.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
 // Polling setiap 30 detik
 setInterval(fetchTrackingFromServer, 30000);
+setInterval(fetchStokFromServer, 30000);
 // Load sekali saat halaman dibuka
 fetchTrackingFromServer();
+fetchStokFromServer();
 
 
 const STORAGE_HEWAN = 'kurbanqu_hewan';

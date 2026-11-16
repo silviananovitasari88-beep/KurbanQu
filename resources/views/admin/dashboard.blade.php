@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<link rel="stylesheet" href="{{ asset('css/admin.css') }}" />
+<link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ filemtime(public_path('css/admin.css')) }}" />
 
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- CSS UNTUK FITUR HAPUS -->
@@ -161,6 +161,10 @@
       <span class="nav-ico">🎫</span> Distribusi QR
       <span class="nav-badge" id="badge-distribusi">0</span>
     </div>
+    <div class="nav-item" onclick="openModalTambahStok()" style="background:rgba(200,146,42,0.06);border:1px dashed rgba(200,146,42,0.3);margin-top:4px;">
+      <span class="nav-ico">🥩</span> Kelola Stok
+      <span class="nav-badge" id="badge-stok-sidebar" style="background:var(--gold);color:#1a1000;">0</span>
+    </div>
     <div class="nav-section-label" style="margin-top:8px;">Penerima &amp; QR</div>
     <div class="nav-item" onclick="navTo('upload',this)">
       <span class="nav-ico">🎫</span> Penerima Kurban
@@ -197,9 +201,17 @@
         <div class="topbar-sub" id="topbar-sub">Sistem Informasi Distribusi Kurban Berbasis QR</div>
       </div>
     </div>
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      LIVE TRACKING ACTIVE
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div onclick="openModalTambahStok()" title="Klik untuk tambah atau kelola stok daging" style="cursor:pointer;background:rgba(200,146,42,0.12);border:1px solid rgba(200,146,42,0.3);padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:8px;transition:all .2s;">
+        <span style="font-size:14px;">🥩</span>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:700;">Stok:</span>
+        <strong id="topbar-stok-num" style="font-size:14px;color:var(--gold);font-family:'Syne',sans-serif;">0</strong>
+        <span style="font-size:10px;color:var(--gold);background:rgba(200,146,42,0.2);padding:1px 6px;border-radius:10px;font-weight:700;">+ Tambah</span>
+      </div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE TRACKING ACTIVE
+      </div>
     </div>
   </header>
 
@@ -208,19 +220,54 @@
     <!-- ══════════════════════ DASHBOARD PAGE ══ -->
     <div class="page active" id="pg-dashboard">
 
-      <!-- Banner Tanggal Pelaksanaan -->
-      <div class="card" style="margin-bottom:18px; border-left: 4px solid var(--gold);">
-        <div class="card-body" style="padding:16px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-size:12px; color:var(--text3); text-transform:uppercase; font-weight:700;">📅 Tanggal Pelaksanaan Kurban</div>
-            <div id="dash-tgl-kurban" style="font-size:18px; font-weight:800; color:var(--text); margin-top:4px;">Belum Diatur</div>
+      <!-- Banners Atas: Tanggal Pelaksanaan & Stok Daging Kurban -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:18px;">
+        <!-- Banner Tanggal Pelaksanaan -->
+        <div class="card" style="border-left: 4px solid var(--gold); height:100%; display:flex; align-items:center;">
+          <div class="card-body" style="padding:16px 20px; width:100%; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:11px; color:var(--text3); text-transform:uppercase; font-weight:700;">📅 Tanggal Pelaksanaan Kurban</div>
+              <div id="dash-tgl-kurban" style="font-size:18px; font-weight:800; color:var(--text); margin-top:4px;">Belum Diatur</div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="navTo('settings', document.querySelector('.nav-item[onclick*=\'settings\']'))">Ubah / Hapus</button>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="navTo('settings', document.querySelector('.nav-item[onclick*=\'settings\']'))">Ubah / Hapus</button>
+        </div>
+
+        <!-- Banner Utama: Stok Daging Kurban (Tambah Stok) -->
+        <div class="card" style="border-left: 4px solid var(--gold2); background: linear-gradient(135deg, rgba(200,146,42,0.18), rgba(26,18,8,0.85)); border-color: rgba(200,146,42,0.35);">
+          <div class="card-body" style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="width:44px; height:44px; border-radius:12px; background:rgba(200,146,42,0.2); border:1px solid rgba(200,146,42,0.4); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;">
+                🥩
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--gold2); text-transform:uppercase; font-weight:800; letter-spacing:.5px;">Sisa Stok Daging Tersedia</div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:2px;">
+                  <span id="dash-stok-angka" style="font-size:28px; font-weight:800; color:var(--gold); font-family:'Syne',sans-serif; line-height:1;">0</span>
+                  <span style="font-size:13px; font-weight:700; color:var(--text);">paket</span>
+                  <span id="dash-stok-detail" style="font-size:11px; color:var(--text3); margin-left:6px;">(Masuk: 0 · Keluar: 0)</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-gold btn-lg" onclick="openModalTambahStok()" style="display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 14px rgba(200,146,42,0.35); font-weight:700; cursor:pointer;">
+              <span style="font-size:16px;">➕</span>
+              <span>Tambah Stok</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Stats -->
-      <div class="stat-grid">
+      <!-- Stats (5 Kolom Termasuk Stok Daging) -->
+      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="stat-card" style="border: 1px solid rgba(200, 146, 42, 0.4); background: linear-gradient(135deg, rgba(200,146,42,0.12), rgba(26,18,8,0.7)); cursor:pointer;" onclick="openModalTambahStok()" title="Klik untuk tambah atau kelola stok daging">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="stat-label" style="color:var(--gold2); font-weight:700;">🥩 Stok Daging</div>
+            <button class="btn btn-gold btn-sm" style="padding:2px 8px; font-size:10px;" onclick="event.stopPropagation(); openModalTambahStok()">+ Tambah</button>
+          </div>
+          <div class="stat-num" id="s-stok" style="color:var(--gold);">0</div>
+          <div class="stat-sub" id="s-stok-sub">Masuk: 0 · Keluar: 0</div>
+          <div class="stat-icon" style="opacity:0.25;">🥩</div>
+        </div>
         <div class="stat-card">
           <div class="stat-label">Total Hewan</div>
           <div class="stat-num" id="s-hewan">0</div>
@@ -405,12 +452,30 @@
 
     <!-- ══════════════════════ DISTRIBUSI PAGE ══ -->
     <div class="page" id="pg-distribusi">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Distribusi QR — Scan Kamera</div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px;">Scan QR code penerima dengan kamera untuk verifikasi otomatis</div>
         </div>
-        <div style="font-size:13px;color:var(--text3);">Terverifikasi: <strong id="dist-count" style="color:var(--green);">0</strong> / <span id="dist-total">0</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="background:linear-gradient(135deg, rgba(200,146,42,0.18), rgba(200,146,42,0.06));border:1px solid rgba(200,146,42,0.35);border-radius:12px;padding:8px 16px;display:flex;align-items:center;gap:12px;">
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:700;">🥩 Sisa Stok Daging</div>
+              <div style="font-size:22px;font-weight:800;color:var(--gold);line-height:1.1;" id="dist-stok-display">0 <span style="font-size:12px;font-weight:500;color:var(--text3);">paket</span></div>
+            </div>
+            <button class="btn btn-gold btn-sm" onclick="openModalTambahStok()">+ Tambah Stok</button>
+          </div>
+          <div style="font-size:13px;color:var(--text3);">Terverifikasi: <strong id="dist-count" style="color:var(--green);">0</strong> / <span id="dist-total">0</span></div>
+        </div>
+      </div>
+
+      <!-- Warning jika stok habis di scanner -->
+      <div id="scanner-stok-warning" style="display:none;background:rgba(224,85,85,0.15);border:1px solid rgba(224,85,85,0.4);color:var(--red);padding:12px 18px;border-radius:10px;margin-bottom:16px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">⚠️</span>
+          <span><strong>Stok Daging Kurban Habis (0 paket)!</strong> Verifikasi scan QR tidak dapat dilakukan sebelum stok ditambahkan.</span>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="openModalTambahStok()">+ Tambah Sekarang</button>
       </div>
 
       <div class="dash-grid">
@@ -867,6 +932,128 @@
   </div>
 </div>
 
+<!-- ─── MODAL: KELOLA & TAMBAH STOK DAGING ───────── -->
+<div class="modal-overlay" id="modal-tambah-stok">
+  <div class="modal" style="width: 580px; max-width: 95vw;">
+    <div class="modal-header">
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+        <span>🥩</span>
+        <span>Kelola Stok Daging Kurban</span>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-tambah-stok')">✕</button>
+    </div>
+
+    <!-- Ringkasan Stok Cards -->
+    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:18px;">
+      <div style="background:var(--bg3);border:1px solid rgba(200,146,42,0.3);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:700;">Sisa Stok</div>
+        <div id="mstok-sisa" style="font-size:24px;font-weight:800;color:var(--gold);margin-top:2px;font-family:'Syne',sans-serif;">0</div>
+        <div style="font-size:10px;color:var(--text3);">paket siap ambil</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:700;">Total Masuk</div>
+        <div id="mstok-masuk" style="font-size:24px;font-weight:800;color:var(--blue);margin-top:2px;font-family:'Syne',sans-serif;">0</div>
+        <div style="font-size:10px;color:var(--text3);">dari seluruh sesi</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:700;">Terdistribusi</div>
+        <div id="mstok-keluar" style="font-size:24px;font-weight:800;color:var(--green);margin-top:2px;font-family:'Syne',sans-serif;">0</div>
+        <div style="font-size:10px;color:var(--text3);">sudah diambil</div>
+      </div>
+    </div>
+
+    <!-- Form Tambah Stok Baru -->
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+        <span>➕</span> Tambah Stok Penyembelihan Baru
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin:0 0 12px;line-height:1.5;">
+        Masukkan jumlah paket daging hasil sembelih. Setiap ada warga yang scan QR atau admin menandai manual, stok otomatis berkurang 1.
+      </p>
+
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Jumlah Paket Daging Baru <span style="color:var(--red);">*</span></label>
+          <!-- Number Picker +/- -->
+          <div style="display:flex;align-items:center;gap:0;border:1.5px solid rgba(200,146,42,0.4);border-radius:12px;overflow:hidden;background:var(--bg2);width:fit-content;">
+            <button type="button"
+              onclick="stepStok(-1)"
+              style="width:44px;height:52px;background:var(--bg3);border:none;border-right:1px solid rgba(200,146,42,0.25);color:var(--text);font-size:22px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;user-select:none;"
+              onmousedown="startStepHold(-1)" onmouseup="stopStepHold()" onmouseleave="stopStepHold()"
+              ontouchstart="startStepHold(-1)" ontouchend="stopStepHold()"
+            >−</button>
+            <input type="number" id="inp-tambah-stok-jml" min="1" value=""
+              placeholder="0"
+              style="width:90px;height:52px;border:none;background:transparent;text-align:center;font-size:22px;font-weight:800;color:var(--gold);font-family:'Syne',sans-serif;outline:none;-moz-appearance:textfield;"
+              oninput="updateStokKalkulasiPreview()"
+            />
+            <button type="button"
+              onclick="stepStok(1)"
+              style="width:44px;height:52px;background:var(--bg3);border:none;border-left:1px solid rgba(200,146,42,0.25);color:var(--gold);font-size:22px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;user-select:none;"
+              onmousedown="startStepHold(1)" onmouseup="stopStepHold()" onmouseleave="stopStepHold()"
+              ontouchstart="startStepHold(1)" ontouchend="stopStepHold()"
+            >+</button>
+          </div>
+          <style>
+          #inp-tambah-stok-jml::-webkit-inner-spin-button,
+          #inp-tambah-stok-jml::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+          </style>
+        </div>
+        <div class="form-group" style="flex:1.4;">
+          <label>Nama Sesi / Keterangan</label>
+          <input type="text" id="inp-tambah-stok-ket" placeholder="Contoh: Sesi 1 / Sapi #1"/>
+        </div>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:var(--text3);">Preset cepat:</span>
+        <button type="button" class="btn btn-outline btn-sm" onclick="setPresetStok(10)">+10</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="setPresetStok(20)">+20</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="setPresetStok(50)">+50</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="setPresetStok(100)">+100</button>
+      </div>
+
+      <!-- Preview Kalkulasi -->
+      <div id="stok-preview-calc" style="display:none;background:rgba(200,146,42,0.1);border:1px dashed rgba(200,146,42,0.4);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gold2);">
+        Stok saat ini: <strong id="calc-sisa-ini">0</strong> + Tambahan baru: <strong id="calc-tambah-ini">0</strong> = <strong>Total stok baru: <span id="calc-total-baru" style="font-size:14px;color:var(--gold);">0</span> paket</strong>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn btn-gold btn-lg" style="width:100%;" onclick="submitTambahStokAction()">
+          ✓ Tambahkan ke Stok Kurban
+        </button>
+      </div>
+    </div>
+
+    <!-- Riwayat Penambahan & Mutasi Stok -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);">📋 Riwayat Mutasi Stok</div>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="toggleKoreksiStok()">⚙️ Koreksi Stok</button>
+      </div>
+
+      <!-- Form Koreksi Tersembunyi (jika admin butuh setel nilai eksak) -->
+      <div id="panel-koreksi-stok" style="display:none;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Setel langsung nilai sisa stok saat ini (misal penyesuaian fisik):</div>
+        <div style="display:flex;gap:8px;">
+          <input type="number" id="inp-koreksi-stok-val" min="0" placeholder="Stok sisa tepat" style="flex:1;padding:6px 10px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;"/>
+          <input type="text" id="inp-koreksi-stok-ket" placeholder="Alasan koreksi" style="flex:1.5;padding:6px 10px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;"/>
+          <button class="btn btn-outline btn-sm" onclick="submitKoreksiStokAction()">Terapkan</button>
+        </div>
+      </div>
+
+      <div id="mstok-riwayat-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg2);">
+        <div class="empty-state" style="padding:16px;font-size:12px;">Belum ada riwayat stok</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-tambah-stok')">Tutup</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════ SETTINGS PAGE ══ -->
 
 <div class="page" id="pg-settings">
@@ -908,7 +1095,7 @@
   }
 </script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="{{ asset('js/admin.js') }}"></script>
+<script src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- ⭐ JAVASCRIPT UNTUK FITUR HAPUS -->
@@ -979,6 +1166,9 @@ function deleteWarga(noKk, nama) {
                 }
                 if (typeof refreshDistribusiSnapshot === 'function') {
                     refreshDistribusiSnapshot();
+                }
+                if (typeof loadStokFromServer === 'function') {
+                    loadStokFromServer();
                 }
             }, 500);
         } else {
@@ -1100,6 +1290,9 @@ function renderPenerimaTable() {
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof renderPenerimaTable === 'function') {
         renderPenerimaTable();
+    }
+    if (typeof loadStokFromServer === 'function') {
+        loadStokFromServer();
     }
 });
 </script>

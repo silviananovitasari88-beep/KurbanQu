@@ -14,6 +14,104 @@
       nama: "{{ $warga->nama_kk ?? ($penerima->nama ?? '') }}",
   };
 </script>
+<style>
+/* ═══════════════════ FLIP CLOCK STOK ═══════════════════ */
+.flip-clock-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+}
+.flip-digit {
+  position: relative;
+  width: 32px;
+  height: 44px;
+  perspective: 200px;
+}
+.flip-digit .flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: none;
+}
+.flip-digit .flip-front,
+.flip-digit .flip-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
+  font-family: 'Syne', sans-serif;
+  color: #2e7d32;
+  background: linear-gradient(to bottom, #f8f8f8 50%, #efefef 50%);
+  border: 1.5px solid rgba(46,125,50,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.flip-digit .flip-back {
+  transform: rotateX(180deg);
+}
+/* Top half overlay for fold effect */
+.flip-digit .fold-top,
+.flip-digit .fold-bottom {
+  position: absolute;
+  left: 0; right: 0;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  border-radius: 7px 7px 0 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.flip-digit .fold-top {
+  top: 0;
+  transform-origin: bottom center;
+}
+.flip-digit .fold-bottom {
+  bottom: 0;
+  top: auto;
+  border-radius: 0 0 7px 7px;
+  transform-origin: top center;
+  transform: rotateX(0deg);
+}
+.flip-digit.flipping .fold-top {
+  animation: foldTop 0.3s ease-in forwards;
+}
+.flip-digit.flipping .fold-bottom {
+  animation: foldBottom 0.3s ease-out 0.15s forwards;
+}
+@keyframes foldTop {
+  0%   { transform: rotateX(0deg); }
+  100% { transform: rotateX(-90deg); }
+}
+@keyframes foldBottom {
+  0%   { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+.flip-clock-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2e7d32;
+  text-transform: uppercase;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+/* Stok habis state */
+.stok-habis .flip-digit .flip-front,
+.stok-habis .flip-digit .flip-back,
+.stok-habis .flip-digit .fold-top-inner,
+.stok-habis .flip-digit .fold-bottom-inner {
+  color: #c62828;
+  border-color: rgba(198,40,40,0.2);
+}
+.stok-habis .flip-clock-label { color: #c62828; }
+</style>
 </head>
 <body>
 <div class="app">
@@ -72,11 +170,29 @@
 
     <!-- Tracking Timeline -->
     <div class="scroll-area" style="position:relative;" id="dash-scroll">
-      <div style="padding:20px 20px 10px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:11px;font-weight:700;color:#7a5230;text-transform:uppercase;letter-spacing:.5px;">
+
+      <!-- Card Sisa Stok Daging untuk Warga (Ukuran Jelas & Mudah Dibaca) -->
+      <div id="warga-stok-card" style="margin: 16px 20px 8px; background: #ffffff; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 14px rgba(61,37,16,0.08); border: 1.5px solid rgba(122,82,48,0.15);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, rgba(122,82,48,0.15), rgba(200,146,42,0.1)); display:flex; align-items:center; justify-content:center; font-size:22px;">
+            🥩
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:800; color:#5c3a21; text-transform:uppercase; letter-spacing:0.5px;">Sisa Stok Daging</div>
+            <div id="warga-stok-status-desc" style="font-size:12px; color:#856040; margin-top:2px;">Tersedia untuk warga</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div id="warga-stok-flip-wrap" class="flip-clock-wrap" style="margin-bottom:4px;"></div>
+          <div class="flip-clock-label" id="warga-stok-label">Paket Siap Ambil</div>
+        </div>
+      </div>
+
+      <div style="padding:14px 20px 10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <div style="font-size:12px;font-weight:800;color:#7a5230;text-transform:uppercase;letter-spacing:.5px;">
           📍 Status Proses Kurban
         </div>
-        <div id="warga-tgl-kurban" style="font-size:10px; font-weight:800; background:rgba(232,184,75,0.2); padding:3px 8px; border-radius:12px; color:#c8922a; display:none;"></div>
+        <div id="warga-tgl-kurban" style="font-size:11px; font-weight:800; background:rgba(232,184,75,0.25); border:1px solid rgba(232,184,75,0.4); padding:3px 10px; border-radius:12px; color:#9c6812; display:none;"></div>
       </div>
 
       <div class="dash-track-wrap" id="dash-timeline">

@@ -77,5 +77,11 @@ Route::post('/admin/api/settings', [AdminController::class, 'saveSettings'])->mi
 Route::get('/api/scan-validation', [AdminController::class, 'getQrScanValidation']);
 Route::get('/admin/api/scan/{qrCode}', [AdminController::class, 'scanByQrCode'])->middleware('auth');
 
+// ---- Stok Daging Kurban ----
+Route::get('/api/stok', [AdminController::class, 'getStok']);
+Route::get('/admin/api/stok', [AdminController::class, 'getStok'])->middleware('auth');
+Route::post('/admin/api/stok/tambah', [AdminController::class, 'tambahStok'])->middleware('auth');
+Route::post('/admin/api/stok/atur', [AdminController::class, 'aturStok'])->middleware('auth');
+
 Route::get('/api/hewan', [AdminController::class, 'getHewan']);
 Route::get('/api/mudhohi', [AdminController::class, 'getMudhohi']);

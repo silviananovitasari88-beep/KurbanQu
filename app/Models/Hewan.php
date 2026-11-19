@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerPeriode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hewan extends Model
-{
+{ 
+    use PerPeriode;
+
     protected $table = 'hewan';
     protected $primaryKey = 'id_hewan';
 

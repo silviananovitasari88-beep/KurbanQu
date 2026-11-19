@@ -1298,6 +1298,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <!-- ⭐ AKHIR TAMBAHAN JAVASCRIPT -->
 
+<script src="{{ asset('js/rekap-tahunan.js') }}?v={{ filemtime(public_path('js/rekap-tahunan.js')) }}"></script>
 <!-- Auto-logout -->
 <script>
   (function(){

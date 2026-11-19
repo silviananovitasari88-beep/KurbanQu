@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PenerimaController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\PeriodeController;
 
 // ---- Auth ----
 Route::middleware('guest')->group(function () {
@@ -37,23 +38,24 @@ Route::post('/warga/login', [WargaQrController::class, 'login'])->name('warga.lo
 Route::get('/warga/status', [WargaQrController::class, 'status'])->name('warga.status');
 
 // ---- API Admin (distribusi, warga, dll) ----
-Route::delete('/admin/api/warga/{noKk}', [AdminController::class, 'deleteWarga'])
+// [PERIODE] hapus warga, daftar penerima, snapshot distribusi, hapus semua penerima kini lewat PeriodeController
+Route::delete('/admin/api/warga/{noKk}', [PeriodeController::class, 'deleteWarga'])
     ->middleware('auth')
     ->name('admin.delete-warga');
 
-Route::get('/admin/api/penerima/list', [AdminController::class, 'getPenerimaList'])
+Route::get('/admin/api/penerima/list', [PeriodeController::class, 'getPenerimaList'])
     ->middleware('auth');
 
-Route::get('/admin/api/distribusi/snapshot', [AdminController::class, 'distribusiSnapshot']);
+Route::get('/admin/api/distribusi/snapshot', [PeriodeController::class, 'distribusiSnapshot']);
 Route::post('/admin/api/distribusi/{idStok}/manual', [AdminController::class, 'updateDistribusiManual']);
 Route::post('/admin/api/distribusi/{idStok}/batalkan', [AdminController::class, 'batalkanDistribusi'])
     ->middleware('auth');
 
 Route::delete('/admin/api/import-temp', [AdminController::class, 'deleteTempImport']);
-Route::delete('/admin/api/penerima', [AdminController::class, 'clearPenerimaData']);
-Route::delete('/admin/api/penerima/clear-all', [AdminController::class, 'clearPenerimaData']);
+Route::delete('/admin/api/penerima', [PeriodeController::class, 'clearPenerimaData'])->middleware('auth');
+Route::delete('/admin/api/penerima/clear-all', [PeriodeController::class, 'clearPenerimaData'])->middleware('auth');
 
-Route::post('/simpan-penerima', [PenerimaController::class, 'simpanPenerima']);
+Route::post('/simpan-penerima', [PeriodeController::class, 'simpanPenerima'])->middleware('auth');
 
 // ---- Tracking ----
 Route::get('/api/tracking', [TrackingController::class, 'getSteps']);
@@ -63,13 +65,18 @@ Route::post('/admin/api/tracking/reset', [TrackingController::class, 'reset'])
     ->middleware('auth');
 
 // ---- Hewan & Mudhohi ----
-Route::get('/admin/api/hewan', [AdminController::class, 'getHewan']);
-Route::post('/admin/api/hewan', [AdminController::class, 'storeHewan']);
-Route::delete('/admin/api/hewan/{idHewan}', [AdminController::class, 'deleteHewan']);
+Route::get('/admin/api/hewan', [PeriodeController::class, 'getHewan']);
+Route::post('/admin/api/hewan', [PeriodeController::class, 'storeHewan'])->middleware('auth');
+Route::delete('/admin/api/hewan/{idHewan}', [PeriodeController::class, 'deleteHewan'])->middleware('auth');
 
-Route::get('/admin/api/mudhohi', [AdminController::class, 'getMudhohi']);
+Route::get('/admin/api/mudhohi', [PeriodeController::class, 'getMudhohi']);
 Route::post('/admin/api/mudhohi', [AdminController::class, 'storeMudhohi']);
 Route::delete('/admin/api/mudhohi/{idMudhohi}', [AdminController::class, 'deleteMudhohi']);
+
+// ---- [PERIODE] Rekap tahunan, periode baru, riwayat perubahan ----
+Route::get('/admin/api/rekap-tahunan', [PeriodeController::class, 'rekapTahunan'])->middleware('auth');
+Route::post('/admin/api/periode/mulai', [PeriodeController::class, 'mulaiPeriodeBaru'])->middleware('auth');
+Route::get('/admin/api/audit-log', [PeriodeController::class, 'daftarAudit'])->middleware('auth');
 
 // ---- Settings & Validation ----
 Route::get('/api/settings', [AdminController::class, 'getSettings']);
@@ -83,5 +90,5 @@ Route::get('/admin/api/stok', [AdminController::class, 'getStok'])->middleware('
 Route::post('/admin/api/stok/tambah', [AdminController::class, 'tambahStok'])->middleware('auth');
 Route::post('/admin/api/stok/atur', [AdminController::class, 'aturStok'])->middleware('auth');
 
-Route::get('/api/hewan', [AdminController::class, 'getHewan']);
-Route::get('/api/mudhohi', [AdminController::class, 'getMudhohi']);
+Route::get('/api/hewan', [PeriodeController::class, 'getHewan']);
+Route::get('/api/mudhohi', [PeriodeController::class, 'getMudhohi']);
